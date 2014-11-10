@@ -1,0 +1,216 @@
+grammar Iridium
+
+  ##################
+  # Program structure
+
+  rule block
+    (comment / statement)+ <Block>
+  end
+
+  rule statement
+    space? ( assignment / if / while / for / function / class / module / function_invocation) ';'? space? linebreak? <Statement>
+  end
+
+  ##################
+  # Literals
+
+  rule integer
+    ('+' / '-')? [0-9]+ <IntegerLiteral>
+  end
+
+  rule float
+    ('+' / '-')? [0-9]+ '.' [0-9]+ <FloatLiteral>
+  end
+
+  rule string
+    '"' ([^"\\] / "\\" . )* '"' <StringLiteral>
+  end
+
+  rule identifier
+    '$'? [a-zA-Z] [a-zA-Z0-9_]* ('?' / '!')? <Identifier>
+  end
+
+  ##################
+  # Assignment
+
+  rule assignment
+    identifier space? assignment_operator space? ( expression ) <Assignment>
+  end
+
+  ##################
+  # Functions
+  
+  rule function_invocation
+    identifier space? passed_arguments <FunctionInvocation>
+  end
+  
+  rule passed_arguments
+    ('(' space? allcommaseparated? space? primary space? ')' <ArgumentList>) / ('(' space? ')' <ArgumentList>)
+  end
+  
+  rule function
+    ('function' space identifier space? argumentlist space
+      block
+    space? 'end' space? <Function>)
+    /
+    ('function' space identifier space
+      block
+    space? 'end' space? <Function>)    
+  end
+  
+  rule argumentlist
+    ('(' space? commaseparated? space? identifier space? ')' <ArgumentList>) / ('(' space? ')' <ArgumentList>)
+  end
+  
+  rule commaseparated
+   identifier space? ',' space? commaseparated? <CommaSeparated>
+  end
+  
+  rule allcommaseparated
+    primary space? ',' space? allcommaseparated? <CommaSeparated>  
+  end
+  ##################
+  # Objects
+  
+  rule module
+    'module' space identifier space
+      block
+    space? 'end' space? <Module>
+  end
+  
+  rule class
+    'class' space identifier space
+      block
+    space? 'end' space? <Class>
+  end
+  
+  ##################
+  # Flow control
+
+  rule if
+    'if' space comparative space
+      block
+    space? 'end' space? <If>
+  end
+
+  rule while
+    'while' space comparative space
+      block
+    space? 'end' space? <While>
+  end
+
+  rule for
+    'for' space identifier space 'in' space identifier space
+      block
+    space? 'end' space? <For>
+  end
+
+  ##################
+  # Expressions
+
+  rule expression
+    space? (additive) <Expression>
+  end
+
+  rule comparative
+    primary space? comparative_operator space? primary <ComparativeExpression>
+  end
+
+  rule additive
+    multitive space? additive_operator space? additive <AdditiveExpression>
+    /
+    multitive
+  end
+
+  rule multitive
+    primary space? multitive_operator space? multitive <MultitiveExpression>
+    /
+    primary
+  end
+
+  rule primary
+    function_invocation / identifier / float / integer / string
+    /
+    '(' space? expression space? ')' <Expression>
+  end
+
+  ##################
+  # Operator sets
+
+  rule comparative_operator
+    equality_operator / inequality_operator / greater_than_operator / less_than_operator
+  end
+
+  rule additive_operator
+    addition_operator / subtraction_operator
+  end
+
+  rule multitive_operator
+    multiplication_operator / division_operator
+  end
+
+  ##################
+  # Operators
+
+  rule assignment_operator
+    '=' <AssignmentOperator>
+  end
+
+  rule addition_operator
+    '+' <AdditionOperator>
+  end
+
+  rule subtraction_operator
+    '-' <SubtractionOperator>
+  end
+
+  rule multiplication_operator
+    '*' <MultiplicationOperator>
+  end
+
+  rule division_operator
+    '/' <DivisionOperator>
+  end
+
+  rule equality_operator
+    '==' <EqualityOperator>
+  end
+
+  rule inequality_operator
+    '!=' <InequalityOperator>
+  end
+
+  rule greater_than_operator
+    '>' <GreaterThanOperator>
+  end
+
+  rule less_than_operator
+    '<' <LessThanOperator>
+  end
+
+  ##################
+  # Comments
+
+  rule comment
+    '#' [^"\n"]* ( "\n" / end_of_file )
+  end
+
+  ##################
+  # Whitespace
+
+  rule space
+    [\s]+
+  end
+
+  rule linebreak
+   [\n]+
+  end
+
+  ##################
+  # End of file
+
+  rule end_of_file
+    !.
+  end
+
+end
