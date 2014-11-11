@@ -2,13 +2,21 @@ grammar Iridium
 
   ##################
   # Program structure
-
+  
+  rule top_block
+    (comment / statement / top_statement)+ <Block>  
+  end
+  
   rule block
     (comment / statement)+ <Block>
   end
-
+  
+  rule top_statement
+    space? (function / class / module) ';'? space? linebreak? <Statement>
+  end
+  
   rule statement
-    space? ( assignment / if / while / for / function / class / module / function_invocation) ';'? space? linebreak? <Statement>
+    space? ( assignment / if / while / for / return / function_invocation ) ';'? space? linebreak? <Statement>
   end
 
   ##################
@@ -40,8 +48,26 @@ grammar Iridium
   ##################
   # Functions
   
+  rule return
+    "return" space expression <Return>
+  end
+  
+  rule lambda
+    ("->" space
+      block
+    space? 'end' <Lambda>) /
+    ("->" space? argumentlist space?
+      block
+    space? 'end' <Lambda>)
+  end
+  
   rule function_invocation
-    identifier space? passed_arguments <FunctionInvocation>
+    (identifier space? passed_arguments passed_function? <FunctionInvocation>) /
+    (identifier passed_function <FunctionInvocation>)
+  end
+  
+  rule passed_function
+    space lambda <PassedFunction>
   end
   
   rule passed_arguments
@@ -88,23 +114,27 @@ grammar Iridium
   # Flow control
 
   rule if
-    'if' space comparative space
+    'if' space condition space
       block
     space? 'end' space? <If>
   end
 
   rule while
-    'while' space comparative space
+    'while' space condition space
       block
     space? 'end' space? <While>
   end
 
   rule for
-    'for' space identifier space 'in' space identifier space
+    'for' space identifier space 'in' space expression space
       block
     space? 'end' space? <For>
   end
-
+  
+  rule condition
+    (comparative / primary)
+  end
+  
   ##################
   # Expressions
 
@@ -129,7 +159,7 @@ grammar Iridium
   end
 
   rule primary
-    function_invocation / identifier / float / integer / string
+    function_invocation / identifier / float / integer / string / lambda
     /
     '(' space? expression space? ')' <Expression>
   end

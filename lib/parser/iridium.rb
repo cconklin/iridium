@@ -90,21 +90,33 @@ module Iridium
   end
   
   class EqualityOperator < Treetop::Runtime::SyntaxNode
+    def content
+      :==
+    end
   end
   
   class InequalityOperator < Treetop::Runtime::SyntaxNode
+    def content
+      :"!="
+    end
   end
   
   class GreaterThanOperator < Treetop::Runtime::SyntaxNode
+    def content
+      :>
+    end
   end
   
   class LessThanOperator < Treetop::Runtime::SyntaxNode
+    def content
+      :<
+    end
   end
   
   class Function < Treetop::Runtime::SyntaxNode
     def content
       if elements.length > 2 # function with argument list
-        [:function, elements[0].content, elements[1].content, elements[2].content]
+        [:function, *elements.map(&:content)]
       else # function with no argument list (i.e function x ... end)
         [:function, elements[0].content, [], elements[1].content]
       end
@@ -132,29 +144,65 @@ module Iridium
   end
   
   class If < Treetop::Runtime::SyntaxNode
+    def content
+      [:if, *elements.map(&:content)]
+    end
   end
   
   class While < Treetop::Runtime::SyntaxNode
+    def content
+      [:while, *elements.map(&:content)]
+    end
   end
   
   class For < Treetop::Runtime::SyntaxNode
+    def content
+      [:for, *elements.map(&:content)]
+    end
   end
   
   class Module < Treetop::Runtime::SyntaxNode
     def content
-      [:module, elements[0].content, elements[1].content]
+      [:module, *elements.map(&:content)]
     end
   end
   
   class Class < Treetop::Runtime::SyntaxNode
     def content
-      [:class, elements[0].content, elements[1].content]
+      [:class, *elements.map(&:content)]
     end
   end
   
   class FunctionInvocation < Treetop::Runtime::SyntaxNode
     def content
-      [:"()", elements[0].content, elements[1].content]
+      if elements.length == 3 # Passed function specially
+        [:"()", elements[0].content, elements[1].content + elements[2].content]
+      else
+        [:"()", *elements.map(&:content)]
+      end        
+    end
+  end
+  
+  class Lambda < Treetop::Runtime::SyntaxNode
+    def content
+      if elements.length == 1 # No args
+        [:lambda, [], elements[0].content]
+      else
+        [:lambda, *elements.map(&:content)]
+      end
+    end
+  end
+  
+  # Used for special syntax for calling a function passing a lambda
+  class PassedFunction < Treetop::Runtime::SyntaxNode
+    def content
+      [elements[0].content]
+    end
+  end
+  
+  class Return < Treetop::Runtime::SyntaxNode
+    def content
+      [:return, elements[0].content]
     end
   end
   
