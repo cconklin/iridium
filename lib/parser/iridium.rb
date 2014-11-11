@@ -43,6 +43,27 @@ module Iridium
   
   class Assignment < OperatorExpression
   end
+
+  class DotExpression < Treetop::Runtime::SyntaxNode
+    def content
+      if elements.length > 3 # Dot chain
+        [elements[1].content, elements[2].content(elements[0].content), elements[3].content]
+      else
+        [elements[1].content, elements[0].content, elements[2].content]        
+      end
+    end
+  end
+  
+  class DotChain < Treetop::Runtime::SyntaxNode
+    def content(root)
+      if elements.length == 2 # Last in the chain
+        [elements[1].content, root, elements[0].content]
+      else # x.y => [<identifier>x, <dot>, <dotchain> [<identifier>y, <dot>]]
+        # The first dot in the list is the deepest, pair it with the root, and make it the root of the next in the line
+        elements[2].content([elements[1].content, root, elements[0].content])
+      end
+    end
+  end
   
   class ComparativeExpression < OperatorExpression
   end
@@ -62,6 +83,12 @@ module Iridium
   class AssignmentOperator < Treetop::Runtime::SyntaxNode
     def content
       :"="
+    end
+  end
+
+  class DotOperator < Treetop::Runtime::SyntaxNode
+    def content
+      :"."
     end
   end
   

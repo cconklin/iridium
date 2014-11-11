@@ -137,9 +137,17 @@ grammar Iridium
   
   ##################
   # Expressions
-
+  
+  rule dot
+    additive dot_operator dot_chain? identifier <DotExpression>
+  end
+  
+  rule dot_chain
+    identifier dot_operator dot_chain? <DotChain>
+  end
+  
   rule expression
-    space? (additive) <Expression>
+    space? (dot / additive) <Expression>
   end
 
   rule comparative
@@ -181,6 +189,10 @@ grammar Iridium
 
   ##################
   # Operators
+
+  rule dot_operator
+    "." <DotOperator>
+  end
 
   rule assignment_operator
     '=' <AssignmentOperator>

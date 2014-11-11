@@ -254,21 +254,49 @@ describe Parser do
     it "should parse with no arguments" do
       expect(parser.parse("foo()")).to eq([[:"()", :foo, []]])
     end
+    
     it "should parse with arguments" do
       expect(parser.parse("foo(bar, 3, \"foo\")")).to eq([[:"()", :foo, [:bar, 3, "foo"]]])      
     end
+    
     it "should parse with annonymous functions and no arguments" do
       expect(parser.parse("foo() -> return 5 end")).to eq([[:"()", :foo, [[:lambda, [], [[:return, 5]]]]]])      
     end
+    
     it "should parse with annonymous functions and arguments" do
       expect(parser.parse("foo (5, 6) -> return 5 end")).to eq([[:"()", :foo, [5, 6, [:lambda, [], [[:return, 5]]]]]])      
     end
+    
     it "should parse with annonymous function and no arguments with no parentheses" do
       expect(parser.parse("foo -> return 5 end")).to eq([[:"()", :foo, [[:lambda, [], [[:return, 5]]]]]])            
     end
+    
     it "should not parse with annonymous function and no parentheses" do
       expect { parser.parse("foo 5 -> return 5 end") }.to raise_error(ParseError)          
     end
+  end
+  
+  describe "getting attributes" do
+    it "should get non function attributes" do
+      expect(parser.parse("x = foo.x")).to eq([[:"=", :x, [:".", :foo, :x]]])
+    end
+    
+    it "should get attributes of attributes" do
+      expect(parser.parse("x = foo.x.y")).to eq([[:"=", :x, [:".", [:".", :foo, :x], :y]]])
+    end
+    
+    it "should get attributes of attributes of attributes" do
+      expect(parser.parse("x = foo.x.y.z.w")).to eq([[:"=", :x, [:".", [:".", [:".", [:".", :foo, :x], :y], :z], :w]]])
+    end
+    
+    it "should allow getting attributes of the results of function calls" do
+      expect(parser.parse("x = foo().x")).to eq([[:"=", :x, [:".", [:"()", :foo, []], :x]]])      
+    end
+    
+    # it "should allow getting attributes of the results of function calls within the chain" do
+    #   expect(parser.parse("x = foo.x().y")).to eq([[:"=", :x, [:".", [:"()", [:".", :foo, :x], []], :y]]])
+    # end
     
   end
+  
 end
