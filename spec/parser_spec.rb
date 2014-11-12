@@ -293,10 +293,38 @@ describe Parser do
       expect(parser.parse("x = foo().x")).to eq([[:"=", :x, [:".", [:"()", :foo, []], :x]]])      
     end
     
-    # it "should allow getting attributes of the results of function calls within the chain" do
-    #   expect(parser.parse("x = foo.x().y")).to eq([[:"=", :x, [:".", [:"()", [:".", :foo, :x], []], :y]]])
-    # end
+    it "should allow invoking methods in assignment" do
+      expect(parser.parse("x = (foo.x)()")).to eq([[:"=", :x, [:"()", [:".", :foo, :x], []]]])
+    end
     
+    it "should allow invoking methods" do
+      expect(parser.parse("(foo.x)()")).to eq([[:"()", [:".", :foo, :x], []]])
+    end
+    
+    it "should give the dot operator higher precedence than invocation" do
+      expect(parser.parse("foo.x()")).to eq([[:"()", [:".", :foo, :x], []]])
+    end
+    
+    it "should allow deep method calls" do
+      expect(parser.parse("foo.x.y()")).to eq([[:"()", [:".", [:".", :foo, :x], :y], []]])    
+    end
+    
+    it "should allow method calls anywhere in the chain" do
+      expect(parser.parse("foo().x()")).to eq([[:"()", [:".", [:"()", :foo, []], :x], []]])
+    end
+    
+    it "should allow method calls with arguments anywhere in the chain" do
+      expect(parser.parse("foo(z).x(y, 2)")).to eq([[:"()", [:".", [:"()", :foo, [:z]], :x], [:y, 2]]])
+    end
+    
+    it "should prioritize attributes over addition" do
+      expect(parser.parse("x = 2 + foo.x()")).to eq([[:"=", :x, [:+, 2, [:"()", [:".", :foo, :x], []]]]])      
+    end
+    
+    it "should prioritize attributes over multiplication" do
+      expect(parser.parse("x = 2 * foo.x()")).to eq([[:"=", :x, [:*, 2, [:"()", [:".", :foo, :x], []]]]])      
+    end
+        
   end
   
 end

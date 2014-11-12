@@ -16,7 +16,7 @@ grammar Iridium
   end
   
   rule statement
-    space? ( assignment / if / while / for / return / function_invocation ) ';'? space? linebreak? <Statement>
+    space? ( assignment / if / while / for / return / invocation / function_invocation ) ';'? space? linebreak? <Statement>
   end
 
   ##################
@@ -42,11 +42,16 @@ grammar Iridium
   # Assignment
 
   rule assignment
-    identifier space? assignment_operator space? ( expression ) <Assignment>
+    identifier space? assignment_operator space? ( invocation / expression ) <Assignment>
   end
 
   ##################
   # Functions
+  
+  rule invocation
+    ((dot / primary) space? passed_arguments passed_function? <FunctionInvocation>) /
+    ((dot / primary) passed_function <FunctionInvocation>)
+  end
   
   rule return
     "return" space expression <Return>
@@ -139,15 +144,15 @@ grammar Iridium
   # Expressions
   
   rule dot
-    additive dot_operator dot_chain? identifier <DotExpression>
+    primary dot_operator dot_chain? identifier <DotExpression>
   end
   
   rule dot_chain
-    identifier dot_operator dot_chain? <DotChain>
+    (identifier / invocation) dot_operator dot_chain? <DotChain>
   end
   
   rule expression
-    space? (dot / additive) <Expression>
+    space? (invocation / dot / additive) <Expression>
   end
 
   rule comparative
@@ -162,6 +167,8 @@ grammar Iridium
 
   rule multitive
     primary space? multitive_operator space? multitive <MultitiveExpression>
+    /
+    invocation
     /
     primary
   end
