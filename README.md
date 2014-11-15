@@ -27,30 +27,22 @@ The functions can then be invoked by calling `my_func()`.
 
 ### Classes
 
-Classes in Iridium are defined with the `class` keyword. Classes must declare which attributes that they have.
+Classes in Iridium are defined with the `class` keyword.
 
 ```
   class MyClass
-    attributes :attr_1, :attr_2
     # methods go here
   end
 ```
 
-Classes can also inherit from other classes, and obtain, without the need for declaration, the attributes of their superclass.
+Classes can also inherit from other classes and obtain the methods of their superclass.
 
 ```
   class MyOtherClass < MyClass
     # inherits from MyClass
-    attributes :attr_3
-    # has the attributes :attr_1, :attr_2, and :attr_3 defined
-    # they can be accessed by self.attr_1 or by @attr_1 (for example)
-    private_attributes :attr_4
-    # :attr_4 is only avaliable in the scope of self as @attr_4 
     # methods go here
   end
 ```
-
-Attributes can be accessed internally via the `@` sigil, or publicly without. All attributes are public unless declared with `private_attributes` (that is, one could call `my_obj.some_attribute` from anywhere if `some_attribute` is public; if it is private, it is only visible within the methods of `my_obj`).
 
 ## Types
 
