@@ -57,6 +57,12 @@ describe Parser do
   end
   describe "function definitions" do
     
+    describe "returning values" do
+      it "should allow for complex return statements" do
+        expect(parser.parse("return self.foo.bar().baz()")).to eq([[:return, [:"()", [:".", [:"()", [:".", [:".", :self, :foo], :bar], []], :baz], []]]])
+      end
+    end
+    
     it "should parse with no arguments" do
       func = <<-END
       function x()
@@ -274,6 +280,31 @@ describe Parser do
     it "should not parse with annonymous function and no parentheses" do
       expect { parser.parse("foo 5 -> return 5 end") }.to raise_error(ParseError)          
     end
+    
+    it "should parse with arguments and attributes" do
+      expect(parser.parse("foo(bar.baz, 3, \"foo\")")).to eq([[:"()", :foo, [[:".", :bar, :baz], 3, "foo"]]])            
+    end
+    
+    it "should parse with arguments and expressions" do
+      expect(parser.parse("foo(3 + bar.baz)")).to eq([[:"()", :foo, [[:+, 3, [:".", :bar, :baz]]]]])            
+    end
+    
+    it "should parse with arguments and expressions and attributes" do
+      expect(parser.parse("foo(a.b + bar.baz)")).to eq([[:"()", :foo, [[:+, [:".", :a, :b], [:".", :bar, :baz]]]]])            
+    end
+    
+    it "should parse with arguments and multiplication and attributes" do
+      expect(parser.parse("foo(a.b * bar.baz)")).to eq([[:"()", :foo, [[:*, [:".", :a, :b], [:".", :bar, :baz]]]]])            
+    end
+    
+    it "should allow methods chains terminating in passed functions" do
+      expect(parser.parse("self.foo().bar.x().y() -> return 5 end")).to eq([[:"()", [:".", [:"()", [:".", [:".", [:"()", [:".", :self, :foo], []], :bar], :x], []], :y], [[:lambda, [], [[:return, 5]]]]]])
+    end
+    
+    # it "should allow method chains with passed functions in the middle" do
+    #   expect(parser.parse("self.foo() -> return 5 end.bar.x()")).to eq([[:"()", [:".", [:".", [:"()", [:".", :self, :foo], [[:lambda, [], [[:return, 5]]]]], :bar], :x], []]])
+    # end
+    
   end
   
   describe "getting attributes" do
@@ -324,7 +355,19 @@ describe Parser do
     it "should prioritize attributes over multiplication" do
       expect(parser.parse("x = 2 * foo.x()")).to eq([[:"=", :x, [:*, 2, [:"()", [:".", :foo, :x], []]]]])      
     end
-        
+    
+    it "should allow the setting of attributes" do
+      expect(parser.parse("x.y = 2")).to eq([[:set, :x, :y, 2]])
+    end
+    
+    it "should allow the setting of deep attributes" do
+      expect(parser.parse("x.y.z.q = 2")).to eq([[:set, [:".", [:".", :x, :y], :z], :q, 2]])
+    end
+    
+    it "should allow methods to appear anywhere in the chain" do
+      expect(parser.parse("self.foo().bar.x().baz")).to eq([[:".", [:"()", [:".", [:".", [:"()", [:".", :self, :foo], []], :bar], :x], []], :baz]])
+    end
+    
   end
   
 end

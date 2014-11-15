@@ -43,7 +43,14 @@ module Iridium
   
   class Assignment < OperatorExpression
   end
-
+  
+  class AttributeAssignment < Treetop::Runtime::SyntaxNode
+    def content
+      # [:set, receiver, attribute, value]
+      [:set, elements[0].content[1], elements[0].content[2], elements[2].content]
+    end
+  end
+  
   class DotExpression < Treetop::Runtime::SyntaxNode
     def content
       if elements.length > 3 # Dot chain
@@ -202,11 +209,59 @@ module Iridium
   
   class FunctionInvocation < Treetop::Runtime::SyntaxNode
     def content
-      if elements.length == 3 # Passed function specially
-        [:"()", elements[0].content, elements[1].content + elements[2].content]
+      # TODO Don't forget if there is a chained invocation & a passed function (doesn't parse yet)
+      if elements.length > 2 # Passed function specially or chained invocations
+        if elements.last.content[0][0] == :lambda # Special function passing (get the content of the last element, it will be a list with a single lambda inside)
+          [:"()", receiver, args + elements.last.content]
+        elsif chained_call # chained invocation
+          resolve([[:"()", receiver, args], *chained_call.content])
+        else
+          self
+        end
       else
         [:"()", *elements.map(&:content)]
-      end        
+      end
+    end
+    
+    def chained_call
+      elements.last if elements.last.is_a?(CallChain)
+    end
+    
+    def receiver
+      elements.first.content
+    end
+    
+    def args
+      elements[1].content
+    end
+    
+    def resolve(chained_calls, result = [])
+      # Takes a chain of calls, deepest first, and constructs the call tree
+      if chained_calls.empty?
+        result
+      else
+        if result.empty?
+          resolve(chained_calls[1..-1], chained_calls.first)
+        else
+          if chained_calls.first[0] == :"()" # method
+            resolve(chained_calls[1..-1], [:"()", [:".", result, chained_calls.first[1]], chained_calls.first[2]])
+          else # attribute
+            #p chained_calls
+            resolve(chained_calls[1..-1], [:".", result, chained_calls.first])
+          end
+        end
+      end
+    end
+    
+  end
+  
+  class CallChain < Treetop::Runtime::SyntaxNode
+    def content
+      if elements.length == 1
+        [elements.first.content]
+      else
+        [elements.first.content, *elements.last.content]
+      end
     end
   end
   

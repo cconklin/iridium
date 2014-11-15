@@ -16,7 +16,7 @@ grammar Iridium
   end
   
   rule statement
-    space? ( assignment / if / while / for / return / invocation / function_invocation ) ';'? space? linebreak? <Statement>
+    space? ( attribute_assignment / assignment / if / while / for / return / invocation / function_invocation ) ';'? space? linebreak? <Statement>
   end
 
   ##################
@@ -35,12 +35,16 @@ grammar Iridium
   end
 
   rule identifier
-    '$'? [a-zA-Z] [a-zA-Z0-9_]* ('?' / '!')? <Identifier>
+    '$'? [a-zA-Z_] [a-zA-Z0-9_]* ('?' / '!')? <Identifier>
   end
 
   ##################
   # Assignment
-
+  
+  rule attribute_assignment
+    dot space? assignment_operator space? (invocation / expression) <AttributeAssignment>
+  end
+  
   rule assignment
     identifier space? assignment_operator space? ( invocation / expression ) <Assignment>
   end
@@ -49,8 +53,12 @@ grammar Iridium
   # Functions
   
   rule invocation
-    ((dot / primary) space? passed_arguments passed_function? <FunctionInvocation>) /
+    ((dot / primary) space? passed_arguments passed_function? call_chain? <FunctionInvocation>) /
     ((dot / primary) passed_function <FunctionInvocation>)
+  end
+  
+  rule call_chain
+    "." (function_invocation / identifier) call_chain? <CallChain>
   end
   
   rule return
@@ -76,7 +84,7 @@ grammar Iridium
   end
   
   rule passed_arguments
-    ('(' space? allcommaseparated? space? primary space? ')' <ArgumentList>) / ('(' space? ')' <ArgumentList>)
+    ('(' space? allcommaseparated? space? expression space? ')' <ArgumentList>) / ('(' space? ')' <ArgumentList>)
   end
   
   rule function
@@ -98,7 +106,7 @@ grammar Iridium
   end
   
   rule allcommaseparated
-    primary space? ',' space? allcommaseparated? <CommaSeparated>  
+    expression space? ',' space? allcommaseparated? <CommaSeparated>  
   end
   ##################
   # Objects
@@ -148,11 +156,11 @@ grammar Iridium
   end
   
   rule dot_chain
-    (identifier / invocation) dot_operator dot_chain? <DotChain>
+    identifier dot_operator dot_chain? <DotChain>
   end
   
   rule expression
-    space? (invocation / dot / additive) <Expression>
+    space? additive <Expression>
   end
 
   rule comparative
@@ -166,9 +174,11 @@ grammar Iridium
   end
 
   rule multitive
-    primary space? multitive_operator space? multitive <MultitiveExpression>
+    (dot / primary) space? multitive_operator space? multitive <MultitiveExpression>
     /
     invocation
+    /
+    dot
     /
     primary
   end
