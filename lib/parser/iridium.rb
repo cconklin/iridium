@@ -246,7 +246,6 @@ module Iridium
           if chained_calls.first[0] == :"()" # method
             resolve(chained_calls[1..-1], [:"()", [:".", result, chained_calls.first[1]], chained_calls.first[2]])
           else # attribute
-            #p chained_calls
             resolve(chained_calls[1..-1], [:".", result, chained_calls.first])
           end
         end
