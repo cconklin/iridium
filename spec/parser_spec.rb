@@ -301,9 +301,13 @@ describe Parser do
       expect(parser.parse("self.foo().bar.x().y() -> return 5 end")).to eq([[:"()", [:".", [:"()", [:".", [:".", [:"()", [:".", :self, :foo], []], :bar], :x], []], :y], [[:lambda, [], [[:return, 5]]]]]])
     end
     
-    # it "should allow method chains with passed functions in the middle" do
-    #   expect(parser.parse("self.foo() -> return 5 end.bar.x()")).to eq([[:"()", [:".", [:".", [:"()", [:".", :self, :foo], [[:lambda, [], [[:return, 5]]]]], :bar], :x], []]])
-    # end
+    it "should allow method chains with passed functions in the middle" do
+      expect(parser.parse("self.foo(-> return 5 end).bar.x()")).to eq([[:"()", [:".", [:".", [:"()", [:".", :self, :foo], [[:lambda, [], [[:return, 5]]]]], :bar], :x], []]])
+    end
+    
+    it "should not allow special function passing in the middle of call chains" do
+      expect { parser.parse "self.foo -> return 5 end.bar" }.to raise_error ParseError
+    end
     
   end
   
@@ -366,6 +370,38 @@ describe Parser do
     
     it "should allow methods to appear anywhere in the chain" do
       expect(parser.parse("self.foo().bar.x().baz")).to eq([[:".", [:"()", [:".", [:".", [:"()", [:".", :self, :foo], []], :bar], :x], []], :baz]])
+    end
+    
+  end
+  
+  describe "class definitions" do
+    it "should parse empty class definitions" do
+      expect(parser.parse("class Foo end")).to eq([[:class, :Foo, nil, []]])
+    end
+    
+    it "should be able to inherit from other classes" do      
+      expect(parser.parse("class Foo < Bar end")).to eq([[:class, :Foo, :Bar, []]])
+    end
+    
+    it "should be able to contain function definitions" do
+      expect(parser.parse("class Foo function x end end")).to eq([[:class, :Foo, nil, [[:function, :x, [], []]]]])      
+    end
+    
+    # Not sure if this should be enabled until scope swtiching is implemented in the language
+    it "should be able to contain attribute assignments" do
+      expect(parser.parse("class Foo self.x = 5 end")).to eq([[:class, :Foo, nil, [[:set, :self, :x, 5]]]])      
+    end
+    
+    it "should not be able to contain local assignments" do
+      expect { parser.parse "class Foo x = 5 end" }.to raise_error ParseError
+    end
+    
+    it "should not be able to contain class definitions" do
+      expect { parser.parse "class Foo class Bar end end" }.to raise_error ParseError      
+    end
+    
+    it "should not be able to contain module definitions" do
+      expect { parser.parse "class Foo module Bar end end" }.to raise_error ParseError      
     end
     
   end

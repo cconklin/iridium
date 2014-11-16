@@ -4,11 +4,19 @@ grammar Iridium
   # Program structure
   
   rule top_block
-    (comment / statement / top_statement)+ <Block>  
+    (comment / statement / top_statement)* <Block>  
   end
   
   rule block
-    (comment / statement)+ <Block>
+    (comment / statement)* <Block>
+  end
+  
+  rule class_block
+    (comment / class_statement)* <Block>
+  end
+  
+  rule class_statement
+    space? (function / attribute_assignment) ';'? space? linebreak? <Statement>
   end
   
   rule top_statement
@@ -118,9 +126,13 @@ grammar Iridium
   end
   
   rule class
-    'class' space identifier space
-      block
-    space? 'end' space? <Class>
+    ('class' space identifier space? '<' space? identifier space
+      class_block
+    space? 'end' space? <Class>)    
+    /
+    ('class' space identifier space
+      class_block
+    space? 'end' space? <Class>)
   end
   
   ##################

@@ -203,8 +203,22 @@ module Iridium
   
   class Class < Treetop::Runtime::SyntaxNode
     def content
-      [:class, *elements.map(&:content)]
+      [:class, name, superclass, classbody]
     end
+    
+    def name
+      elements[0].content
+    end
+    
+    def superclass
+      # The superclass will be the second entry if present, otherwise the second entry will be the last, an array of function definitions, etc.
+      elements[1].content unless elements[1].content.is_a?(Array)
+    end
+    
+    def classbody
+      elements.last.content
+    end
+    
   end
   
   class FunctionInvocation < Treetop::Runtime::SyntaxNode
