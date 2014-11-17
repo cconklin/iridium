@@ -15,6 +15,10 @@ grammar Iridium
     (comment / class_statement)* <Block>
   end
   
+  rule module_block
+    (comment / top_statement / class_statement)* <Block>
+  end
+  
   rule class_statement
     space? (function / attribute_assignment) ';'? space? linebreak? <Statement>
   end
@@ -121,7 +125,7 @@ grammar Iridium
   
   rule module
     'module' space identifier space
-      block
+      module_block
     space? 'end' space? <Module>
   end
   

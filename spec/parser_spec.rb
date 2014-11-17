@@ -387,7 +387,6 @@ describe Parser do
       expect(parser.parse("class Foo function x end end")).to eq([[:class, :Foo, nil, [[:function, :x, [], []]]]])      
     end
     
-    # Not sure if this should be enabled until scope swtiching is implemented in the language
     it "should be able to contain attribute assignments" do
       expect(parser.parse("class Foo self.x = 5 end")).to eq([[:class, :Foo, nil, [[:set, :self, :x, 5]]]])      
     end
@@ -404,6 +403,33 @@ describe Parser do
       expect { parser.parse "class Foo module Bar end end" }.to raise_error ParseError      
     end
     
+  end
+  
+  describe "module definitions" do
+    it "should allow defining modules at the top level" do
+      expect(parser.parse("module F end")).to eq([[:module, :F, []]])
+    end
+    
+    it "should be able to contain function definitions" do
+      expect(parser.parse("module Foo function x end end")).to eq([[:module, :Foo, [[:function, :x, [], []]]]])      
+    end
+    
+    it "should be able to contain attribute assignments" do
+      expect(parser.parse("module Foo self.x = 5 end")).to eq([[:module, :Foo, [[:set, :self, :x, 5]]]])      
+    end
+    
+    it "should not be able to contain local assignments" do
+      expect { parser.parse "module Foo x = 5 end" }.to raise_error ParseError
+    end
+    
+    it "should be able to contain class definitions" do
+      expect( parser.parse( "module F class Y end end" ) ).to eq [[:module, :F, [[:class, :Y, nil, []]]]]
+    end
+
+    it "should be able to contain module definitions" do
+      expect( parser.parse( "module F module Y end end" ) ).to eq [[:module, :F, [[:module, :Y, []]]]]
+    end
+
   end
   
 end
