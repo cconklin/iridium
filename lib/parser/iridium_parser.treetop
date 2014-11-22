@@ -20,11 +20,11 @@ grammar Iridium
   end
   
   rule class_statement
-    space? (function / attribute_assignment) ';'? space? linebreak? <Statement>
+    space? (private_function / function / attribute_assignment / invocation / function_invocation) ';'? space? linebreak? <Statement>
   end
   
   rule top_statement
-    space? (function / class / module) ';'? space? linebreak? <Statement>
+    space? (private_function / function / class / module) ';'? space? linebreak? <Statement>
   end
   
   rule statement
@@ -97,6 +97,10 @@ grammar Iridium
   
   rule passed_arguments
     ('(' space? allcommaseparated? space? expression space? ')' <ArgumentList>) / ('(' space? ')' <ArgumentList>)
+  end
+  
+  rule private_function
+    'private' space function <PrivateFunction>
   end
   
   rule function

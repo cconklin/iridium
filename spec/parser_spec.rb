@@ -63,6 +63,17 @@ describe Parser do
       end
     end
     
+    describe "private functions" do
+      it "should allow private declarations of functions" do
+        func = <<-END
+        private function x
+          y = 5
+        end
+        END
+        expect(parser.parse(func)).to eq([[:private_function, :x, [], [[:"=", :y, 5]]]])
+      end
+    end
+    
     it "should parse with no arguments" do
       func = <<-END
       function x()
@@ -401,6 +412,10 @@ describe Parser do
     
     it "should not be able to contain module definitions" do
       expect { parser.parse "class Foo module Bar end end" }.to raise_error ParseError      
+    end
+    
+    it "should be able to include modules" do
+      expect( parser.parse("class Foo self.include(Bar) end") ).to eq([[:class, :Foo, nil, [[:"()", [:".", :self, :include], [:Bar]]]]])
     end
     
   end

@@ -147,6 +147,12 @@ module Iridium
     end
   end
   
+  class PrivateFunction < Treetop::Runtime::SyntaxNode
+    def content
+      [:private_function, *self.elements[0].content[1..-1]]
+    end
+  end
+  
   class Function < Treetop::Runtime::SyntaxNode
     def content
       if elements.length > 2 # function with argument list
