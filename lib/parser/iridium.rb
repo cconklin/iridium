@@ -35,6 +35,26 @@ module Iridium
     end
   end
   
+  class ListLiteral < Treetop::Runtime::SyntaxNode
+    def content
+      if elements.length == 0 # empty list
+        [:list, []]
+      else
+        [:list, elements[0].content]
+      end
+    end
+  end
+  
+  class ListContent < Treetop::Runtime::SyntaxNode
+    def content
+      if elements.length == 1 # list with one element
+        [elements[0].content]
+      else
+        [elements[0].content, *elements[1].content]
+      end
+    end
+  end
+  
   class Identifier < Treetop::Runtime::SyntaxNode
     def content
       text_value.to_sym

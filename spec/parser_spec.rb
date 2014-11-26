@@ -11,6 +11,18 @@ describe Parser do
       expect(parser.parse("x = :foo")).to eq([[:"=", :x, :":foo"]])
     end
     
+    it "should parse with empty list literals" do
+      expect(parser.parse("x = []")).to eq([[:"=", :x, [:list, []]]])
+    end
+    
+    it "should parse with list literals with one element" do
+      expect(parser.parse("x = [2 + 4]")).to eq([[:"=", :x, [:list, [[:+, 2, 4]]]]])      
+    end
+    
+    it "should parse with list literals" do
+      expect(parser.parse("x = [1, :foo, 2 + 3, \"bar\"]")).to eq([[:"=", :x, [:list, [1, :":foo", [:+, 2, 3], "bar"]]]])
+    end
+    
     it "should parse with addition" do
       expect(parser.parse("x = 2 + 3")).to eq([[:"=", :x, [:+, 2, 3]]])
     end

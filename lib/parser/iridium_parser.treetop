@@ -54,6 +54,15 @@ grammar Iridium
     ':' (identifier / string) <AtomLiteral>
   end
   
+  rule list
+    '[' space? list_content? space? ']' <ListLiteral>
+  end
+  
+  rule list_content
+    additive space? ',' space? list_content <ListContent>
+    / additive space? <ListContent>
+  end
+  
   ##################
   # Assignment
   
@@ -151,7 +160,7 @@ grammar Iridium
   # Flow control
 
   rule if
-    'if' space condition space
+    'if' space expression space
       block
     space? elseif?
     space? else? 
@@ -159,7 +168,7 @@ grammar Iridium
   end
 
   rule elseif
-    'elseif' space condition space
+    'elseif' space expression space
       block
     space? elseif? <ElseIf>
   end
@@ -170,7 +179,7 @@ grammar Iridium
   end
 
   rule unless
-    'unless' space condition space
+    'unless' space expression space
       block
     space? else?   
     space? 'end' <Unless>
@@ -198,11 +207,12 @@ grammar Iridium
   end
   
   rule expression
-    space? additive <Expression>
+    space? comparative <Expression>
+    / space? additive <Expression>
   end
 
   rule comparative
-    primary space? comparative_operator space? primary <ComparativeExpression>
+    additive space? comparative_operator space? additive <ComparativeExpression>
   end
 
   rule additive
@@ -222,7 +232,7 @@ grammar Iridium
   end
 
   rule primary
-    function_invocation / identifier / float / integer / string / lambda / atom
+    function_invocation / identifier / float / integer / string / lambda / atom / list
     /
     '(' space? expression space? ')' <Expression>
   end
