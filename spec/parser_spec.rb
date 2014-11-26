@@ -6,7 +6,11 @@ describe Parser do
     it "should parse with integer literals" do
       expect(parser.parse("x = 5")).to eq([[:"=", :x, 5]])
     end
-
+    
+    it "should parse with atom literals" do
+      expect(parser.parse("x = :foo")).to eq([[:"=", :x, :":foo"]])
+    end
+    
     it "should parse with addition" do
       expect(parser.parse("x = 2 + 3")).to eq([[:"=", :x, [:+, 2, 3]]])
     end

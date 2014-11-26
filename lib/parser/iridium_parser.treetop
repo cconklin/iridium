@@ -49,7 +49,11 @@ grammar Iridium
   rule identifier
     '$'? [a-zA-Z_] [a-zA-Z0-9_]* ('?' / '!')? <Identifier>
   end
-
+  
+  rule atom
+    ':' (identifier / string) <AtomLiteral>
+  end
+  
   ##################
   # Assignment
   
@@ -218,7 +222,7 @@ grammar Iridium
   end
 
   rule primary
-    function_invocation / identifier / float / integer / string / lambda
+    function_invocation / identifier / float / integer / string / lambda / atom
     /
     '(' space? expression space? ')' <Expression>
   end

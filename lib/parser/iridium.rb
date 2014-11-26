@@ -29,6 +29,12 @@ module Iridium
     end
   end
   
+  class AtomLiteral < Treetop::Runtime::SyntaxNode
+    def content
+      self.text_value.to_sym # :foo => :":foo"
+    end
+  end
+  
   class Identifier < Treetop::Runtime::SyntaxNode
     def content
       text_value.to_sym
