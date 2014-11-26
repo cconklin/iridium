@@ -227,11 +227,11 @@ module Iridium
     end
   end
   
-  class For < Treetop::Runtime::SyntaxNode
-    def content
-      [:for, *elements.map(&:content)]
-    end
-  end
+  # class For < Treetop::Runtime::SyntaxNode
+  #   def content
+  #     [:for, *elements.map(&:content)]
+  #   end
+  # end
   
   class Module < Treetop::Runtime::SyntaxNode
     def content

@@ -239,20 +239,6 @@ describe Parser do
         expect(parser.parse("while 2 > 3 x = 5 some_func() end")).to eq([[:while, [:>, 2, 3], [[:"=", :x, 5], [:"()", :some_func, []]]]])        
       end
     end
-    describe "for" do
-      it "should parse with identifiers" do
-        expect(parser.parse("for foo in bar print(foo) end")).to eq([[:for, :foo, :bar, [[:"()", :print, [:foo]]]]])
-      end
-      it "should parse with a literal as the loopee" do
-        expect(parser.parse("for foo in 5 print(foo) end")).to eq([[:for, :foo, 5, [[:"()", :print, [:foo]]]]])        
-      end
-      it "should parse with a function call as the loopee" do
-        expect(parser.parse("for foo in some_result() print(foo) end")).to eq([[:for, :foo, [:"()", :some_result, []], [[:"()", :print, [:foo]]]]])        
-      end
-      it "should not parse with a literal as the looping variable" do
-        expect { parser.parse "for 5 in foo print(foo) end" }.to raise_error(ParseError)
-      end
-    end
   end
   describe "conditionals such as" do
     describe "if" do
