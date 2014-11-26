@@ -285,7 +285,7 @@ grammar Iridium
   # Comments
 
   rule comment
-    '#' [^"\n"]* ( "\n" / end_of_file )
+    space? '#' [^\n]* ( linebreak / end_of_file )
   end
 
   ##################

@@ -474,4 +474,22 @@ describe Parser do
 
   end
   
+  describe "comments" do
+    it "should parse empty comments" do
+      expect( parser.parse( "#" ) ).to eq([])
+    end
+    it "should parse multiple lines of comments" do
+      expect( parser.parse( "#bar\n#foo" ) ).to eq([])      
+    end
+    it "should parse multiple lines of empty comments" do
+      expect( parser.parse( "#\n#" ) ).to eq([])      
+    end
+    it "should parse empty comments after nonempty ones" do
+      expect( parser.parse( "# foo\n#" ) ).to eq([])            
+    end
+    it "should allow space before the comment sign" do
+      expect( parser.parse( " # foo\n #" ) ).to eq([])                  
+    end
+  end
+  
 end
