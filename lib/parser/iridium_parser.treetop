@@ -28,7 +28,7 @@ grammar Iridium
   end
   
   rule statement
-    space? ( attribute_assignment / assignment / if / while / for / return / invocation / function_invocation ) ';'? space? linebreak? <Statement>
+    space? ( attribute_assignment / assignment / if / unless / while / for / return / invocation / function_invocation ) ';'? space? linebreak? <Statement>
   end
 
   ##################
@@ -149,7 +149,27 @@ grammar Iridium
   rule if
     'if' space condition space
       block
+    space? elseif?
+    space? else? 
     space? 'end' space? <If>
+  end
+
+  rule elseif
+    'elseif' space condition space
+      block
+    space? elseif? <ElseIf>
+  end
+  
+  rule else
+    'else' space
+      block <Else>
+  end
+
+  rule unless
+    'unless' space condition space
+      block
+    space? else?   
+    space? 'end' <Unless>
   end
 
   rule while
@@ -157,7 +177,8 @@ grammar Iridium
       block
     space? 'end' space? <While>
   end
-
+  
+  # Probably going to get rid of
   rule for
     'for' space identifier space 'in' space expression space
       block

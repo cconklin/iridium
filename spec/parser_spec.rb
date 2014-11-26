@@ -257,13 +257,54 @@ describe Parser do
   describe "conditionals such as" do
     describe "if" do
       it "should parse with an identifier" do
-        expect(parser.parse("if true x = 5 end")).to eq([[:if, :true, [[:"=", :x, 5]]]])
+        expect(parser.parse("if true x = 5 end")).to eq([[:if, [[:true, [[:"=", :x, 5]]]]]])
       end
       it "should parse with a literal" do
-        expect(parser.parse("if 5 x = 5 end")).to eq([[:if, 5, [[:"=", :x, 5]]]])        
+        expect(parser.parse("if 5 x = 5 end")).to eq([[:if, [[5, [[:"=", :x, 5]]]]]])        
       end
       it "should parse with a comparison" do
-        expect(parser.parse("if 5 > 3 x = 5 end")).to eq([[:if, [:>, 5, 3], [[:"=", :x, 5]]]])                
+        expect(parser.parse("if 5 > 3 x = 5 end")).to eq([[:if, [[[:>, 5, 3], [[:"=", :x, 5]]]]]])                
+      end
+      it "should allow an elseif statement" do
+        expect(parser.parse("if 5 > 3 x = 5 elseif x < 6 x = 4 end")).to eq([[:if, [[[:>, 5, 3], [[:"=", :x, 5]]], [[:<, :x, 6], [[:"=", :x, 4]]]]]])                        
+      end
+      it "should allow two elseif statements" do
+        expect(parser.parse("if 5 > 3 x = 5 elseif x < 6 x = 4 elseif x == 7 x = 6 end")).to eq([[:if, [[[:>, 5, 3], [[:"=", :x, 5]]], [[:<, :x, 6], [[:"=", :x, 4]]], [[:==, :x, 7], [[:"=", :x, 6]]]]]])        
+      end
+      it "should allow many elseif statements" do
+        expect(parser.parse("if 5 > 3 x = 5 elseif x < 6 x = 4 elseif x == 7 x = 6 elseif x == 5 x = 4 end")).to eq([[:if, [[[:>, 5, 3], [[:"=", :x, 5]]], [[:<, :x, 6], [[:"=", :x, 4]]], [[:==, :x, 7], [[:"=", :x, 6]]], [[:==, :x, 5], [[:"=", :x, 4]]]]]])        
+      end
+      it "should not allow elseif statements without an if" do
+        expect { parser.parse("elsif x == 5 x = 4 end") }.to raise_error ParseError
+      end
+      it "should allow else statements" do
+        expect(parser.parse("if 5 > 3 x = 5 else x = 4 end")).to eq([[:if, [[[:>, 5, 3], [[:"=", :x, 5]]], [:else, [[:"=", :x, 4]]]]]])                        
+      end
+      it "should only allow one else statement" do
+        expect { parser.parse("if 5 > 3 x = 5 else x = 4 else x = 5 end") }.to raise_error ParseError                               
+      end
+      it "should allow elseif and else statements" do
+        expect(parser.parse("if 5 > 3 x = 5 elseif x < 6 x = 4 elseif x == 7 x = 6 else x = 4 end")).to eq([[:if, [[[:>, 5, 3], [[:"=", :x, 5]]], [[:<, :x, 6], [[:"=", :x, 4]]], [[:==, :x, 7], [[:"=", :x, 6]]], [:else, [[:"=", :x, 4]]]]]])        
+      end
+      it "should not allow else statements on their own" do
+        expect { parser.parse("else x = 4 end") }.to raise_error ParseError        
+      end
+    end
+    describe "unless" do
+      it "should parse with an identifier" do
+        expect(parser.parse("unless true x = 5 end")).to eq([[:unless, [[:true, [[:"=", :x, 5]]]]]])
+      end
+      it "should parse with a literal" do
+        expect(parser.parse("unless 5 x = 5 end")).to eq([[:unless, [[5, [[:"=", :x, 5]]]]]])        
+      end
+      it "should parse with a comparison" do
+        expect(parser.parse("unless 5 > 3 x = 5 end")).to eq([[:unless, [[[:>, 5, 3], [[:"=", :x, 5]]]]]])                
+      end
+      it "should allow else statements" do
+        expect(parser.parse("unless 5 > 3 x = 5 else x = 4 end")).to eq([[:unless, [[[:>, 5, 3], [[:"=", :x, 5]]], [:else, [[:"=", :x, 4]]]]]])                        
+      end
+      it "should only allow one else statement" do
+        expect { parser.parse("unless 5 > 3 x = 5 else x = 4 else x = 5 end") }.to raise_error ParseError                               
       end
     end
   end

@@ -185,7 +185,39 @@ module Iridium
   
   class If < Treetop::Runtime::SyntaxNode
     def content
-      [:if, *elements.map(&:content)]
+      if elements.length == 2 # Only an if
+        [:if, [[elements[0].content, elements[1].content]]]
+      elsif elements.length == 3 # Elseif or else
+        [:if, [[elements[0].content, elements[1].content], *elements[2].content]]
+      elsif elements.length == 4 # Elseif and else
+        [:if, [[elements[0].content, elements[1].content], *elements[2].content, *elements[3].content]]
+      end
+    end
+  end
+  
+  class ElseIf < Treetop::Runtime::SyntaxNode
+    def content
+      if elements.length == 2 # Only one
+        [[elements[0].content, elements[1].content]]
+      else # Multiple elseifs
+        [[elements[0].content, elements[1].content], *elements[2].content]
+      end
+    end
+  end
+  
+  class Else < Treetop::Runtime::SyntaxNode
+    def content
+      [[:else, elements[0].content]]
+    end
+  end
+  
+  class Unless < Treetop::Runtime::SyntaxNode
+    def content
+      if elements.length == 2 # Just an unless
+        [:unless, [[elements[0].content, elements[1].content]]]
+      else # with an else
+        [:unless, [[elements[0].content, elements[1].content], *elements[2].content]]
+      end
     end
   end
   
