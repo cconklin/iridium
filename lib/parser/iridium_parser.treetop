@@ -58,6 +58,10 @@ grammar Iridium
     '[' space? list_content? space? ']' <ListLiteral>
   end
   
+  rule tuple
+    '{' space? list_content? space? '}' <TupleLiteral>
+  end
+  
   rule list_content
     additive space? ',' space? list_content <ListContent>
     / additive space? <ListContent>
@@ -232,7 +236,7 @@ grammar Iridium
   end
 
   rule primary
-    function_invocation / identifier / float / integer / string / lambda / atom / list
+    function_invocation / identifier / float / integer / string / lambda / atom / list / tuple
     /
     '(' space? expression space? ')' <Expression>
   end

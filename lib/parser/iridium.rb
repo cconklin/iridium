@@ -45,6 +45,16 @@ module Iridium
     end
   end
   
+  class TupleLiteral < Treetop::Runtime::SyntaxNode
+    def content
+      if elements.length == 0 # empty list
+        [:tuple, []]
+      else
+        [:tuple, elements[0].content]
+      end
+    end
+  end
+  
   class ListContent < Treetop::Runtime::SyntaxNode
     def content
       if elements.length == 1 # list with one element

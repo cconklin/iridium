@@ -23,6 +23,14 @@ describe Parser do
       expect(parser.parse("x = [1, :foo, 2 + 3, \"bar\"]")).to eq([[:"=", :x, [:list, [1, :":foo", [:+, 2, 3], "bar"]]]])
     end
     
+    it "should parse with empty tuple literals" do
+      expect(parser.parse("x = {}")).to eq([[:"=", :x, [:tuple, []]]])      
+    end
+    
+    it "should parse with tuple literals" do
+      expect(parser.parse("x = {1, :foo, 2 + 3, \"bar\"}")).to eq([[:"=", :x, [:tuple, [1, :":foo", [:+, 2, 3], "bar"]]]])      
+    end
+    
     it "should parse with addition" do
       expect(parser.parse("x = 2 + 3")).to eq([[:"=", :x, [:+, 2, 3]]])
     end
