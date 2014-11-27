@@ -30,6 +30,14 @@ describe Parser do
     it "should parse with tuple literals" do
       expect(parser.parse("x = {1, :foo, 2 + 3, \"bar\"}")).to eq([[:"=", :x, [:tuple, [1, :":foo", [:+, 2, 3], "bar"]]]])      
     end
+
+    it "should parse with empty dictionary literals" do
+      expect(parser.parse("x = %{}")).to eq([[:"=", :x, [:dictionary, {}]]])
+    end
+
+    it "should parse with dictionary literals" do
+      expect(parser.parse("x = %{:foo => 2 + 3, \"baz\" => X, v => 3}")).to eq([[:"=", :x, [:dictionary, {:":foo" => [:+, 2, 3], "baz" => :X, :v => 3}]]])                  
+    end
     
     it "should parse with addition" do
       expect(parser.parse("x = 2 + 3")).to eq([[:"=", :x, [:+, 2, 3]]])

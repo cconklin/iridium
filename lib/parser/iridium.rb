@@ -55,6 +55,26 @@ module Iridium
     end
   end
   
+  class DictionaryLiteral < Treetop::Runtime::SyntaxNode
+    def content
+      if elements.length == 0 # Empty dictionary
+        [:dictionary, {}]
+      else
+        [:dictionary, Hash[*elements[0].content]]
+      end
+    end
+  end
+
+  class DictionaryContent < Treetop::Runtime::SyntaxNode
+    def content
+      if elements.length == 2 # dictionary with one element
+        [elements[0].content, elements[1].content]
+      else
+        [elements[0].content, elements[1].content, *elements[2].content]
+      end
+    end
+  end
+
   class ListContent < Treetop::Runtime::SyntaxNode
     def content
       if elements.length == 1 # list with one element

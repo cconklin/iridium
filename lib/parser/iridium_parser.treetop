@@ -62,11 +62,20 @@ grammar Iridium
     '{' space? list_content? space? '}' <TupleLiteral>
   end
   
+  rule dictionary
+    '%{' space? dict_content? space? '}' <DictionaryLiteral>
+  end
+
   rule list_content
     additive space? ',' space? list_content <ListContent>
     / additive space? <ListContent>
   end
   
+  rule dict_content
+    additive space? '=>' space? additive space? ',' space? dict_content <DictionaryContent>
+    / additive space? '=>' space? additive space? <DictionaryContent>
+  end
+
   ##################
   # Assignment
   
@@ -236,7 +245,7 @@ grammar Iridium
   end
 
   rule primary
-    function_invocation / identifier / float / integer / string / lambda / atom / list / tuple
+    function_invocation / identifier / float / integer / string / lambda / atom / list / tuple / dictionary
     /
     '(' space? expression space? ')' <Expression>
   end
