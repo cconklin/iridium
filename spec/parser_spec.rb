@@ -39,6 +39,14 @@ describe Parser do
       expect(parser.parse("x = %{:foo => 2 + 3, \"baz\" => X, v => 3}")).to eq([[:"=", :x, [:dictionary, {:":foo" => [:+, 2, 3], "baz" => :X, :v => 3}]]])                  
     end
     
+    it "should parse with dictionary literals using alternate syntax" do
+      expect(parser.parse("x = %{ foo: 5, bar: 6 }")).to eq([[:"=", :x, [:dictionary, {:":foo" => 5, :":bar" => 6}]]])
+    end
+
+    it "should parse with dictionary literals using both syntaxes" do
+      expect(parser.parse("x = %{ foo: 5, :bar => 6 }")).to eq([[:"=", :x, [:dictionary, {:":foo" => 5, :":bar" => 6}]]])     
+    end
+
     it "should parse with addition" do
       expect(parser.parse("x = 2 + 3")).to eq([[:"=", :x, [:+, 2, 3]]])
     end

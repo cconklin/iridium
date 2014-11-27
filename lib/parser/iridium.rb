@@ -75,6 +75,12 @@ module Iridium
     end
   end
 
+  class DictionaryKey < Treetop::Runtime::SyntaxNode
+    def content
+      ":#{elements[0].content}".to_sym # treat %{ foo: bar } as %{ :foo => bar }
+    end
+  end
+
   class ListContent < Treetop::Runtime::SyntaxNode
     def content
       if elements.length == 1 # list with one element

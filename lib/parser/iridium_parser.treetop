@@ -72,8 +72,14 @@ grammar Iridium
   end
   
   rule dict_content
-    additive space? '=>' space? additive space? ',' space? dict_content <DictionaryContent>
-    / additive space? '=>' space? additive space? <DictionaryContent>
+    additive space '=>' space additive space? ',' space? dict_content <DictionaryContent>
+    / additive space '=>' space additive space? <DictionaryContent>
+    / dict_key space additive space? ',' space?  dict_content <DictionaryContent>
+    / dict_key space additive space? <DictionaryContent>
+  end
+
+  rule dict_key
+    identifier ':' <DictionaryKey>
   end
 
   ##################

@@ -126,6 +126,12 @@ Dictionaries are defined using `%{}` syntax. They act as key-value pairs, and va
   %{ :a => 5, "boo" => bar, MyClass => -> return 17 end }
 ```
 
+If the keys are atoms (highly recommended!), a shorthand can be used when defining:
+
+```
+  %{ a: 5, b: 6 }
+```
+
 Dictionaries can also be iterated over with `each`
 
 ```
