@@ -149,6 +149,12 @@ module Iridium
     end
   end
   
+  class Splat < Treetop::Runtime::SyntaxNode
+    def content
+      [:destructure, elements[0].content]
+    end
+  end
+
   class AssignmentOperator < Treetop::Runtime::SyntaxNode
     def content
       :"="

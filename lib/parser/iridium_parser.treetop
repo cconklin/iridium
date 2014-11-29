@@ -128,9 +128,13 @@ grammar Iridium
   end
   
   rule passed_arguments
-    ('(' space? allcommaseparated? space? expression space? ')' <ArgumentList>) / ('(' space? ')' <ArgumentList>)
+    ('(' space? allcommaseparated? space? (splat / expression) space? ')' <ArgumentList>) / ('(' space? ')' <ArgumentList>)
   end
   
+  rule splat
+    '*' space? expression <Splat>
+  end
+
   rule private_function
     'private' space function <PrivateFunction>
   end
@@ -154,7 +158,7 @@ grammar Iridium
   end
   
   rule allcommaseparated
-    expression space? ',' space? allcommaseparated? <CommaSeparated>  
+    (splat / expression) space? ',' space? allcommaseparated? <CommaSeparated>
   end
   ##################
   # Objects

@@ -3,6 +3,11 @@ require_relative "../lib/parser"
 describe Parser do
   let (:parser) { Parser.new }
   describe "assignments" do
+
+    it "should not allow destructuring" do
+      expect { parser.parse "x = * foo" }.to raise_error ParseError
+    end
+
     it "should parse with integer literals" do
       expect(parser.parse("x = 5")).to eq([[:"=", :x, 5]])
     end
@@ -387,6 +392,22 @@ describe Parser do
       expect { parser.parse "self.foo -> return 5 end.bar" }.to raise_error ParseError
     end
     
+    it "should allow destructuring of arguments" do
+      expect(parser.parse("foo(* bar)")).to eq([[:"()", :foo, [[:destructure, :bar]]]])
+    end
+
+    it "should allow destructuring of literal tuples" do
+      expect(parser.parse("foo(* { :bar, :baz })")).to eq([[:"()", :foo, [[:destructure, [:tuple, [:":bar", :":baz"]]]]]])      
+    end
+
+    it "should allow destructuring without a space" do
+      expect(parser.parse("foo(*bar)")).to eq([[:"()", :foo, [[:destructure, :bar]]]])      
+    end
+
+    it "should allow destructuring of literal tuples without spaces" do
+      expect(parser.parse("foo(*{ :bar, :baz })")).to eq([[:"()", :foo, [[:destructure, [:tuple, [:":bar", :":baz"]]]]]])      
+    end
+
   end
   
   describe "getting attributes" do
@@ -448,6 +469,10 @@ describe Parser do
     
     it "should allow methods to appear anywhere in the chain" do
       expect(parser.parse("self.foo().bar.x().baz")).to eq([[:".", [:"()", [:".", [:".", [:"()", [:".", :self, :foo], []], :bar], :x], []], :baz]])
+    end
+    
+    it "should allow methods to destructure arguments" do
+      expect(parser.parse("foo.x(*y)")).to eq([[:"()", [:".", :foo, :x], [[:destructure, :y]]]])      
     end
     
   end
