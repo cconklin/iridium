@@ -20,11 +20,11 @@ grammar Iridium
   end
   
   rule class_statement
-    space? (private_function / function / attribute_assignment / invocation / function_invocation) ';'? space? linebreak? <Statement>
+    space? (private_function / function / attribute_assignment / invocation / function_invocation / nofunction) ';'? space? linebreak? <Statement>
   end
   
   rule top_statement
-    space? (private_function / function / class / module) ';'? space? linebreak? <Statement>
+    space? (private_function / function / class / module / nofunction) ';'? space? linebreak? <Statement>
   end
   
   rule statement
@@ -160,6 +160,11 @@ grammar Iridium
   rule allcommaseparated
     (splat / expression) space? ',' space? allcommaseparated? <CommaSeparated>
   end
+
+  rule nofunction
+    'nofunction' space identifier <NoFunction>
+  end
+
   ##################
   # Objects
   

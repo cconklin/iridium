@@ -44,6 +44,32 @@ Classes can also inherit from other classes and obtain the methods of their supe
   end
 ```
 
+Classes can also include modules and gain their methods as instance methods
+
+```
+  class MyClass
+    self.include(MyModule)
+    # gets methods from MyModule
+    self.extent(MyModule)
+    # gets methods from MyModule as Class methods
+  end
+```
+
+Sometimes, a module or superclass defines a method that isn't wanted. This can be fixed by the `nofunction` keyword. Think of it as the opposite of the `function` keyword.
+
+```
+  class Base
+    function foo
+      return :bar
+    end
+  end
+
+  class Child < Base
+    # foo is defined for instances of Child
+    nofunction foo
+    # now, foo is no longer defined for instances of Child
+  end
+```
 ## Types
 
 Iridium is a dynamically typed language, where most language constructs are objects.

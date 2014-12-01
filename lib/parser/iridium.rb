@@ -231,6 +231,12 @@ module Iridium
     end
   end
   
+  class NoFunction < Treetop::Runtime::SyntaxNode
+    def content
+      [:nofunction, elements[0].content]
+    end
+  end
+
   class ArgumentList < Treetop::Runtime::SyntaxNode
     def content
       if elements.length > 1

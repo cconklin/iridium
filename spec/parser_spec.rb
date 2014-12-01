@@ -557,4 +557,10 @@ describe Parser do
     end
   end
   
+  describe "undefining functions" do
+    it "should allow the undefining of functions" do
+      expect( parser.parse("nofunction foo") ).to eq([[:nofunction, :foo]])
+    end
+  end
+
 end
