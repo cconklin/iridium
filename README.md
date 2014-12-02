@@ -161,14 +161,10 @@ If the keys are atoms (highly recommended!), a shorthand can be used when defini
 Dictionaries can also be iterated over with `each`
 
 ```
-  %{ :a => 5, :b => 7 }.each -> (pair)
-    key = pair[0]
-    value = pair[1]
+  %{ :a => 5, :b => 7 }.each -> (key, value)
     # ...
   end
 ```
-
-The pair is currently a tuple, and expansion of the tuple into two separate values will likely be included in the future.
 
 ### Tuples
 
