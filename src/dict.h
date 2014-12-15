@@ -29,6 +29,7 @@ void dict_set(struct dict * h, void * key, void * value);
 void * dict_get(struct dict * h, void * key);
 void dict_delete(struct dict * h, void * key);
 void dict_destroy(struct dict * h);
+struct dict * dict_merge(struct dict *, struct dict *);
 
 struct dict * dict_new(unsigned int hashsize) {
   struct dict * h;
@@ -88,4 +89,31 @@ void dict_delete(struct dict * h, void * key) {
       }
     }
   }
+}
+
+struct dict * dict_merge(struct dict * mergee, struct dict * merger) {
+  struct dict * result = dict_new(mergee -> hashsize);
+  struct dict_entry * entry;
+  unsigned int index;
+  // Look through each key of the mergee, add it to the result
+  for (index = 0; index < mergee -> hashsize; index ++) {
+    entry = mergee -> hashtab[index];
+    while (entry != NULL) {
+      // Found a key value pair
+      // Add it to the new dict
+      dict_set(result, entry -> key, entry -> value);
+      entry = entry -> next;
+    }
+  }
+  // Look through each key of the merger, add it to the result
+  for (index = 0; index < merger -> hashsize; index ++) {
+    entry = merger -> hashtab[index];
+    while (entry != NULL) {
+      // Found a key value pair
+      // Add it to the new dict
+      dict_set(result, entry -> key, entry -> value);
+      entry = entry -> next;
+    }
+  }
+  return result;
 }
