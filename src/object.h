@@ -57,7 +57,7 @@ typedef struct IridiumObject {
   struct dict * instance_attributes;
   // List of included modules
   struct list * included_modules;
-  // list of extended modules
+  // List of extended modules
   struct list * extended_modules;
 } * object;
 
@@ -194,27 +194,61 @@ attribute_lookup(object receiver, void * attribute, unsigned char access) {
   return result;
 }
 
-// internal_attribute_lookup
+// internal_get_attribute
 // Returns an attribute of obj which is INTERNAL
-#define internal_attribute_lookup(obj, attr, cast) (attribute_lookup(obj, attr, INTERNAL) ? (cast)(attribute_lookup(obj, attr, INTERNAL) -> value) : NULL)
+#define internal_get_attribute(obj, attr, cast) (attribute_lookup(obj, attr, INTERNAL) ? (cast)(attribute_lookup(obj, attr, INTERNAL) -> value) : NULL)
 
 // set_attribute
 // mutates the receiver, setting the attribute with `access` to a new value
 object set_attribute(object receiver, void * attribute, unsigned char access, object value) {
   iridium_attribute attr = attribute_lookup(receiver, attribute, access);
-  // TODO replace with exception
-  assert(attr);
+  if (! attr) {
+    // Attribute does not already exist: create it
+    attr = (iridium_attribute) GC_MALLOC(sizeof(struct IridiumAttribute));
+    assert(attr);
+    attr -> access = access;
+  }
   // set the new value
   attr -> value = (void *) value;
   return value;
 }
 
+// internal_set_attribute
+// mutates the receiver, setting attribute with INTERNAL access to a new value
+// NOTE: could run into issue where attribute is set before with a lower access (which means that an attribute that ought to be internal isn't)
+#define internal_set_attribute(receiver, attribute, value) (__typeof__(value)) set_attribute(receiver, attribute, INTERNAL, (object) value) 
+
 // function_bind
 // Bind locals to functions
+// Does not mutate the receiver
 // accepts: func (object, Iridium Function), locals (struct dict *)
 // returns: object (Iridirum Function)
 object
-function_bind(object, struct dict *);
+function_bind(object func, struct dict * locals) {
+  // Function with bound locals
+  object bound_function;
+
+  // Pointer to C function
+  // TODO determine type
+  void * c_func;
+
+  // Create a new function object
+  bound_function = (object) GC_MALLOC(sizeof(struct IridiumObject));
+  // Ensure that it was created
+  assert(bound_function);
+  // Set the class of the object to Function
+  bound_function -> class = CLASS(Function);
+
+  // Set the locals
+  internal_set_attribute(bound_function, ATOM("bindings"), locals);
+
+  // Set the function
+  c_func = internal_get_attribute(func, ATOM("function"), __typeof__(c_func));
+  internal_set_attribute(bound_function, ATOM("function"), c_func);
+
+  // Return the new bound function
+  return bound_function;
+}
 
 
 // class Class
@@ -239,7 +273,10 @@ Iridium_Class_new(object self, struct dict * locals, struct array * args) {
   // Ensure that memory was allocated
   assert(obj);
   
-  // Set the objects class to self (since this is a method on an instance of
+  // Set the object's magic number
+  obj -> magic = MAGIC;
+
+  // Set the object's class to self (since this is a method on an instance of
   // Class, which implies that self is a class)
   obj -> class = self;
   
@@ -283,7 +320,7 @@ Iridium_Object_get(object self, struct dict * locals, struct array * args) {
   if (isA(attribute, CLASS(Function))) {
     binding = dict_new(ObjectHashsize);
     dict_set(binding, ATOM("self"), self);
-    vars = internal_attribute_lookup(attribute, ATOM("bindings"), struct dict *);
+    vars = internal_get_attribute(attribute, ATOM("bindings"), struct dict *);
     // The function better have some bindings, even if it is an empty dictionary.
     assert(vars);
     attribute = function_bind(attribute, dict_merge(vars, binding));
