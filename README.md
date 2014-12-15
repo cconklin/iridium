@@ -23,7 +23,68 @@ Functions can, of course, accept arguments, which are included an a parenthesize
   end
 ```
 
-The functions can then be invoked by calling `my_func()`.
+The function (with no args) can then be invoked by calling `my_func()`. If it has arguments, they are passed in the parentheiszed list.
+
+#### Annonymous Functions
+
+Functions also come in an unnamed form, which have a few special properties.
+
+```
+  my_func = -> (arg_1, arg_2)
+    # do stuff here...
+  end
+```
+
+The variable `my_func` could then be invoked with `my_func(a, b)` (for example).
+
+Unlike named functions, which have their own, isolated scope, annonymous functions can act as closures.
+
+```
+  a = 5
+
+  function named
+    return a # Not defined
+  end
+  annonymous = ->
+    return a
+  end
+
+  named() # => Exception!
+  annonymous() # => 5
+
+  a = "foo"
+  annonymous() # => 5
+```
+
+Since annonymous functions are so useful, there is a special syntax for passing them to functions (though the normal syntax works as well)
+
+```
+  function invoke(fun)
+    return fun()
+  end
+
+  invoke(-> return 5 end) # => 5
+
+  invoke(->
+    return 5
+  end) # => 5
+
+  # Special Syntax
+
+  invoke ->
+    return 5
+  end # => 5
+
+  # Special Syntax with arguments
+
+  function add_n(n, fun)
+    return n + fun()
+  end
+
+  add_n(5) ->
+    return 12
+  end # => 17
+```
 
 ### Classes
 
@@ -50,7 +111,7 @@ Classes can also include modules and gain their methods as instance methods
   class MyClass
     self.include(MyModule)
     # gets methods from MyModule
-    self.extent(MyModule)
+    self.extend(MyModule)
     # gets methods from MyModule as Class methods
   end
 ```

@@ -30,6 +30,8 @@ void * dict_get(struct dict * h, void * key);
 void dict_delete(struct dict * h, void * key);
 void dict_destroy(struct dict * h);
 struct dict * dict_merge(struct dict *, struct dict *);
+struct dict * dict_with(struct dict *, void *, void *);
+struct dict * dict_copy(struct dict *);
 
 struct dict * dict_new(unsigned int hashsize) {
   struct dict * h;
@@ -53,6 +55,13 @@ void dict_set(struct dict * h, void * key, void * value) {
   }
   entry -> value = value;
 }
+
+struct dict * dict_with(struct dict * h, void * key, void * value) {
+  struct dict * result = dict_copy(h);
+  dict_set(result, key, value);
+  return result;
+}
+
 
 struct dict_entry * lookup(struct dict * h, void * key) {
   // Find the dict_entry element corresponding to a key
@@ -92,12 +101,13 @@ void dict_delete(struct dict * h, void * key) {
 }
 
 struct dict * dict_merge(struct dict * mergee, struct dict * merger) {
-  struct dict * result = dict_new(mergee -> hashsize);
   struct dict_entry * entry;
   unsigned int index;
-  // Look through each key of the mergee, add it to the result
-  for (index = 0; index < mergee -> hashsize; index ++) {
-    entry = mergee -> hashtab[index];
+  // Create a copy of the mergee
+  struct dict * result = dict_copy(mergee);
+  // Look through each key of the merger, add it to the result
+  for (index = 0; index < merger -> hashsize; index ++) {
+    entry = merger -> hashtab[index];
     while (entry != NULL) {
       // Found a key value pair
       // Add it to the new dict
@@ -105,9 +115,16 @@ struct dict * dict_merge(struct dict * mergee, struct dict * merger) {
       entry = entry -> next;
     }
   }
-  // Look through each key of the merger, add it to the result
-  for (index = 0; index < merger -> hashsize; index ++) {
-    entry = merger -> hashtab[index];
+  return result;
+}
+
+struct dict * dict_copy(struct dict * h) {
+  struct dict * result = dict_new(h -> hashsize);
+  struct dict_entry * entry;
+  unsigned int index;
+  // Look through each key of the mergee, add it to the result
+  for (index = 0; index < h -> hashsize; index ++) {
+    entry = h -> hashtab[index];
     while (entry != NULL) {
       // Found a key value pair
       // Add it to the new dict

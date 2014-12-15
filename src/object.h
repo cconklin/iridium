@@ -31,7 +31,7 @@
 // Translates to:
 //    obj.name(args)
 // Iridium_Object_get() will retun a bound function to the `obj` #"name" method (obj will automatically be passed)
-#define invoke(obj, name, locals, args) Iridium_Function_call(Iridium_Object_get(obj, locals, arg(ATOM(name))), locals, args)
+#define invoke(obj, name, locals, args) Iridium_Function_call(dict_with(locals, ATOM("self"), Iridium_Object_get(dict_with(locals, ATOM("self"), obj), arg(ATOM(name)))), args)
 
 // TODO define NIL macro
 #define NIL NULL
@@ -72,9 +72,9 @@ typedef struct IridiumAttribute {
 object Class;
 object Function;
 
-object Iridium_Class_new(object, struct dict *, struct array *);
-object Iridium_Object_get(object, struct dict *, struct array *);
-object Iridium_Function_call(object, struct dict *, struct array *);
+object Iridium_Class_new(struct dict *, struct array *);
+object Iridium_Object_get(struct dict *, struct array *);
+object Iridium_Function_call(struct dict *, struct array *);
 
 
 // arg
@@ -262,7 +262,10 @@ function_bind(object func, struct dict * locals) {
 // Output:  obj (object)
 
 object
-Iridium_Class_new(object self, struct dict * locals, struct array * args) {
+Iridium_Class_new(struct dict * locals, struct array * args) {
+
+  // Value of the receiver
+  object self = dict_get(locals, ATOM("self"));
   
   // Container for the object under construction
   object obj;
@@ -303,7 +306,10 @@ Iridium_Class_new(object self, struct dict * locals, struct array * args) {
 
 
 object
-Iridium_Object_get(object self, struct dict * locals, struct array * args) {
+Iridium_Object_get(struct dict * locals, struct array * args) {
+
+  // Value of the receiver
+  object self = dict_get(locals, ATOM("self"));
   
   // Dictionary for self to be bound to the attribute if it is a function
   struct dict * binding;
