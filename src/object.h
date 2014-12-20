@@ -334,3 +334,21 @@ Iridium_Object_get(struct dict * locals, struct array * args) {
 
   return attribute;
 }
+
+
+// class Function
+
+// Function#__call__
+// Invokes a function
+
+object
+Iridium_Function_call(struct dict * locals, struct array * args) {
+  // Value of the receiver
+  object self = dict_get(locals, ATOM("self"));
+
+  // Get the corresponding C function
+  object ( * func )(struct dict *, struct array *) = internal_get_attribute(self, ATOM("function"), object (*)(struct dict *, struct array *));
+
+  // Invoke the function
+  return func(locals, args);
+}
