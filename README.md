@@ -86,6 +86,46 @@ Since annonymous functions are so useful, there is a special syntax for passing 
   end # => 17
 ```
 
+##### A Note on Closures
+
+As stated previously, annonymous functions retain the bindings present in the scope in which they are created. A notable exception is `self`, which, if the function is made an attribute of an object (turned into a method), is the receiver of the call.
+
+```
+self # => #<Object(main)>
+me = self
+
+fun_1 = ->
+  return self
+end
+
+fun_2 = ->
+  return me
+end
+
+class Foo
+  function invoke(fun)
+    # self is an instance of the Foo class
+    fun()
+  end
+end
+
+foo = Foo.new() # => #<Foo:0x00000101a688b>
+foo.fun_1 = fun_1
+foo.fun_2 = fun_2
+
+fun_1() # => #<Object(main)>
+
+fun_2() # => #<Object(main)>
+
+foo.invoke(fun_1) # => #<Object(main)>
+
+foo.invoke(fun_2) # => #<Object(main)>
+
+foo.fun_1() # => #<Foo:0x00000101a688b>
+
+foo.fun_2() # => #<Object(main)>
+```
+
 ### Classes
 
 Classes in Iridium are defined with the `class` keyword.
