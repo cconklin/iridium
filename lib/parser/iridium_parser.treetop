@@ -269,7 +269,7 @@ grammar Iridium
   # Operator sets
 
   rule comparative_operator
-    equality_operator / inequality_operator / greater_than_operator / less_than_operator
+    identicality_operator / equality_operator / inequality_operator / greater_than_operator / less_than_operator
   end
 
   rule additive_operator
@@ -321,6 +321,10 @@ grammar Iridium
 
   rule less_than_operator
     '<' <LessThanOperator>
+  end
+  
+  rule identicality_operator
+    '===' <IdenticalityOperator>
   end
 
   ##################

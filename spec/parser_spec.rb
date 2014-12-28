@@ -563,4 +563,14 @@ describe Parser do
     end
   end
 
+  describe "operators" do
+    it "should recognize the equality opertor" do
+      expect( parser.parse("x = a == b") ).to eq([[:"=", :x, [:==, :a, :b]]])
+    end
+    
+    it "should recognize the indenticality operator" do
+      expect( parser.parse("x = a === b") ).to eq([[:"=", :x, [:===, :a, :b]]])      
+    end
+  end
+
 end
