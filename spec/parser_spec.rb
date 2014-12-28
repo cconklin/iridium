@@ -384,6 +384,10 @@ describe Parser do
       expect(parser.parse("self.foo().bar.x().y() -> return 5 end")).to eq([[:"()", [:".", [:"()", [:".", [:".", [:"()", [:".", :self, :foo], []], :bar], :x], []], :y], [[:lambda, [], [[:return, 5]]]]]])
     end
     
+    it "should allow function chains terminating in passed functions" do
+      expect(parser.parse("foo().bar.x().y() -> return 5 end")).to eq([[:"()", [:".", [:"()", [:".", [:".", [:"()", :foo, []], :bar], :x], []], :y], [[:lambda, [], [[:return, 5]]]]]])      
+    end
+    
     it "should allow method chains with passed functions in the middle" do
       expect(parser.parse("self.foo(-> return 5 end).bar.x()")).to eq([[:"()", [:".", [:".", [:"()", [:".", :self, :foo], [[:lambda, [], [[:return, 5]]]]], :bar], :x], []]])
     end

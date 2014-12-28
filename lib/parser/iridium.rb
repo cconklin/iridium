@@ -335,7 +335,6 @@ module Iridium
   
   class FunctionInvocation < Treetop::Runtime::SyntaxNode
     def content
-      # TODO Don't forget if there is a chained invocation & a passed function (doesn't parse yet)
       if elements.length > 2 # Passed function specially or chained invocations
         if elements.last.content[0][0] == :lambda # Special function passing (get the content of the last element, it will be a list with a single lambda inside)
           [:"()", receiver, args + elements.last.content]
