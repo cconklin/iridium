@@ -7,6 +7,10 @@
 #include <stdlib.h>
 #include <assert.h>
 
+// HACK around GC not linking
+#define GC_MALLOC(n) calloc(1, n)
+#define GC_REALLOC(p, n) realloc(p, n)
+
 // Shortcut constructor for cons with NULL
 #define list_new(head) list_cons(NULL, head)
 
@@ -25,7 +29,7 @@ void list_destroy(struct list * l);
 // returning the new list
 struct list * list_cons(struct list * tail, void * head) {
   // Allocate a new node
-  struct list * l = malloc(sizeof(struct list));
+  struct list * l = GC_MALLOC(sizeof(struct list));
   // Ensure that the node was created
   assert(l);
   // Set the head of the node to the data passed

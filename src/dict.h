@@ -2,13 +2,18 @@
   dict.h
   Basic library underlying the Dictionary class and the attribute system of all objects.
   Uses a hash to store key-value pairs
-    Keys: void * (addresses of memory, expected to by Iridium Atoms)
+    Keys: void * (addresses of memory, expected to be Iridium Atoms)
     Values: void * (pointer to any Iridium Object)
 */
 
 #include <stdlib.h>
 #include <assert.h>
-#include <gc.h>
+// #include <gc.h>
+
+// HACK around GC not linking
+#define GC_MALLOC(n) calloc(1, n)
+#define GC_REALLOC(p, n) realloc(p, n)
+
 
 #define hash(h, key) ((unsigned int) key) % h -> hashsize
 
@@ -53,6 +58,7 @@ void dict_set(struct dict * h, void * key, void * value) {
     entry -> next = (h -> hashtab)[hash(h, key)]; // Make the head of the entry linked list
     (h -> hashtab)[hash(h, key)] = entry; // Make this the first element seen when looked up in the hashtab array.
   }
+  entry -> key = key;
   entry -> value = value;
 }
 

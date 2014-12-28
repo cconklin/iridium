@@ -4,8 +4,12 @@
 */
 
 #include <stdlib.h>
-#include <gc.h>
+// #include <gc.h>
 #include <assert.h>
+
+// HACK around GC not linking
+#define GC_MALLOC(n) calloc(1, n)
+#define GC_REALLOC(p, n) realloc(p, n)
 
 #define max(a,b) \
    ({ __typeof__ (a) _a = (a); \
