@@ -145,17 +145,6 @@ Classes can also inherit from other classes and obtain the methods of their supe
   end
 ```
 
-Classes can also include modules and gain their methods as instance methods
-
-```
-  class MyClass
-    self.include(MyModule)
-    # gets methods from MyModule
-    self.extend(MyModule)
-    # gets methods from MyModule as Class methods
-  end
-```
-
 Sometimes, a module or superclass defines a method that isn't wanted. This can be fixed by the `nofunction` keyword. Think of it as the opposite of the `function` keyword.
 
 ```
@@ -171,6 +160,39 @@ Sometimes, a module or superclass defines a method that isn't wanted. This can b
     # now, foo is no longer defined for instances of Child
   end
 ```
+
+### Modules
+
+Module allow the namespacing of functions, and the composition of objects by including or extending them.
+
+#### Using Modules as a Namespace
+
+Functions can be namespaced to a module by defining them within the module.
+
+```
+  module MyModule
+    function my_namespaced_func
+      return 5
+    end
+  end
+
+  my_namespaced_func() # Exception!
+  MyModule.my_namespaced_func() # => 5
+```
+
+#### Composing objects from Modules
+
+Modules can be included by classes, which grant their attributes to the classes instances. Alternatively, Modules can be extended, which provides their attributes to the extending object directly. While only Classes and Modules can `include` Modules, any object can `extend` modules.
+
+```
+  class MyClass
+    self.include(MyModule)
+    # gets attributes from MyModule as instance attributes
+    self.extend(MyModule)
+    # gets attributes from MyModule
+  end
+```
+
 ## Types
 
 Iridium is a dynamically typed language, where most language constructs are objects.
@@ -271,8 +293,20 @@ Dictionaries can also be iterated over with `each`
 
 Tuples are an array-type structure defined with curly braces `{}`
 
-Since they are an array-type, indexing is O(1), which is not true for list structures. Indexing is done the same as with lists.
+Since they are an array type, indexing is O(1), which is not true for list structures. Indexing is done the same as with lists.
+
+```
+  my_tuple = {1, "a", :c}
+  my_tuple[0] # => 1
+  my_tuple[1] = "b" # => "b"
+  my_tuple # => {1, "b", :c}
+```
 
 ## Atoms
 
 A simple atom type (known as symbols in some other languages), these elements are identifiers preceded by a colon. They compare by identity, and all atoms of the same name _are the same atom_. As a result, they are often used as keys in dictionaries.
+
+```
+  my_atom = :my_atom
+  my_atom === :my_atom # => true
+```
