@@ -1,0 +1,30 @@
+#!/bin/bash
+root=`dirname $(dirname $(pwd)/$0)`
+let fail=0
+mkdir "${root}/tmp"
+tput setaf 1
+for test_file in $(ls ${root}/test)
+do
+  test_name="${test_file%.*}"
+  clang ${root}/test/${test_file} -o ${root}/tmp/${test_name}
+  ${root}/tmp/${test_name} | head -n 1
+  if [ $? -ne 0 ]; then
+    let fail=$fail+1
+  fi
+done
+rm -rf ${root}/tmp
+tput bold
+if [ $fail -eq 0 ]; then
+  tput setaf 2
+  echo "OK"
+elif [ $fail -eq 1 ]; then
+  echo
+  tput setaf 1
+  echo "1 Failure"
+else
+  echo
+  tput setaf 1
+  echo "$fail Failures"
+fi
+tput sgr0
+exit $fail
