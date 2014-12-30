@@ -91,7 +91,8 @@ struct array * array_set(struct array * ary, unsigned int index, void * value) {
 // Gets the value at `index`
 void * array_get(struct array * ary, unsigned int index) {
   // Ensure that the array is large enough
-  assert(index < ary -> size);
+  if (index >= ary -> size)
+    return NULL;
   
   // Return the value at `index`
   return ary -> elements [index];

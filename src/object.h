@@ -160,7 +160,6 @@ attribute_lookup(object receiver, void * attribute, unsigned char access) {
   object module;
   object class;
   
-  
   if (no_result) {
     // Attribute was not found
     // Now look at any modules the object extended
@@ -170,44 +169,44 @@ attribute_lookup(object receiver, void * attribute, unsigned char access) {
       // Search all the modules until the attribute is found
       for (module = list_head(modules); list_tail(modules) && result == NULL; modules = list_tail(modules), module = list_head(modules)) {
         result = instance_attribute_lookup(module, attribute, access);
-      }      
-    }
-    if (no_result) {
-      // Not in the extended modules instance attributes
-      // Check the included modules attributes
-      modules = receiver -> included_modules;
-      if (modules) {
-        // If there are any included modules
-        // Search all the modules until the attribute is found
-        for (module = list_head(modules); list_tail(modules) && no_result; modules = list_tail(modules), module = list_head(modules)) {
-          result = attribute_lookup(module, attribute, access);
-        }      
       }
     }
-    // If it is not in a module and the receiver is a class, look up the superclass chain
-    if (no_result && isA(receiver, CLASS(Class))) {
-      // Store the receiver in a temp so that it is not modified
-      class = receiver;
-      // Look up each superclass
-      while (no_result && class != superclass(class)) {
-        class = superclass(class);
-        // Look in the superclass for the attribute
-        result = attribute_lookup(class, attribute, access);
-      }      
+  }
+  if (no_result) {
+    // Not in the extended modules instance attributes
+    // Check the included modules attributes
+    modules = receiver -> included_modules;
+    if (modules) {
+      // If there are any included modules
+      // Search all the modules until the attribute is found
+      for (module = list_head(modules); list_tail(modules) && no_result; modules = list_tail(modules), module = list_head(modules)) {
+        result = attribute_lookup(module, attribute, access);
+      }
     }
-    if (no_result) {
-      // None of the  modules had the attribute, check the class chain
-      class = receiver -> class;
-      // instance_attribute_lookup also checks for the classes included modules
+  }
+  // If it is not in a module and the receiver is a class, look up the superclass chain
+  if (no_result && isA(receiver, CLASS(Class))) {
+    // Store the receiver in a temp so that it is not modified
+    class = receiver;
+    // Look up each superclass
+    while (no_result && class != superclass(class)) {
+      class = superclass(class);
+      // Look in the superclass for the attribute
+      result = attribute_lookup(class, attribute, access);
+    }
+  }
+  if (no_result) {
+    // None of the  modules had the attribute, check the class chain
+    class = receiver -> class;
+    // instance_attribute_lookup also checks for the classes included modules
+    result = instance_attribute_lookup(class, attribute, access);
+    // Check the superclass
+    // Note: superclass is a normal attribute -- it undergoes attribute lookup
+    // Ensure that all classes have a superclass, or this will result in an infinite loop
+    // Keep searching until the attribute is found, or the class chain is at the end
+    while (no_result && class != superclass(class)) {
+      class = superclass(class);
       result = instance_attribute_lookup(class, attribute, access);
-      // Check the superclass
-      // Note: superclass is a normal attribute -- it undergoes attribute lookup
-      // Ensure that all classes have a superclass, or this will result in an infinite loop
-      // Keep searching until the attribute is found, or the class chain is at the end
-      while (no_result && class != superclass(class)) {
-        class = superclass(class);
-        result = instance_attribute_lookup(class, attribute, access);
-      }
     }
   }
   // Catches the case where result is not NULL, but has the wrong access level
