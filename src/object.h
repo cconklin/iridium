@@ -409,8 +409,6 @@ Iridium_Function_call(struct dict * locals, struct array * args) {
 
 // Atom.new
 // Creates an atom
-// TODO fix what will become an infinite loop of atoms being constructed in the atom loop
-// TODO ensure that the atom table is created when the class is
 
 void * ATOM_TABLE_KEY = NULL;
 #define ATOM_HASHSIZE 100
