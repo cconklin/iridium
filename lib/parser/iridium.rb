@@ -226,6 +226,12 @@ module Iridium
       [:private_function, *self.elements[0].content[1..-1]]
     end
   end
+
+  class PrivateMethod < Treetop::Runtime::SyntaxNode
+    def content
+      [:private_method, *self.elements[0].content[1..-1]]
+    end
+  end
   
   class Function < Treetop::Runtime::SyntaxNode
     def content
@@ -237,9 +243,25 @@ module Iridium
     end
   end
   
+  class Method < Treetop::Runtime::SyntaxNode
+    def content
+      if elements.length > 2 # function with argument list
+        [:method, *elements.map(&:content)]
+      else # function with no argument list (i.e function x ... end)
+        [:method, elements[0].content, [], elements[1].content]
+      end
+    end
+  end
+
   class NoFunction < Treetop::Runtime::SyntaxNode
     def content
       [:nofunction, elements[0].content]
+    end
+  end
+
+  class NoMethod < Treetop::Runtime::SyntaxNode
+    def content
+      [:nomethod, elements[0].content]
     end
   end
 

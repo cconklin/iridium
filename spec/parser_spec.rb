@@ -108,6 +108,12 @@ describe Parser do
       end
     end
     
+    describe "methods" do
+      it "should not allow them to be defined at the top level" do
+        expect { parser.parse("method foo return 6 end") }. to raise_error(ParseError)
+      end
+    end
+
     describe "private functions" do
       it "should allow private declarations of functions" do
         func = <<-END
@@ -117,8 +123,18 @@ describe Parser do
         END
         expect(parser.parse(func)).to eq([[:private_function, :x, [], [[:"=", :y, 5]]]])
       end
+      it "should allow private declarations of methods" do
+        func = <<-END
+        module M
+          private method x
+            y = 5
+          end
+        end
+        END
+        expect(parser.parse(func)).to eq([[:module, :M, [[:private_method, :x, [], [[:"=", :y, 5]]]]]])
+      end
     end
-    
+
     it "should parse with no arguments" do
       func = <<-END
       function x()
@@ -493,6 +509,10 @@ describe Parser do
     it "should be able to contain function definitions" do
       expect(parser.parse("class Foo function x end end")).to eq([[:class, :Foo, nil, [[:function, :x, [], []]]]])      
     end
+
+    it "should be able to contain method definitions" do
+      expect(parser.parse("class Foo method x end end")).to eq([[:class, :Foo, nil, [[:method, :x, [], []]]]])      
+    end
     
     it "should be able to contain attribute assignments" do
       expect(parser.parse("class Foo self.x = 5 end")).to eq([[:class, :Foo, nil, [[:set, :self, :x, 5]]]])      
@@ -523,6 +543,10 @@ describe Parser do
     
     it "should be able to contain function definitions" do
       expect(parser.parse("module Foo function x end end")).to eq([[:module, :Foo, [[:function, :x, [], []]]]])      
+    end
+
+    it "should be able to contain method definitions" do
+      expect(parser.parse("module Foo method x end end")).to eq([[:module, :Foo, [[:method, :x, [], []]]]])      
     end
     
     it "should be able to contain attribute assignments" do
@@ -564,6 +588,9 @@ describe Parser do
   describe "undefining functions" do
     it "should allow the undefining of functions" do
       expect( parser.parse("nofunction foo") ).to eq([[:nofunction, :foo]])
+    end
+    it "should allow the undefining of methods" do
+      expect( parser.parse("module M nomethod foo end") ).to eq([[:module, :M, [[:nomethod, :foo]]]])
     end
   end
 

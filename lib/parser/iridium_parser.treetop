@@ -20,7 +20,7 @@ grammar Iridium
   end
   
   rule class_statement
-    space? (private_function / function / attribute_assignment / invocation / function_invocation / nofunction) ';'? space? linebreak? <Statement>
+    space? (private_method / private_function / method / function / attribute_assignment / invocation / function_invocation / nofunction / nomethod) ';'? space? linebreak? <Statement>
   end
   
   rule top_statement
@@ -139,6 +139,10 @@ grammar Iridium
     'private' space function <PrivateFunction>
   end
   
+  rule private_method
+    'private' space method <PrivateMethod>
+  end
+
   rule function
     ('function' space identifier space? argumentlist space
       block
@@ -148,7 +152,17 @@ grammar Iridium
       block
     space? 'end' space? <Function>)    
   end
-  
+
+  rule method
+    ('method' space identifier space? argumentlist space
+      block
+    space? 'end' space? <Method>)
+    /
+    ('method' space identifier space
+      block
+    space? 'end' space? <Method>)
+  end
+
   rule argumentlist
     ('(' space? commaseparated? space? identifier space? ')' <ArgumentList>) / ('(' space? ')' <ArgumentList>)
   end
@@ -164,6 +178,11 @@ grammar Iridium
   rule nofunction
     'nofunction' space identifier <NoFunction>
   end
+
+  rule nomethod
+    'nomethod' space identifier <NoMethod>
+  end
+
 
   ##################
   # Objects

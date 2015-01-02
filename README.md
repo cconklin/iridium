@@ -155,11 +155,41 @@ Sometimes, a module or superclass defines a method that isn't wanted. This can b
   end
 
   class Child < Base
-    # foo is defined for instances of Child
+    # foo is defined for Child
     nofunction foo
-    # now, foo is no longer defined for instances of Child
+    # now, foo is no longer defined for Child
   end
 ```
+
+#### A Note on Methods
+
+Like many languages, Iridium distinguishes between instance methods and class methods (this actually generalizes to attributes in general, but is primarily visible through methods). For example, if you define a class A, any methods defined with the `function` keyword become avaliable to A, but not to its instances.
+
+```
+class A
+  function foo
+    return 5
+  end
+end
+
+A.foo() # => 5
+A.new().foo() # Exception!
+```
+
+To define methods on the instances of objects, use the `method` keyword.
+
+```
+class B
+  method bar
+    return 6
+  end
+end
+
+B.bar() # Exception!
+B.new().bar() # => 6
+```
+
+In addition, a `nomethod` keyword is defined with the same behavior as the `nofunction` keyword.
 
 ### Modules
 
