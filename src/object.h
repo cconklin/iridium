@@ -24,6 +24,14 @@
 #define PRIVATE   1
 #define INTERNAL  2
 
+// Macros for methods and method names
+#define iridium_method_name(class, name) Iridium_##class##_##name
+#define iridium_classmethod_name(class, name) iridium_method_name
+
+#define iridium_method(class, name) object iridium_method_name(class, name)(struct dict * locals, struct array * args)
+#define iridium_classmethod(class, name) iridium_method(class, name)
+
+
 // Hashsize for object attribute hashes
 #define ObjectHashsize 30
 
@@ -33,17 +41,21 @@
 // Macro to identify types
 #define isA(obj, klass) (isObject(obj) && ((struct IridiumObject *) obj) -> class == klass)
 
+// Macro for changing self
+// Returns a local dictionary containing `self` with the passed `value`
+#define bind_self(value) dict_with(dict_new(ObjectHashsize), ATOM("self"), value)
+
 // Macro for method calls
 // Translates to:
 //    obj.name(args)
 // Iridium_Object_get() will retun a bound function to the `obj` #"name" method (obj will automatically be passed)
 // Invoke function with handle `name` by getting the function from the object `obj`, and bind it to `self` before passing it to the C Function for Iriridum Function calls.
 #define invoke(obj, name, args) \
-  Iridium_Function_call( \
-    dict_with(dict_new(ObjectHashsize), ATOM("self"), Iridium_Object_get( \
-      dict_with(dict_new(ObjectHashsize), ATOM("self"), obj), \
-      arg(ATOM(name)) \
-    ) \
+  iridium_method_name(Function, __call__)( \
+    bind_self( \
+      iridium_method_name(Object, __get__)( \
+        bind_self(obj), arg(ATOM(name)) \
+      ) \
     ), \
   args)
 
@@ -85,13 +97,17 @@ typedef struct IridiumAttribute {
 // Declarations
 
 object Class;
+object Object;
 object Function;
 object Atom;
 
-object Iridium_Class_new(struct dict *, struct array *);
-object Iridium_Object_get(struct dict *, struct array *);
-object Iridium_Function_call(struct dict *, struct array *);
-object Iridium_Atom_new(struct dict *, struct array *);
+iridium_classmethod(Class, new);
+iridium_method(Class, initialize);
+iridium_method(Object, __get__);
+iridium_method(Object, __set__);
+iridium_method(Function, __call__);
+iridium_classmethod(Atom, new);
+
 object _ATOM(char * name);
 object create_self_atom();
 
@@ -115,6 +131,9 @@ arg(object a) {
 // Macro for when no attribute is found
 #define no_result ((! result) || (result -> access > access))
 
+// Macro for whether a module list has any modules
+#define modules_present(mod_list) ((mod_list) ? 0 : (list_length(mod_list) > 0))
+
 iridium_attribute
 instance_attribute_lookup(object receiver, void * attribute, unsigned char access) {
   // Try and get it from the objects instance attributes
@@ -126,7 +145,7 @@ instance_attribute_lookup(object receiver, void * attribute, unsigned char acces
     // Attribute was not found
     // Now look at any modules the object included
     modules = receiver -> included_modules;
-    if (modules) {
+    if (modules_present(modules)) {
       // If there are any included modules
       // Search all the modules until the attribute is found
       for (module = list_head(modules); list_tail(modules) && no_result; modules = list_tail(modules), module = list_head(modules)) {
@@ -164,7 +183,7 @@ attribute_lookup(object receiver, void * attribute, unsigned char access) {
     // Attribute was not found
     // Now look at any modules the object extended
     modules = receiver -> extended_modules;
-    if (modules) {
+    if (modules_present(modules)) {
       // If there are any extended modules
       // Search all the modules until the attribute is found
       for (module = list_head(modules); list_tail(modules) && result == NULL; modules = list_tail(modules), module = list_head(modules)) {
@@ -176,7 +195,7 @@ attribute_lookup(object receiver, void * attribute, unsigned char access) {
     // Not in the extended modules instance attributes
     // Check the included modules attributes
     modules = receiver -> included_modules;
-    if (modules) {
+    if (modules_present(modules)) {
       // If there are any included modules
       // Search all the modules until the attribute is found
       for (module = list_head(modules); list_tail(modules) && no_result; modules = list_tail(modules), module = list_head(modules)) {
@@ -273,16 +292,15 @@ function_bind(object func, struct dict * locals) {
 
 // class Class
 
-// Class#new
+// Class.new
 // Constructor of objects
-// Inputs:  self (object, will be an instance of Class)
-//          locals (struct dict *, dictionary of local variables used in closures)
-//            (Note: since this isn't a closure, locals will not be used)
-//          args (array of objects)
+// Inputs: locals (struct dict *, dictionary of local variables used in closures)
+//            Locals used: self
+//          args
+//            Arity: 1/0
 // Output:  obj (object)
 
-object
-Iridium_Class_new(struct dict * locals, struct array * args) {
+iridium_classmethod(Class, new) {
 
   // Value of the receiver
   object self = dict_get(locals, ATOM("self"));
@@ -306,12 +324,36 @@ Iridium_Class_new(struct dict * locals, struct array * args) {
   // Initialize the attribute dictionary
   obj -> attributes = dict_new(ObjectHashsize);
   
+  // Initialize the instance_attribute dictionary
+  obj -> instance_attributes = dict_new(ObjectHashsize);
+
+  // Set super to Object
+  set_attribute(self, ATOM("superclass"), PUBLIC, CLASS(Object));
+
   // Send off to the object initialize method
   invoke(obj, "initialize", args);
   
   // Now that the object is constructed and initialized, return it
   return obj;
   
+}
+
+// Class#initialize
+// Initializes new classes with a superclass
+// Inputs: locals (struct dict *, dictionary of local variables used in closures)
+//            Locals used: self
+//          args
+//            Arity: 1/0
+// Output:  obj (object)
+// TODO formalize how optional arguments work
+
+iridium_method(Class, initialize) {
+  // set self
+  object self = dict_get(locals, ATOM("self"));
+  // set super to the passed value, if present
+  if ( args -> length == 1 )
+    set_attribute(self, ATOM("superclass"), PUBLIC, array_get(args, 0));
+  return NIL;
 }
 
 // class Object
@@ -322,12 +364,12 @@ Iridium_Class_new(struct dict * locals, struct array * args) {
 //          locals (struct dict *, dictionary of local variables used in closures)
 //            Locals used: self
 //          args (array of objects)
+//            Arity: 1
 // Output:  obj (object)
 // Iridium Example: obj.get(:value) # => :some_value
 
 
-object
-Iridium_Object_get(struct dict * locals, struct array * args) {
+iridium_method(Object, __get__) {
 
   // Value of the receiver
   object self = dict_get(locals, ATOM("self"));
@@ -359,11 +401,11 @@ Iridium_Object_get(struct dict * locals, struct array * args) {
 //          locals (struct dict *, dictionary of local variables used in closures)
 //            Locals used: self
 //          args (array of objects)
+//            Arity: 2
 // Output:  obj (object, the value of the passed attribute)
 // Iridium Example: obj.set(:value, :some_value) # => :some_value
 
-object
-Iridium_Object_set(struct dict * locals, struct array * args) {
+iridium_method(Object, __set__) {
 
   // Value of the receiver
   object self = dict_get(locals, ATOM("self"));
@@ -380,13 +422,26 @@ Iridium_Object_set(struct dict * locals, struct array * args) {
   return attribute;
 }
 
+// Object#initialize
+// Default initilization behavior for objects.
+// Inputs:  self (object, any arbitrary Iridium object)
+//          locals (struct dict *, dictionary of local variables used in closures)
+//            Locals used:
+//          args (array of objects)
+//            Arity: 0
+// Output:  nil
+// Iridium Example: obj.initialize() # => nil
+
+iridium_method(Object, initialize) {
+  return NIL;
+}
+
 // class Function
 
 // Function#__call__
 // Invokes a function
 
-object
-Iridium_Function_call(struct dict * locals, struct array * args) {
+iridium_method(Function, __call__) {
   // Value of the receiver
   object self = dict_get(locals, ATOM("self"));
 
@@ -409,12 +464,11 @@ Iridium_Function_call(struct dict * locals, struct array * args) {
 
 // Atom.new
 // Creates an atom
-
+// Arity: 1
 void * ATOM_TABLE_KEY = NULL;
 #define ATOM_HASHSIZE 100
 
-object
-Iridium_Atom_new(struct dict * locals, struct array * args) {
+iridium_classmethod(Atom, new) {
   // Get the name of the atom
   char * name = array_get(args, 0);
 
@@ -485,7 +539,6 @@ object _ATOM(char * name) {
   if (! (atom = (object) str_dict_get(atom_table, name))) {
     // The atom does not exist
     // Create the new object
-    // This is an optimized call to super, effectively.
     // Allocate memory for the object
     atom = (object) GC_MALLOC(sizeof(struct IridiumObject));
 
@@ -500,6 +553,9 @@ object _ATOM(char * name) {
 
     // Initialize the attribute dictionary
     atom -> attributes = dict_new(ObjectHashsize);
+
+    // Initialize the instance attribute dictionary (should not be used but needs to be present, by contract)
+    atom -> instance_attributes = dict_new(ObjectHashsize);
 
     // Add it to the Atom table
     add_atom(name, atom);

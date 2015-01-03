@@ -14,5 +14,9 @@ int main (int argc, char const *argv[]) {
   // it should make the old list the tail
   assert(list_tail(list_cons(l, 7)) == l);
   
+  // length
+  // it should know its length
+  assert(list_length(l) == 1);
+
   return 0;
 }

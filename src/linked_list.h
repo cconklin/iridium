@@ -21,6 +21,7 @@ struct list {
 
 struct list * list_cons(struct list * tail, void * head);
 void list_destroy(struct list * l);
+unsigned int list_length(struct list * l);
 
 // list_cons
 // inputs: tail (struct list *), head (void *)
@@ -66,4 +67,17 @@ void list_destroy(struct list * l) {
     l = temp;
   }
   l = NULL;
+}
+
+// list_length
+// inputs: l (struct list *)
+// returns: length (unsigned int)
+// Returns the length of the passed list
+unsigned int list_length(struct list * l) {
+  unsigned int length = 0;
+  while (l) {
+    length ++;
+    l = l -> tail;
+  }
+  return length;
 }
