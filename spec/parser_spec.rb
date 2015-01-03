@@ -245,8 +245,43 @@ describe Parser do
       END
       expect { parser.parse(func) }.to raise_error(ParseError)      
     end
-    
+
+    describe "default arguments" do
+      it "should be allowed with space" do
+        func = <<-END
+        function x(z = 10)
+          y = 5
+        end
+        END
+        expect(parser.parse(func)).to eq([[:function, :x, [{z: 10}], [[:"=", :y, 5]]]])
+      end
+      it "should be allowed without space" do
+        func = <<-END
+        function x(z=10)
+          y = 5
+        end
+        END
+        expect(parser.parse(func)).to eq([[:function, :x, [{z: 10}], [[:"=", :y, 5]]]])        
+      end
+      it "should be allowed with multiple arguments" do
+        func = <<-END
+        function x(y = "foo", z = 10)
+          y = 5
+        end
+        END
+        expect(parser.parse(func)).to eq([[:function, :x, [{y: "foo"}, {z: 10}], [[:"=", :y, 5]]]])
+      end
+      it "should be allowed with normal arguments" do
+        func = <<-END
+        function x(y, z = 10, x)
+          y = 5
+        end
+        END
+        expect(parser.parse(func)).to eq([[:function, :x, [:y, {z: 10}, :x], [[:"=", :y, 5]]]])        
+      end
+    end
   end
+
   describe "annonymous functions" do
     it "should recognize the -> syntax" do
       expect(parser.parse("x = -> y = 2 end")).to eq([[:"=", :x, [:lambda, [], [[:"=", :y, 2]]]]])

@@ -25,6 +25,14 @@ Functions can, of course, accept arguments, which are included an a parenthesize
 
 The function (with no args) can then be invoked by calling `my_func()`. If it has arguments, they are passed in the parentheiszed list.
 
+Functions can also accept optional arguments by placing `=` between the variable name and default value.
+
+```
+  function f(arg_1, arg2 = 3)
+    # do stuff here
+  end
+```
+
 #### Annonymous Functions
 
 Functions also come in an unnamed form, which have a few special properties.

@@ -82,6 +82,10 @@ grammar Iridium
     identifier ':' <DictionaryKey>
   end
 
+  rule literal
+    integer / float / string / list / tuple / dictionary / atom
+  end
+
   ##################
   # Assignment
   
@@ -163,12 +167,16 @@ grammar Iridium
     space? 'end' space? <Method>)
   end
 
+  rule argument
+    identifier space? '=' space? literal <Argument> / identifier
+  end
+
   rule argumentlist
-    ('(' space? commaseparated? space? identifier space? ')' <ArgumentList>) / ('(' space? ')' <ArgumentList>)
+    ('(' space? commaseparated? space? argument space? ')' <ArgumentList>) / ('(' space? ')' <ArgumentList>)
   end
   
   rule commaseparated
-   identifier space? ',' space? commaseparated? <CommaSeparated>
+   argument space? ',' space? commaseparated? <CommaSeparated>
   end
   
   rule allcommaseparated

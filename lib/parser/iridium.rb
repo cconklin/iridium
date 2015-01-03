@@ -265,6 +265,12 @@ module Iridium
     end
   end
 
+  class Argument < Treetop::Runtime::SyntaxNode
+    def content
+      {elements.first.content => elements.last.content}
+    end
+  end
+
   class ArgumentList < Treetop::Runtime::SyntaxNode
     def content
       if elements.length > 1
