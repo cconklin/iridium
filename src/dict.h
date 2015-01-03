@@ -10,9 +10,15 @@
 #include <assert.h>
 // #include <gc.h>
 
+#ifndef DICT_H
+#define DICT_H
+
 // HACK around GC not linking
+#ifndef GC
+#define GC
 #define GC_MALLOC(n) calloc(1, n)
 #define GC_REALLOC(p, n) realloc(p, n)
+#endif
 
 
 #define hash(h, key) ((unsigned int) key) % h -> hashsize
@@ -140,3 +146,5 @@ struct dict * dict_copy(struct dict * h) {
   }
   return result;
 }
+
+#endif

@@ -6,7 +6,8 @@
     Values: void * (pointer to any Iridium Object)
 */
 
-// TODO This does not seem to round trip values, or store them at all
+#ifndef STR_DICT_H
+#define STR_DICT_H
 
 #include <stdlib.h>
 #include <assert.h>
@@ -15,8 +16,11 @@
 #include "dict.h"
 
 // HACK around GC not linking
+#ifndef GC
+#define GC
 #define GC_MALLOC(n) calloc(1, n)
 #define GC_REALLOC(p, n) realloc(p, n)
+#endif
 
 struct dict * str_dict_new(unsigned int hashsize);
 struct dict_entry * str_lookup(struct dict * h, char * key);
@@ -146,3 +150,5 @@ struct dict * str_dict_copy(struct dict * h) {
   }
   return result;
 }
+
+#endif

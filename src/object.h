@@ -12,8 +12,9 @@
 #include "array.h"
 // Use the list library for module lookup
 #include "linked_list.h"
+// Use the dict library for attributes
+#include "dict.h"
 // Use the str_dict library for atoms
-// The dict library comes with it
 #include "str_dict.h"
 
 // Magic number to identify objects

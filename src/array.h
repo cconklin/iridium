@@ -3,13 +3,19 @@
   Implements the array structure used in function argument lists and tuples
 */
 
+#ifndef ARRAY_H
+#define ARRAY_H
+
 #include <stdlib.h>
 // #include <gc.h>
 #include <assert.h>
 
 // HACK around GC not linking
+#ifndef GC
+#define GC
 #define GC_MALLOC(n) calloc(1, n)
 #define GC_REALLOC(p, n) realloc(p, n)
+#endif
 
 #define max(a,b) \
    ({ __typeof__ (a) _a = (a); \
@@ -97,3 +103,5 @@ void * array_get(struct array * ary, unsigned int index) {
   // Return the value at `index`
   return ary -> elements [index];
 }
+
+#endif
