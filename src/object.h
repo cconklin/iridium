@@ -110,6 +110,8 @@ iridium_classmethod(Atom, new);
 
 object _ATOM(char * name);
 object create_self_atom();
+object construct(object class);
+object FUNCTION(object name, int required, int optional, char splat, struct dict * bindings, object (* func)(struct dict *, struct array *));
 
 // :self atom
 object _SELF_ATOM = NULL;
@@ -235,7 +237,7 @@ attribute_lookup(object receiver, void * attribute, unsigned char access) {
 
 // internal_get_attribute
 // Returns an attribute of obj which is INTERNAL
-#define internal_get_attribute(obj, attr, cast) (cast)(attribute_lookup(obj, attr, INTERNAL) ? (attribute_lookup(obj, attr, INTERNAL) -> value) : NULL)
+#define internal_get_attribute(obj, attr, cast) ((cast)(attribute_lookup(obj, attr, INTERNAL) ? (attribute_lookup(obj, attr, INTERNAL) -> value) : NULL))
 
 // set_attribute
 // mutates the receiver, setting the attribute with `access` to a new value
@@ -263,32 +265,56 @@ object set_attribute(object receiver, void * attribute, unsigned char access, ob
 // returns: object (Iridirum Function)
 object
 function_bind(object func, struct dict * locals) {
-  // Function with bound locals
-  object bound_function;
-
+  // attributes of Iridium functions
+  object name;
+  int required, optional;
+  char splat;
   // Pointer to C function
-  // TODO determine type
-  void * c_func;
-
-  // Create a new function object
-  bound_function = (object) GC_MALLOC(sizeof(struct IridiumObject));
-  // Ensure that it was created
-  assert(bound_function);
-  // Set the class of the object to Function
-  bound_function -> class = CLASS(Function);
-
-  // Set the locals
-  internal_set_attribute(bound_function, ATOM("bindings"), locals);
+  object (* c_func)(struct dict *, struct array *);
+  // # of required args
+  required = internal_get_attribute(func, ATOM("required"), int);
+  // # of optional args
+  optional = internal_get_attribute(func, ATOM("optional"), int);
+  // location of splat arg (if present)
+  splat = internal_get_attribute(func, ATOM("splat"), int);
+  // name of function
+  name = get_attribute(func, ATOM("name"), PUBLIC);
 
   // Set the function
   c_func = internal_get_attribute(func, ATOM("function"), __typeof__(c_func));
   assert(c_func);
-  internal_set_attribute(bound_function, ATOM("function"), c_func);
 
   // Return the new bound function
-  return bound_function;
+  return FUNCTION(name, required, optional, splat, locals, c_func);
 }
 
+// Unified construction sequence of objects (used in ALL constructors)
+
+object construct(object class) {
+  // Container for the object under construction
+  object obj;
+
+  // Allocate memory for the object
+  obj = (object) GC_MALLOC(sizeof(struct IridiumObject));
+
+  // Ensure that memory was allocated
+  assert(obj);
+
+  // Set the object's magic number
+  obj -> magic = MAGIC;
+
+  // Set the object's class to self (since this is a method on an instance of
+  // Class, which implies that self is a class)
+  obj -> class = class;
+
+  // Initialize the attribute dictionary
+  obj -> attributes = dict_new(ObjectHashsize);
+
+  // Initialize the instance_attribute dictionary
+  obj -> instance_attributes = dict_new(ObjectHashsize);
+
+  return obj;
+}
 
 // class Class
 
@@ -306,26 +332,7 @@ iridium_classmethod(Class, new) {
   object self = dict_get(locals, ATOM("self"));
   
   // Container for the object under construction
-  object obj;
-  
-  // Allocate memory for the object
-  obj = (object) GC_MALLOC(sizeof(struct IridiumObject));
-  
-  // Ensure that memory was allocated
-  assert(obj);
-  
-  // Set the object's magic number
-  obj -> magic = MAGIC;
-
-  // Set the object's class to self (since this is a method on an instance of
-  // Class, which implies that self is a class)
-  obj -> class = self;
-  
-  // Initialize the attribute dictionary
-  obj -> attributes = dict_new(ObjectHashsize);
-  
-  // Initialize the instance_attribute dictionary
-  obj -> instance_attributes = dict_new(ObjectHashsize);
+  object obj = construct(self);
 
   // Set super to Object
   set_attribute(self, ATOM("superclass"), PUBLIC, CLASS(Object));
@@ -454,10 +461,38 @@ iridium_method(Function, __call__) {
   assert(locals);
 
   // Check the length of `args` agains the arity of the function object
-  assert((args -> length + 1) == internal_get_attribute(self, ATOM("arity"), int));
+  if (internal_get_attribute(self, ATOM("splat"), char) == -1) {
+    // There is a finite number of arguments accepted
+    // Ensure that all required arguments are present
+    assert((args -> length) >= internal_get_attribute(self, ATOM("required"), int));
+    // Ensure that no more than the required and optional args are present
+    assert((args -> length) <= internal_get_attribute(self, ATOM("required"), int) + internal_get_attribute(self, ATOM("optional"), int));
+  }
 
   // Invoke the function
   return func(dict_copy(locals), args);
+}
+
+// FUNCTION helper
+// args:
+//  name: Atom
+//  required: int
+//  optional: int
+//  splat: char
+//  bindings: struct dict *
+//  func: iridium_method
+//  Convert a C function to an Iridium Function
+//  The `splat` argument is the index of a destructured tuple argument (extra args),
+//  and is set to -1 if there is none.
+object FUNCTION(object name, int required, int optional, char splat, struct dict * bindings, object (* func)(struct dict *, struct array *)) {
+  object self = construct(CLASS(Function));
+  internal_set_attribute(self, ATOM("required"), required);
+  internal_set_attribute(self, ATOM("optional"), optional);
+  internal_set_attribute(self, ATOM("splat"), splat);
+  set_attribute(self, ATOM("name"), PUBLIC, name);
+  internal_set_attribute(self, ATOM("bindings"), bindings);
+  internal_set_attribute(self, ATOM("function"), func);
+  return self;
 }
 
 // class Atom
@@ -469,11 +504,14 @@ void * ATOM_TABLE_KEY = NULL;
 #define ATOM_HASHSIZE 100
 
 iridium_classmethod(Atom, new) {
+  object atom;
   // Get the name of the atom
   char * name = array_get(args, 0);
 
   // Create the atom
-  return ATOM(name);
+  atom = ATOM(name);
+  // Initialize the atom (unless overloaded in an Iridium Program, will default to doing nothing at all)
+  invoke(atom, "initialize", args);
 }
 
 struct dict * ATOM_TABLE() {
@@ -506,19 +544,7 @@ void add_atom(char * name, object atom) {
 // Create the `:self` atom
 object create_self_atom() {
   // Allocate memory for the object
-  object self_atom = (object) GC_MALLOC(sizeof(struct IridiumObject));
-
-  // Ensure that memory was allocated
-  assert(self_atom);
-
-  // Set the object's magic number
-  self_atom -> magic = MAGIC;
-
-  // Set the object's class to Atom
-  self_atom -> class = CLASS(Atom);
-
-  // Initialize the attribute dictionary
-  self_atom -> attributes = dict_new(ObjectHashsize);
+  object self_atom = construct(CLASS(Atom));
 
   // Add it to the Atom table
   add_atom("self", self_atom);
@@ -539,23 +565,7 @@ object _ATOM(char * name) {
   if (! (atom = (object) str_dict_get(atom_table, name))) {
     // The atom does not exist
     // Create the new object
-    // Allocate memory for the object
-    atom = (object) GC_MALLOC(sizeof(struct IridiumObject));
-
-    // Ensure that memory was allocated
-    assert(atom);
-
-    // Set the object's magic number
-    atom -> magic = MAGIC;
-
-    // Set the object's class to Atom
-    atom -> class = CLASS(Atom);
-
-    // Initialize the attribute dictionary
-    atom -> attributes = dict_new(ObjectHashsize);
-
-    // Initialize the instance attribute dictionary (should not be used but needs to be present, by contract)
-    atom -> instance_attributes = dict_new(ObjectHashsize);
+    atom = construct(CLASS(Atom));
 
     // Add it to the Atom table
     add_atom(name, atom);
