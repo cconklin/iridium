@@ -1,4 +1,5 @@
 #include "../src/object.h"
+#include "test_helper.h"
 
 void define_Atom() {  
   
@@ -48,7 +49,7 @@ int main(int argc, char * argv[]) {
   object val = ATOM("val");
   set_attribute(a, attr, PRIVATE, val);
   // Private attributes should return nil (later raise an exception) when a public attribute is sought
-  assert(get_attribute(a, attr, PUBLIC) == NIL);
-  assert(get_attribute(a, attr, PRIVATE) == val);  
+  assertEqual(get_attribute(a, attr, PUBLIC), NIL);
+  assertEqual(get_attribute(a, attr, PRIVATE), val);  
   return 0;
 }

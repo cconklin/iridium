@@ -29,6 +29,8 @@ struct array {
   unsigned int size;
   // index of the last element in the array
   unsigned int length;
+  // index of the first element in the array
+  unsigned int start;
 };
 
 // array_new
@@ -46,6 +48,9 @@ struct array * array_new(void) {
   
   // Set the array length to 0 (since there are no elements)
   ary -> length = 0;
+  
+  // Set the start index to 0 (since it hasn't been shifted)
+  ary -> start = 0;
   
   // Allocate space for the elements
   ary -> elements = GC_MALLOC(10 * sizeof(void *));
@@ -81,7 +86,7 @@ void array_resize(struct array * ary, unsigned int size) {
 struct array * array_set(struct array * ary, unsigned int index, void * value) {
   
   // Ensure that the array has enought memory allocated
-  array_resize(ary, index);
+  array_resize(ary, ary -> start + index);
   
   // Set the spot in memory
   ary -> elements [index] = value;
@@ -97,11 +102,48 @@ struct array * array_set(struct array * ary, unsigned int index, void * value) {
 // Gets the value at `index`
 void * array_get(struct array * ary, unsigned int index) {
   // Ensure that the array is large enough
-  if (index >= ary -> size)
+  if ( ary -> start + index >= ary -> size)
     return NULL;
   
   // Return the value at `index`
-  return ary -> elements [index];
+  return ary -> elements [ary -> start + index];
+}
+
+// array_push
+// Push a new value to the end of array
+struct array * array_push(struct array * ary, void * value) {
+  return array_set(ary, ary -> length, value);
+}
+
+// array_shift
+// returns the first value of the array, moving the remaining elements one back
+void * array_shift(struct array * ary) {
+  void * result;
+  // Ensure that the array is large enough
+  if (ary -> start >= ary -> size)
+    return NULL;
+  result = array_get(ary, 0);
+  ary -> start ++;
+  ary -> length --;
+  return result;
+}
+
+struct array * array_copy(struct array * ary) {
+  struct array * new_array = array_new();
+  int index;
+  for (index = 0; index < ary -> length; index ++) {
+    array_set(new_array, index, array_get(ary, index));
+  }
+  return new_array;
+}
+
+struct array * array_merge(struct array * array_1, struct array * array_2) {
+  struct array * result = array_copy(array_1);
+  int index;
+  for (index = 0; index < array_2 -> length; index ++) {
+    array_push(result, array_get(array_2 , index));
+  }
+  return result;
 }
 
 #endif

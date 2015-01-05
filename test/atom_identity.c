@@ -1,4 +1,5 @@
 #include "../src/object.h"
+#include "test_helper.h"
 
 void define_Atom() {  
   
@@ -44,11 +45,11 @@ int main(int argc, char * argv[]) {
   object b = ATOM("b");
   object a_1 = ATOM("a");
   object b_1 = ATOM("b");
-  assert(self == self_1);
-  assert(a == a_1);
-  assert(b == b_1);
-  assert(a != b);
-  assert(a != self);
-  assert(b != self);
+  assertEqual(self, self_1);
+  assertEqual(a, a_1);
+  assertEqual(b, b_1);
+  assertNotEqual(a, b);
+  assertNotEqual(a, self);
+  assertNotEqual(b, self);
   return 0;
 }

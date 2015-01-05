@@ -1,4 +1,5 @@
 #include "../src/object.h"
+#include "test_helper.h"
 
 void define_Atom() {  
   
@@ -42,6 +43,6 @@ int main(int argc, char * argv[]) {
   object attr = ATOM("attr");
   object val = ATOM("val");
   set_attribute(a, attr, PUBLIC, val);
-  assert(get_attribute(a, attr, PUBLIC) == val);
+  assertEqual(get_attribute(a, attr, PUBLIC), val);
   return 0;
 }
