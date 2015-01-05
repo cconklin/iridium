@@ -168,7 +168,7 @@ grammar Iridium
   end
 
   rule argument
-    identifier space? '=' space? literal <Argument> / identifier
+    identifier space? '=' space? literal <Argument> / identifier / '*' space? identifier <Splat>
   end
 
   rule argumentlist

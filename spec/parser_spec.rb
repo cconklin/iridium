@@ -135,6 +135,15 @@ describe Parser do
       end
     end
 
+    it "should allow one destructured arguments" do
+      func = <<-END
+      function x(*args)
+        y = 5
+      end
+      END
+      expect(parser.parse(func)).to eq([[:function, :x, [[:destructure, :args]], [[:"=", :y, 5]]]])
+    end
+
     it "should parse with no arguments" do
       func = <<-END
       function x()
@@ -547,6 +556,10 @@ describe Parser do
 
     it "should be able to contain method definitions" do
       expect(parser.parse("class Foo method x end end")).to eq([[:class, :Foo, nil, [[:method, :x, [], []]]]])      
+    end
+    
+    it "should be able to contain method definitions with splatted args" do
+      expect(parser.parse("class Foo method x(*args) end end")).to eq([[:class, :Foo, nil, [[:method, :x, [[:destructure, :args]], []]]]])
     end
     
     it "should be able to contain attribute assignments" do

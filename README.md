@@ -33,6 +33,32 @@ Functions can also accept optional arguments by placing `=` between the variable
   end
 ```
 
+Optional arguments must appear after required arguments.
+
+```
+  # Allowed
+
+  function f1(a, b=1)
+    # ...
+  end
+
+  # Not Allowed
+
+  function f2(a=1, b)
+    # ...
+  end
+
+  function f3(a, b=2, c)
+    # ...
+  end
+
+  function f4(a=1, b, c=2)
+    # ...
+  end
+```
+
+Tuples can also be converted into arguments using the `*` operator. This is allowed once per function definition, but can be used multiple times during function invocations.
+
 #### Annonymous Functions
 
 Functions also come in an unnamed form, which have a few special properties.
