@@ -57,7 +57,28 @@ Optional arguments must appear after required arguments.
   end
 ```
 
-Tuples can also be converted into arguments using the `*` operator. This is allowed once per function definition, but can be used multiple times during function invocations.
+Tuples can also be converted into arguments using the `*` operator. This is allowed once per function definition, but can be used multiple times during function invocations. This allows for functions with arbitrary artiy.
+
+```
+  function x(a, * args, b = 2, c = 4)
+    return {a, args, b, c}
+  end
+
+  x(1)
+    # => {1, {}, 2, 4}
+  x(1, 3)
+    # => {1, {}, 3, 4}
+  x(1, 1, 3)
+    # => {1, {}, 1, 3}
+  x(1, 1, 3, 5)
+    # => {1, {1}, 3, 5}
+  x(*{1, 1, 3, 5}) # <=> x(1, 1, 3, 5)
+    # => {1, {1}, 3, 5}
+  x(*{1}, 1, *{3, 5}) # <=> x(1, 1, 3, 5)
+    # => {1, {1}, 3, 5}
+  x(1, 1, 2, 3, 5, 8)
+    # => {1, {1, 2, 3}, 5, 8}
+```
 
 #### Annonymous Functions
 
