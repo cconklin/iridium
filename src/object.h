@@ -79,7 +79,7 @@ struct IridiumArgument {
 #define bind_self(value) dict_with(dict_new(ObjectHashsize), ATOM("self"), value)
 
 // TODO define NIL macro
-#define NIL NULL
+#define NIL (nil ? nil : (nil = create_nil()))
 
 // TODO define the CLASS macro
 #define CLASS(name) name
@@ -98,6 +98,9 @@ object Object;
 object Function;
 object Atom;
 object Tuple;
+object NilClass;
+
+object nil = NULL;
 
 iridium_classmethod(Class, new);
 iridium_method(Class, initialize);
@@ -108,6 +111,7 @@ iridium_classmethod(Atom, new);
 
 object _ATOM(char * name);
 object create_self_atom();
+object create_nil();
 object construct(object class);
 object FUNCTION(object name, struct list * args, struct dict * bindings, object (* func)(struct dict *));
 object TUPLE(struct array * values);
@@ -732,4 +736,15 @@ object TUPLE(struct array * values) {
   object tuple = construct(CLASS(Tuple));
   internal_set_attribute(tuple, ATOM("array"), values);
   return tuple;
+}
+
+// class NilClass
+
+object create_nil() {
+  // Bail if nil is already defined
+  if (nil) return nil;
+  // TODO ensure that NilClass exists
+  object _nil = construct(CLASS(NilClass)); // not called nil as to not collide with the global
+  // TODO make most attributes dissapear
+  return _nil;
 }
