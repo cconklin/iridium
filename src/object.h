@@ -355,11 +355,18 @@ object invoke(object obj, char * name, struct array * args) {
 // Used by the translator
 
 object calls(object callable, struct array * args) {
-  object call_function = iridium_method_name(Object, __get__)(dict_with(bind_self(callable), ATOM("name"), ATOM("__call__")));
+  object get_function = get_attribute(callable, ATOM("__get__"), PUBLIC);
+  object call_function;
+  struct dict * bindings;
+  object ( * func )(struct dict *) = internal_get_attribute(get_function, ATOM("function"), object (*)(struct dict *));
+  // get_function IS an Iridium Function
+  // TODO raise exception if not
+  // invoke the get_function to get the call_function
+  call_function = func(dict_with(bind_self(callable), ATOM("name"), ATOM("__call__")));
   // call_function IS an Iridium Function
   // TODO raise exception if not
-  struct dict * bindings = process_args(call_function, args);
-  object ( * func )(struct dict *) = internal_get_attribute(call_function, ATOM("function"), object (*)(struct dict *));
+  bindings = process_args(call_function, args);
+  func = internal_get_attribute(call_function, ATOM("function"), object (*)(struct dict *));
   assert(func);
   return func(bindings);
 }
@@ -387,6 +394,7 @@ struct dict * process_args(object function, struct array * _args) {
   int first_optional = -1;
   int index = 0;
   int length = 0;
+  int arg_length = args -> length;
   unsigned int required = 0;
   struct IridiumArgument * this_arg;
   while (iter_arg_list) {
@@ -413,99 +421,52 @@ struct dict * process_args(object function, struct array * _args) {
   // ensure that the argument list does not have multiple splatted args
   assert(splat < 2);
   // ensure that the arity is sufficient
-  assert(required <= args -> length);
-
+  assert(arg_length >= required);
+  // if there is no splat, ensure that the arity is not too large
+  if (splat == 0) {
+    assert(arg_length <= length);
+  }
+  
   // function x(a, * args, b = 2, c = 4) ...
   // x(1) # > a = 1, args = {}, b = 2, c = 4
   // x(1, 3) # > a = 1, args = {}, b = 3, c = 4
   // x(1, 1, 3) # > a = 1, args = {}, b = 1, c = 3
   // x(1, 1, 3, 5) # > a = 1, args = {1}, b = 3, c = 5
 
-  if (args -> length == required) {
-    // Only the required can be filled (case 1 above)
-    iter_arg_list = argument_list;
-    while (iter_arg_list) {
-      this_arg = (struct IridiumArgument *) list_head(iter_arg_list);
-      // Basic required argument
-      if ((this_arg -> default_value == NULL) && (this_arg -> splat == 0)) {
-        dict_set(argument_values, this_arg -> name, array_shift(args));
-      } else if (this_arg -> default_value != NULL) {
+
+  iter_arg_list = argument_list;
+  index = 0;
+  // array for destructured arg (if present)
+  partial_args = array_new();
+  while (iter_arg_list) {
+    this_arg = (struct IridiumArgument *) list_head(iter_arg_list);
+    // required argument or optional one (not splatted)
+    if (this_arg -> splat == 0) {
+      if (index < arg_length) {
+        dict_set(argument_values, this_arg -> name, array_shift(args));          
+      } else {
+        // All of the passed args have been used
         // Fill in the default values for the optional arguments
-        dict_set(argument_values, this_arg -> name, this_arg -> default_value);        
-      } else {
-        // Fill a splatted argument with an empty tuple
-        dict_set(argument_values, this_arg -> name, TUPLE(array_new()));
+        dict_set(argument_values, this_arg -> name, this_arg -> default_value);          
       }
-      iter_arg_list = list_tail(iter_arg_list);      
-    }
-  } else if ( args -> length == (length - splat) ) {
-    // Only the required and (all) optional can be filled (case 3 above)
-    iter_arg_list = argument_list;
-    while (iter_arg_list) {
-      this_arg = (struct IridiumArgument *) list_head(iter_arg_list);
-      // required argument or optional one (not splatted)
-      if (this_arg -> splat == 0) {
-        dict_set(argument_values, this_arg -> name, array_shift(args));
-      } else {
-        dict_set(argument_values, this_arg -> name, TUPLE(array_new()));
-      }
-      iter_arg_list = list_tail(iter_arg_list);      
-    }
-  } else if ( args -> length < (length - splat) ) {
-    // Only the required and (some) optional can be filled (case 2 above)
-    iter_arg_list = argument_list;
-    index = 0;
-    while (iter_arg_list) {
-      this_arg = (struct IridiumArgument *) list_head(iter_arg_list);
-      // required argument or optional one (not splatted)
-      if (this_arg -> splat == 0) {
-        if (index < args -> length) {
-          dict_set(argument_values, this_arg -> name, array_shift(args));          
-        } else {
-          // All of the passed args have been used
-          // Fill in the default values for the optional arguments
-          dict_set(argument_values, this_arg -> name, this_arg -> default_value);          
-        }
-      } else {
-        dict_set(argument_values, this_arg -> name, TUPLE(array_new()));
-      }
-      iter_arg_list = list_tail(iter_arg_list);
-      index ++;
-    } 
-  } else if ( args -> length > (length - splat) ) {
-    // All args can be filled, the splatted arg will have some values in it (case 4 above)
-    // Only the required and (some) optional can be filled (case 2 above)
-    iter_arg_list = argument_list;
-    index = 0;
-    partial_args = array_new();
-    while (iter_arg_list) {
-      this_arg = (struct IridiumArgument *) list_head(iter_arg_list);
-      // required argument or optional one (not splatted)
-      if (this_arg -> splat == 0) {
-        if (index < args -> length) {
-          dict_set(argument_values, this_arg -> name, array_shift(args));          
-        } else {
-          // All of the passed args have been used
-          // Fill in the default values for the optional arguments
-          dict_set(argument_values, this_arg -> name, this_arg -> default_value);          
-        }
-      } else {
-        while (index < (args -> length - (length - splat))) {
-          array_push(partial_args, array_shift(args));
-          index ++;
-        }
-        // Splatted argument
-        dict_set(argument_values, this_arg -> name, TUPLE(partial_args));
-      }
-      iter_arg_list = list_tail(iter_arg_list);
       index ++;  
-    } 
-  }
+    } else {
+      while (index < (arg_length - (length - splat))) {
+        array_push(partial_args, array_shift(args));
+        index ++;
+      }
+      // Splatted argument
+      dict_set(argument_values, this_arg -> name, TUPLE(partial_args));
+    }
+    iter_arg_list = list_tail(iter_arg_list);
+  } 
   return dict_merge(closed_values, argument_values);
 }
 
 
 // class Class
+
+// TODO Make into Object.new ?
 
 // Class.new
 // Constructor of objects
@@ -524,9 +485,6 @@ iridium_classmethod(Class, new) {
   
   // Container for the object under construction
   object obj = construct(self);
-
-  // Set super to Object
-  set_attribute(self, ATOM("superclass"), PUBLIC, CLASS(Object));
 
   // Send off to the object initialize method
   invoke(obj, "initialize", destructure(array_new(), args));
