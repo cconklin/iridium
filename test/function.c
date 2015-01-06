@@ -53,6 +53,16 @@ iridium_method(Test, func_required_and_optional) {
   return NIL;
 }
 
+iridium_method(Test, func_splat_and_optional) {
+  // * args (splat)
+  struct array * tuple_args = internal_get_attribute(local("args"), ATOM("array"), struct array *);
+  assertEqual(array_get(tuple_args, 0), ATOM("a"));
+  assertEqual(array_get(tuple_args, 1), ATOM("b"));
+  assertEqual(local("b"), ATOM("c")); // optional
+  return NIL;
+}
+
+
 int main(int argc, char * argv[]) {
   object func, obj;
   struct IridiumArgument * a, * b;
@@ -76,6 +86,8 @@ int main(int argc, char * argv[]) {
   set_attribute(obj, ATOM("f"), PUBLIC, func);
   args = array_new();
   array_push(args, ATOM("a"));
+  // function f(a, b = :b)
+  // obj.f(:a) # > a = :a, b = :b
   invoke(obj, "f", args);
 
   // test with a required and optional arg passing both
@@ -87,9 +99,23 @@ int main(int argc, char * argv[]) {
   args = array_new();
   array_push(args, ATOM("a"));
   array_push(args, ATOM("b"));
+  // function f(a, b = :c)
+  // obj.f(:a, :b) # > a = :a, b = :b
   invoke(obj, "f", args);
 
-  // TODO test with a splatted args and an optional arg, filling both
+  // test with a splatted args and an optional arg, filling both
+  a = argument_new(ATOM("args"), NULL, 1);
+  b = argument_new(ATOM("b"), ATOM("f"), 0);
+  func = FUNCTION(ATOM("func"), list_cons(list_new(b), a), dict_new(ObjectHashsize), iridium_method_name(Test, func_splat_and_optional));
+  obj = ATOM("obj");
+  set_attribute(obj, ATOM("f"), PUBLIC, func);
+  args = array_new();
+  array_push(args, ATOM("a"));
+  array_push(args, ATOM("b"));
+  array_push(args, ATOM("c"));
+  // function f(* args, b = :f)
+  // obj.f(:a, :b, :c) # > args = {:a, :b}, b = :c
+  invoke(obj, "f", args);
   
   return 0;
 }
