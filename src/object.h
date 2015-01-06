@@ -23,7 +23,6 @@
 // Enum for attribute access levels
 #define PUBLIC    0
 #define PRIVATE   1
-#define INTERNAL  2
 
 // Macros for methods and method names
 #define iridium_method_name(class, name) Iridium_##class##_##name
@@ -43,6 +42,8 @@ typedef struct IridiumObject {
   struct IridiumObject * class;
   // Dictionary of attributes
   struct dict * attributes;
+  // Dictionary of internal attributes (hidden from an Iridium program)
+  struct dict * internal_attributes;
   // Dictionary of attributes for instances
   struct dict * instance_attributes;
   // List of included modules
@@ -251,7 +252,7 @@ attribute_lookup(object receiver, void * attribute, unsigned char access) {
 
 // internal_get_attribute
 // Returns an attribute of obj which is INTERNAL
-#define internal_get_attribute(obj, attr, cast) ((cast)(attribute_lookup(obj, attr, INTERNAL) ? (attribute_lookup(obj, attr, INTERNAL) -> value) : NULL))
+#define internal_get_attribute(obj, attr, cast) ((cast)(dict_get(((object) obj) -> internal_attributes, attr)))
 
 // set_attribute
 // mutates the receiver, setting the attribute with `access` to a new value
@@ -284,7 +285,7 @@ object set_instance_attribute(object receiver, void * attribute, unsigned char a
 // internal_set_attribute
 // mutates the receiver, setting attribute with INTERNAL access to a new value
 // NOTE: could run into issue where attribute is set before with a lower access (which means that an attribute that ought to be internal isn't)
-#define internal_set_attribute(receiver, attribute, value) (__typeof__(value)) set_attribute(receiver, attribute, INTERNAL, (object) value) 
+#define internal_set_attribute(receiver, attribute, value) dict_set(receiver -> internal_attributes, attribute, value)
 
 // function_bind
 // Bind locals to functions
@@ -336,6 +337,9 @@ object construct(object class) {
 
   // Initialize the instance_attribute dictionary
   obj -> instance_attributes = dict_new(ObjectHashsize);
+
+  // Initialize the internal_attribute dictionary
+  obj -> internal_attributes = dict_new(ObjectHashsize);
 
   return obj;
 }
@@ -681,7 +685,7 @@ struct dict * ATOM_TABLE() {
     return atom_table;
   } else {
     // The atom table exists, return it
-    return (struct dict *) (((iridium_attribute) dict_get(atom_class -> attributes, ATOM_TABLE_KEY)) -> value);
+    return internal_get_attribute(atom_class, ATOM_TABLE_KEY, struct dict *);
   }
 
 }
