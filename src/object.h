@@ -55,6 +55,7 @@ typedef struct IridiumObject {
 // Struct underlying all Iridium object attributes
 typedef struct IridiumAttribute {
   unsigned char access;
+  unsigned char real; // set to 0 to stop attribute lookup
   void * value;
 } * iridium_attribute;
 
@@ -188,7 +189,7 @@ iridium_attribute attribute_lookup(object, void *, unsigned char);
 object
 get_attribute(object receiver, void * attribute, unsigned char access) {
   iridium_attribute result = attribute_lookup(receiver, attribute, access);
-  return result ? result -> value : NIL ;
+  return (result && result -> real) ? result -> value : NIL ;
 }
 
 // Helper function
@@ -266,10 +267,39 @@ object set_attribute(object receiver, void * attribute, unsigned char access, ob
   attr = (iridium_attribute) GC_MALLOC(sizeof(struct IridiumAttribute));
   assert(attr);
   attr -> access = access;
+  attr -> real = 1;
   // set the new value
   attr -> value = (void *) value;
   dict_set(receiver -> attributes, attribute, attr);
   return value;
+}
+
+// remove an attribute from an object (make it so that the object no longer sees an attribute)
+object no_attribute(object receiver, void * attribute) {
+  iridium_attribute attr;
+
+  attr = (iridium_attribute) GC_MALLOC(sizeof(struct IridiumAttribute));
+  assert(attr);
+  attr -> access = 0;
+  attr -> real = 0;
+  // set the new value
+  attr -> value = NIL;
+  dict_set(receiver -> attributes, attribute, attr);
+  return NIL;
+}
+
+// remove an instance attribute from an object (make it so that the object's instances no longer sees an attribute)
+object no_instance_attribute(object receiver, void * attribute) {
+  iridium_attribute attr;
+
+  attr = (iridium_attribute) GC_MALLOC(sizeof(struct IridiumAttribute));
+  assert(attr);
+  attr -> access = 0;
+  attr -> real = 0;
+  // set the new value
+  attr -> value = NIL;
+  dict_set(receiver -> instance_attributes, attribute, attr);
+  return NIL;
 }
 
 // set_instance_attribute
@@ -280,6 +310,7 @@ object set_instance_attribute(object receiver, void * attribute, unsigned char a
   attr = (iridium_attribute) GC_MALLOC(sizeof(struct IridiumAttribute));
   assert(attr);
   attr -> access = access;
+  attr -> real = 1;
   // set the new value
   attr -> value = (void *) value;
   dict_set(receiver -> instance_attributes, attribute, attr);
