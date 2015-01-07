@@ -141,6 +141,8 @@ Since annonymous functions are so useful, there is a special syntax for passing 
   end # => 17
 ```
 
+Note that annonymous functions cannot recurse without first being bound to a variable.
+
 ##### A Note on Closures
 
 As stated previously, annonymous functions retain the bindings present in the scope in which they are created. A notable exception is `self`, which, if the function is made an attribute of an object (turned into a method), is the receiver of the call.
@@ -158,7 +160,7 @@ fun_2 = ->
 end
 
 class Foo
-  function invoke(fun)
+  method invoke(fun)
     # self is an instance of the Foo class
     fun()
   end
@@ -265,6 +267,8 @@ Functions can be namespaced to a module by defining them within the module.
   MyModule.my_namespaced_func() # => 5
 ```
 
+Modules and classes can be namespaced in a similar manner. The method of accessing them is like `MyModule.MyClass`. Accessing in this manner is required even when within the scope of `MyModule`.
+
 #### Composing objects from Modules
 
 Modules can be included by classes, which grant their attributes to the classes instances. Alternatively, Modules can be extended, which provides their attributes to the extending object directly. While only Classes and Modules can `include` Modules, any object can `extend` modules.
@@ -280,7 +284,7 @@ Modules can be included by classes, which grant their attributes to the classes 
 
 ## Types
 
-Iridium is a dynamically typed language, where most language constructs are objects.
+Iridium is a dynamically typed language, where all language constructs are objects.
 
 The primary types in Iridium are:
 
