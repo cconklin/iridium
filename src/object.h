@@ -116,6 +116,7 @@ object create_nil();
 object construct(object class);
 object FUNCTION(object name, struct list * args, struct dict * bindings, object (* func)(struct dict *));
 object TUPLE(struct array * values);
+int INT(object);
 
 object invoke(object obj, char * name, struct array * args);
 object calls(object callable, struct array * args);
@@ -767,6 +768,57 @@ object TUPLE(struct array * values) {
   object tuple = construct(CLASS(Tuple));
   internal_set_attribute(tuple, ATOM("array"), values);
   return tuple;
+}
+
+iridium_classmethod(Tuple, new) {
+  object args = local("args");
+  object tuple = TUPLE(destructure(array_new(), args));
+  // Call initialize (which should do nothing unless overidden)
+  invoke(tuple, "initialize", destructure(array_new(), args));
+  return tuple;
+}
+
+// method reduce(accumulator, fn)
+iridium_method(Tuple, reduce) {
+  object self = local("self");
+  object accumulator = local("accumulator");
+  object fn = local("fn");
+  object element;
+  // Get a duplicate of the internal array
+  struct array * ary = array_copy(internal_get_attribute(self, ATOM("array"), struct array *));
+  struct array * args;
+  while (ary -> length) {
+    element = array_shift(ary);
+    args = array_new();
+    array_set(args, 0, element);
+    array_set(args, 1, accumulator);
+    accumulator = calls(fn, args);
+  }
+  return accumulator;
+}
+
+iridium_method(Tuple, __get_index__) {
+  object self = local("self");
+  object index = local("index"); // Iridium Fixnum
+  struct array * ary = internal_get_attribute(self, ATOM("array"), struct array *);
+  return array_get(ary, INT(index));
+}
+
+iridium_method(Tuple, __set_index__) {
+  object self = local("self");
+  object index = local("index"); // Iridium Fixnum
+  object value = local("value");
+  struct array * ary = internal_get_attribute(self, ATOM("array"), struct array *);
+  array_set(ary, INT(index), value);
+  return value;
+}
+
+
+// class Fixnum
+
+// TODO implement Fixnum
+int INT(object fixnum) {
+  return 0;
 }
 
 // class NilClass
