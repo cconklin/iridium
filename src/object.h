@@ -100,6 +100,7 @@ object Function;
 object Atom;
 object Tuple;
 object NilClass;
+object Fixnum;
 
 object nil = NULL;
 
@@ -117,6 +118,7 @@ object construct(object class);
 object FUNCTION(object name, struct list * args, struct dict * bindings, object (* func)(struct dict *));
 object TUPLE(struct array * values);
 int INT(object);
+object FIXNUM(int);
 
 object invoke(object obj, char * name, struct array * args);
 object calls(object callable, struct array * args);
@@ -816,9 +818,25 @@ iridium_method(Tuple, __set_index__) {
 
 // class Fixnum
 
-// TODO implement Fixnum
+iridium_classmethod(Fixnum, new) {
+  object fixnum = local("fixnum");
+  return FIXNUM(INT(fixnum));
+}
+
+iridium_method(Fixnum, __plus__) {
+  object self = local("self");
+  object other = local("other");
+  return FIXNUM(INT(self) + INT(other));
+}
+
+object FIXNUM(int val) {
+  object fixnum = construct(Fixnum);
+  internal_set_attribute(fixnum, ATOM("value"), val);
+  return fixnum;
+}
+
 int INT(object fixnum) {
-  return 0;
+  return internal_get_attribute(fixnum, ATOM("value"), int);
 }
 
 // class NilClass
