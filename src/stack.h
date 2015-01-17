@@ -78,13 +78,19 @@ void * stack_pop(struct stack * stack) {
   return data;
 }
 
+// stack_empty
+// inputs: stack (struct stack *)
+// returns: int (boolean)
+// Determines if there are no elements in the stack
+#define stack_empty(stack) (stack -> depth == -1)
+
 // stack_top
 // inputs: stack (struct stack *)
 // returns: void *
 // Return the top element of the stack, without modifying the stack
 void * stack_top(struct stack * stack) {
   // Ensure that the stack has data
-  assert(stack -> depth >= 0);
+  assert(! stack_empty(stack));
   // Get and return the top element
   return stack -> stack [stack -> depth];
 }
