@@ -1,9 +1,9 @@
 #!/bin/bash
-trap "{ tput sgr0; echo; exit 1; }" SIGINT SIGTERM
 root=`dirname $(dirname $(pwd)/$0)`
 pushd root >& /dev/null
   root=$(pwd)
 popd >& /dev/null
+trap "{ tput sgr0; rm -rf ${root}/tmp >& /dev/null; echo; exit 1; }" SIGINT SIGTERM
 let fail=0
 let tests=0
 let run=0
