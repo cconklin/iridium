@@ -3,6 +3,7 @@
 #include <assert.h>
 // #include <gc.h>
 #include <string.h>
+#include <setjmp.h>
 
 // HACK around GC not linking
 #define GC_MALLOC(n) calloc(1, n)
@@ -16,6 +17,8 @@
 #include "dict.h"
 // Use the str_dict library for atoms
 #include "str_dict.h"
+// Use the stack library for exceptions
+#include "stack.h"
 
 // Magic number to identify objects
 #define MAGIC 0x0EFFACED
@@ -111,6 +114,7 @@ iridium_method(Object, __set__);
 iridium_method(Function, __call__);
 iridium_classmethod(Atom, new);
 
+object get_attribute(object, void *, unsigned char);
 object _ATOM(char * name);
 object create_self_atom();
 object create_nil();
@@ -138,6 +142,21 @@ struct IridiumArgument * argument_new(object name, object default_value, char sp
 
 // :self atom
 object _SELF_ATOM = NULL;
+
+// Function to determine object inheritance
+
+int kindOf(object obj, object class) {
+  while (1) {
+    if (isA(obj, class)) {
+      return 1;
+    }
+    if (class == superclass(class)) {
+      break;
+    }
+    class = superclass(class);
+  }
+  return 0;
+}
 
 // arg
 // Converts an object into an argument
@@ -475,7 +494,6 @@ struct dict * process_args(object function, struct array * _args) {
   // x(1, 1, 3) # > a = 1, args = {}, b = 1, c = 3
   // x(1, 1, 3, 5) # > a = 1, args = {1}, b = 3, c = 5
 
-
   iter_arg_list = argument_list;
   index = 0;
   // array for destructured arg (if present)
@@ -508,13 +526,10 @@ struct dict * process_args(object function, struct array * _args) {
 
 // class Class
 
-// TODO Make into Object.new ?
-
 // Class.new
 // Constructor of objects
 // Inputs: locals (struct dict *, dictionary of local variables used in closures)
-//            Locals used: self
-//         args
+//            Locals used: self, args
 // Output:  obj (object)
 
 // function new(* args)
@@ -845,7 +860,175 @@ object create_nil() {
   // Bail if nil is already defined
   if (nil) return nil;
   // TODO ensure that NilClass exists
-  object _nil = construct(CLASS(NilClass)); // not called nil as to not collide with the global
+  nil = construct(CLASS(NilClass));
   // TODO make most attributes dissapear
-  return _nil;
+  return nil;
+}
+
+// class Exception
+
+struct Exception {
+  // Exception Class
+  object class;
+  // Value that setjmp will return when it is jumped to
+  int jump_location;
+};
+
+typedef struct ExceptionFrame {
+  // Used to indicate the index of this exception frame
+  // When a iridium function is invoked, this counter starts at zero
+  // Each successive exception frame in this iridium function has a higher
+  // index than the previous. That way, if a return happens inside a begin..end
+  // it is possible to determine how many ensures to handle by popping elements
+  // until `count` is 0. Returns outside of a begin..end block will not interact
+  // with the exceptions stack
+  int count;
+  // Jump value for ensure
+  // Make nonzero if there is an ensure, zero otherwise
+  int ensure;
+  // List of exceptions to handle
+  struct list * exceptions;
+  // Location to jump to
+  jmp_buf env;
+} * exception_frame;
+
+/*
+  Basic Exception Handler structure
+
+  // Rescue MyException
+  struct list * exceptions = list_new(EXCEPTION(MyException, 1));
+  // Create the exception frame with no ensure
+  // _handler_count is defined to be 0 at the top of every function
+  exception_frame e = ExceptionHandler(exceptions, 0, _handler_count ++);
+  switch (setjmp(e -> env)) {
+    case 0:
+      // begin
+      // ...
+      END_BEGIN(e);
+    case 1:
+      // rescue MyException
+      // ...
+      END_RESCUE(e);
+    case ENSURE_JUMP:
+      // ...
+      END_ENSURE;
+  }
+  _handler_count --;
+*/
+
+#define ENSURE_JUMP -1
+#define END_ENSURE if (_rescuing) handleException(_raised); break
+// End the handler first so that if an exception is raised in the `ensure`,
+// this handler will not rescue it
+#define END_BEGIN(frame) endHandler(frame); ensure(frame); break
+#define END_RESCUE(frame) ensure(frame); break
+
+// Location that an ensure jumps to if it completes normally when an exception is raised
+jmp_buf _handler_env;
+
+#define ensure(e) \
+  if ( e -> ensure ) \
+    if (! setjmp(_handler_env)) \
+      longjmp(e -> env, ENSURE_JUMP);
+
+// FIXME Not thread-safe
+// Global variable to hold exceptions
+// Will ALWAYS have a top level handler which will terminate the Iridium program
+struct stack * _exception_frames;
+// Global variable to hold the exception being raised
+object _raised;
+// Global variable to indicate if an exception is being handled
+int _rescuing = 0;
+
+struct Exception * EXCEPTION(object exception_class, int jump_location) {
+  struct Exception * exception = (struct Exception *) GC_MALLOC(sizeof(struct Exception));
+  assert(exception);
+  exception -> class = exception_class;
+  exception -> jump_location = jump_location;
+  return exception;
+}
+
+struct Exception * catchesException(exception_frame frame, object exception) {
+  struct Exception * e;
+  struct list * exceptions = frame -> exceptions;
+  while ( exceptions ) {
+    e = list_head(exceptions);
+    if ( kindOf( exception, e -> class ) ) {
+      return e;
+    }
+    exceptions = list_tail(exceptions);
+  }
+  return NULL;
+}
+
+// Handle a raised exception object
+void handleException(object exception) {
+  struct stack * frames = _exception_frames;
+  // Active exception frame
+  exception_frame frame;
+  // Exception handler information
+  struct Exception * e;
+  // Should not be NULL
+  assert(frames);
+  // Ensure that the raised exception is an Object
+  _raised = exception;
+  assert(isObject(_raised));
+  // Indicate that an exception is being handled
+  _rescuing = 1;
+  // Should have at least one handler
+  while(! stack_empty(frames)) {
+    frame = (exception_frame) stack_pop(frames);
+    if ((e = catchesException(frame, exception))) {
+      // Jump to the appropriate handler
+      // Binding of the exception to the variable happens during the exception handler
+      // Before we jump, we need to indicate that we are no longer handling the exception
+      // since a handler has been located
+      _rescuing = 0;
+      longjmp(frame -> env, e -> jump_location);
+    }
+    // Run the ensure
+    ensure(frame);
+  }
+  // Should NEVER get here
+}
+
+exception_frame ExceptionHandler(struct list * exceptions, int ensure, int count) {
+  exception_frame frame = (exception_frame) GC_MALLOC(sizeof(struct ExceptionFrame));
+  assert(frame);
+  frame -> exceptions = exceptions;
+  frame -> ensure = ensure;
+  frame -> count = count;
+  // Push to the exception handler stack
+  stack_push(_exception_frames, frame);
+  return frame;
+}
+
+// Used for returns that occur in begin..end blocks
+// Usage:
+//  // begin
+//  // ...
+//  return_in_begin_block();
+//  return value;
+
+void return_in_begin_block() {
+  struct stack * frames = _exception_frames;
+  exception_frame frame;
+  assert(frames);
+  // Should have at least one handler
+  while(! stack_empty(frames)) {
+    frame = (exception_frame) stack_pop(frames);
+    // Run the ensure
+    ensure(frame);
+    // This is the last frame in this iridium function
+    // Don't process any more
+    if (frame -> count == 0) {
+      break;
+    }
+  }
+}
+
+void endHandler(exception_frame e) {
+  // Check to ensure that this is not called incorrectly
+  assert(e == stack_top(_exception_frames));
+  stack_pop(_exception_frames);
 }
