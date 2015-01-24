@@ -440,4 +440,48 @@ module Iridium
     end
   end
   
+  class Begin < Treetop::Runtime::SyntaxNode
+    def content
+      if elements.length == 1
+        [:begin, elements[0].content, {}, []]
+      elsif elements.last.is_a? Ensure and elements.length == 2
+        # Ensure, no rescue
+        [:begin, elements[0].content, {}, elements[1].content]
+      elsif elements.last.is_a? Ensure and elements.length == 3
+        # Ensure, rescue
+        [:begin, elements[0].content, Hash[elements[1].content], elements[2].content]
+      else
+        [:begin, elements[0].content, Hash[elements[1].content], []]
+      end
+    end
+  end
+
+  class Rescue < Treetop::Runtime::SyntaxNode
+    def content
+      if elements.length == 3
+        # Binding to a variable
+        [elements[0].content, [elements[1].content, elements[2].content]]
+      else
+        # Not binding to a variable
+        [elements[0].content, [nil, elements[1].content]]
+      end
+    end
+  end
+
+  class RescueList < Treetop::Runtime::SyntaxNode
+    def content
+      if elements.length == 1
+        [elements[0].content]
+      else
+        [elements[0].content, *elements[1].content]
+      end
+    end
+  end
+
+  class Ensure < Treetop::Runtime::SyntaxNode
+    def content
+      elements[0].content
+    end
+  end
+
 end

@@ -28,7 +28,27 @@ grammar Iridium
   end
   
   rule statement
-    space? ( attribute_assignment / assignment / if / unless / while / return / invocation / function_invocation ) ';'? space? linebreak? <Statement>
+    space? ( attribute_assignment / assignment / if / unless / while / return / invocation / function_invocation / begin ) ';'? space? linebreak? <Statement>
+  end
+
+  ##################
+  # Exceptions
+
+  rule begin
+    'begin' space block space? rescue_list? space? ensure? 'end' space? <Begin>
+  end
+
+  rule rescue_list
+    rescue rescue_list? <RescueList>
+  end
+
+  rule rescue
+    'rescue' space identifier space? '=>' space? identifier space block space? <Rescue> /
+    'rescue' space identifier space block space? <Rescue>
+  end
+
+  rule ensure
+    'ensure' space block <Ensure>
   end
 
   ##################

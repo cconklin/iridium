@@ -399,3 +399,21 @@ A simple atom type (known as symbols in some other languages), these elements ar
   my_atom = :my_atom
   my_atom === :my_atom # => true
 ```
+
+## Exceptions
+
+Exceptions can be handled using `begin` blocks.
+
+```
+  begin
+    # Code to have exceptions handled within
+  rescue SomeException
+    # Run when code in the `begin` block raises SomeException
+  rescue AnotherException, Exception3 => e
+    # Rescues AnotherException and Exception3, binding the exception object to the variable `e`
+  ensure
+    # Run regardless of whether an exception has occurred
+  end
+```
+
+Raising exceptions is done with the `raise` keyword.

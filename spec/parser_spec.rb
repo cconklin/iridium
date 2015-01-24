@@ -652,4 +652,28 @@ describe Parser do
     end
   end
 
+  describe "exceptions" do
+    it "should allow begin..end blocks" do
+      expect( parser.parse "begin x = 5 end" ).to eq [[:begin, [[:"=", :x, 5]], {}, []]]
+    end
+
+    it "should allow rescuing of exceptions with binding to a variable" do
+      expect( parser.parse "begin x = 5 rescue MyException => e x = 6 end" ).to eq [[:begin, [[:"=", :x, 5]], {MyException: [:e, [[:"=", :x, 6]]]}, []]]
+    end
+
+    it "should allow rescuing of exceptions without binding to a variable" do
+      expect( parser.parse "begin x = 5 rescue MyException x = 6 end" ).to eq [[:begin, [[:"=", :x, 5]], {MyException: [nil, [[:"=", :x, 6]]]}, []]]
+    end
+
+    it "should allow rescuing of multiple exceptions" do
+      expect( parser.parse "begin x = 5 rescue MyException x = 6 rescue AnotherException => e x = 7 end" ).to eq [[:begin, [[:"=", :x, 5]], {MyException: [nil, [[:"=", :x, 6]]], AnotherException: [:e, [[:"=", :x, 7]]]}, []]]
+    end
+    
+    it "should allow an ensure" do
+      expect( parser.parse "begin x = 5 ensure x = 6 end" ).to eq [[:begin, [[:"=", :x, 5]], {}, [[:"=", :x, 6]]]]
+    end
+    it "should allow an ensure when rescuing" do
+      expect( parser.parse "begin x = 5 rescue MyException x = 6 ensure x = 7 end" ).to eq [[:begin, [[:"=", :x, 5]], {MyException: [nil, [[:"=", :x, 6]]]}, [[:"=", :x, 7]]]]
+    end
+  end
 end
