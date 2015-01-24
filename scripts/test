@@ -1,50 +1,23 @@
 #!/bin/bash
+if [[ ! -e ~/bin/tester ]]; then
+  echo "Error: Tester is not installed. Clone https://github.com/cconklin/tester and symlink tester/bin/tester to ~/bin/"
+  echo "       Ensure that you are using the 'iridium' branch of tester."
+  exit 1
+fi
 root=`dirname $(dirname $(pwd)/$0)`
-pushd root >& /dev/null
+pushd $root >& /dev/null
   root=$(pwd)
 popd >& /dev/null
-trap "{ tput sgr0; rm -rf ${root}/tmp >& /dev/null; echo; exit 1; }" SIGINT SIGTERM
-let fail=0
-let tests=0
-let run=0
-mkdir "${root}/tmp"
-tput setaf 1
-for test_file in $(ls ${root}/test/ | grep '.c')
+for test_file in $(find $root/test -name "*.c")
 do
   test_name="${test_file%.*}"
-  clang ${root}/test/${test_file} -o ${root}/tmp/${test_name} >& /dev/null
-  if [[ ! -e ${root}/tmp/${test_name} ]]; then
-    echo "Compile Error: $test_file"
-    let tests=$tests+1
-    let fail=$fail+1
+  clang ${test_file} -o ${test_name} >& /dev/null
+  if [[ ! -e ${test_name} ]]; then
+    echo '#!/bin/bash' > ${test_name}
+    echo "echo 'Compile Error: $test_file'" >> ${test_name}
+    echo "exit 3" >> ${test_name}
+    chmod 777 ${test_name}
   fi
 done
-for test in $(ls ${root}/tmp)
-do
-  let run=$run+1
-  let tests=$tests+1
-  ${root}/tmp/${test}
-  if [ ${PIPESTATUS[0]} -ne 0 ]; then
-    let fail=$fail+1
-    echo "Fail: $test"
-  fi
-done
-rm -rf ${root}/tmp
-if [ $fail -eq 0 ]; then
-  tput setaf 2
-  echo "$tests Passed"
-  tput bold
-  echo "OK"
-elif [ $fail -eq 1 ]; then
-  echo
-  tput setaf 1
-  tput bold
-  echo "$tests Tests Found, $run Tests Run, 1 Failure"
-else
-  echo
-  tput setaf 1
-  tput bold
-  echo "$tests Tests Found, $run Tests Run, $fail Failures"
-fi
-tput sgr0
-exit $fail
+$(readlink ~/bin/tester) $root/test $@
+find $root/test/* | grep "\." -v | egrep -v "before|after" | xargs rm
