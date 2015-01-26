@@ -19,5 +19,5 @@ do
     chmod 777 ${test_name}
   fi
 done
-$(readlink ~/bin/tester) $root/test $@
+~/bin/tester $@
 find $root/test -type f | grep "\." -v | xargs rm
