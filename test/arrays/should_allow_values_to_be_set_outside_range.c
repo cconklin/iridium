@@ -1,4 +1,4 @@
-#include "../../src/array.h"
+#include "../../src/lib/array.h"
 #include "../test_helper.h"
 
 int main(int argc, char * argv[]) {

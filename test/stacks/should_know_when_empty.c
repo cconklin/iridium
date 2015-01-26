@@ -1,4 +1,4 @@
-#include "../../src/stack.h"
+#include "../../src/lib/stack.h"
 #include "../test_helper.h"
 
 int main(int argc, char * argv[]) {

@@ -1,4 +1,4 @@
-#include "../../src/linked_list.h"
+#include "../../src/lib/linked_list.h"
 #include "../test_helper.h"
 
 int main (int argc, char const *argv[]) {

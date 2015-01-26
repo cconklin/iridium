@@ -10,15 +10,15 @@
 #define GC_REALLOC(p, n) realloc(p, n)
 
 // Use the array library to get args
-#include "array.h"
+#include "lib/array.h"
 // Use the list library for module lookup
-#include "linked_list.h"
+#include "lib/linked_list.h"
 // Use the dict library for attributes
-#include "dict.h"
+#include "lib/dict.h"
 // Use the str_dict library for atoms
-#include "str_dict.h"
+#include "lib/str_dict.h"
 // Use the stack library for exceptions
-#include "stack.h"
+#include "lib/stack.h"
 
 // Magic number to identify objects
 #define MAGIC 0x0EFFACED
