@@ -5,6 +5,9 @@
 #include <string.h>
 #include <setjmp.h>
 
+#ifndef OBJECT_H
+#define OBJECT_H
+
 // HACK around GC not linking
 #define GC_MALLOC(n) calloc(1, n)
 #define GC_REALLOC(p, n) realloc(p, n)
@@ -1032,3 +1035,5 @@ void endHandler(exception_frame e) {
   assert(e == stack_top(_exception_frames));
   stack_pop(_exception_frames);
 }
+
+#endif
