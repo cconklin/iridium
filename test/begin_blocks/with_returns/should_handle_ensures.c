@@ -4,7 +4,7 @@
 
 int returns_in_begin() {
   struct list * exceptions = list_new(EXCEPTION(MyException, 1));
-  exception_frame e = ExceptionHandler(exceptions, 1, 0);
+  exception_frame e = ExceptionHandler(exceptions, 1, 0, 0);
   switch (setjmp(e -> env)) {
     case 0:
       // begin
@@ -23,14 +23,14 @@ int returns_in_begin() {
 
 int returns_in_nested_begin() {
   struct list * exceptions = list_new(EXCEPTION(MyException, 1));
-  exception_frame e = ExceptionHandler(exceptions, 1, 0);
+  exception_frame e = ExceptionHandler(exceptions, 1, 0, 0);
   exception_frame e_2;
   switch (setjmp(e -> env)) {
     case 0:
       // begin
       // ...
       exceptions = list_new(EXCEPTION(AnotherException, 1));
-      e_2 = ExceptionHandler(exceptions, 1, 1);
+      e_2 = ExceptionHandler(exceptions, 1, 0, 1);
       switch (setjmp(e_2 -> env)) {
         case 0:      
           return_in_begin_block();

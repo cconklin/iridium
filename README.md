@@ -411,6 +411,8 @@ Exceptions can be handled using `begin` blocks.
     # Run when code in the `begin` block raises SomeException
   rescue AnotherException, Exception3 => e
     # Rescues AnotherException and Exception3, binding the exception object to the variable `e`
+  else
+    # Run if no exception is raised
   ensure
     # Run regardless of whether an exception has occurred
   end

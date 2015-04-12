@@ -9,7 +9,7 @@ int main(int argc, char * argv[]) {
   int x = 0;
   struct list * exceptions = list_new(EXCEPTION(MyException, 1));
   object exc = construct(MyException);
-  exception_frame e = ExceptionHandler(exceptions, 0, 0);
+  exception_frame e = ExceptionHandler(exceptions, 0, 0, 0);
   
   switch (setjmp(e -> env)) {
     case 0:

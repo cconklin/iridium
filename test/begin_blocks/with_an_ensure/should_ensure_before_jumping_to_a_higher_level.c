@@ -8,7 +8,7 @@ int main(int argc, char * argv[]) {
   // x is a flag to indicate whether a jump occurred
   int x = 0;
   struct list * exceptions = list_new(EXCEPTION(MyException, 1));
-  exception_frame e = ExceptionHandler(exceptions, 0, 0);
+  exception_frame e = ExceptionHandler(exceptions, 0, 0, 0);
   int y = 0;
   exception_frame e_2;
   
@@ -17,7 +17,7 @@ int main(int argc, char * argv[]) {
       // begin
       // ...
       exceptions = list_new(EXCEPTION(AnotherException, 1));
-      e_2 = ExceptionHandler(exceptions, 1, 1);
+      e_2 = ExceptionHandler(exceptions, 1, 0, 1);
       switch (setjmp(e_2 -> env)) {
         case 0:      
           handleException(construct(MyException));

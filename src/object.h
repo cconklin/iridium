@@ -889,6 +889,9 @@ typedef struct ExceptionFrame {
   // Jump value for ensure
   // Make nonzero if there is an ensure, zero otherwise
   int ensure;
+  // Jump value for else
+  // Make nonzero if there is an else, zero otherwise
+  int else_block;
   // List of exceptions to handle
   struct list * exceptions;
   // Location to jump to
@@ -923,8 +926,10 @@ typedef struct ExceptionFrame {
 #define END_ENSURE if (_rescuing) handleException(_raised); break
 // End the handler first so that if an exception is raised in the `ensure`,
 // this handler will not rescue it
-#define END_BEGIN(frame) endHandler(frame); ensure(frame); break
+#define END_BEGIN(frame) run_else(frame); endHandler(frame); ensure(frame); break
 #define END_RESCUE(frame) ensure(frame); break
+#define END_ELSE(frame) endHandler(frame); ensure(frame); break
+#define ELSE_JUMP -2
 
 // Location that an ensure jumps to if it completes normally when an exception is raised
 jmp_buf _handler_env;
@@ -933,6 +938,12 @@ jmp_buf _handler_env;
   if ( e -> ensure ) \
     if (! setjmp(_handler_env)) \
       longjmp(e -> env, ENSURE_JUMP);
+
+#define run_else(e) \
+  if ( e -> else_block ) \
+    if (! setjmp(_handler_env)) \
+      longjmp(e -> env, ELSE_JUMP);
+
 
 // FIXME Not thread-safe
 // Global variable to hold exceptions
@@ -995,12 +1006,13 @@ void handleException(object exception) {
   // Should NEVER get here
 }
 
-exception_frame ExceptionHandler(struct list * exceptions, int ensure, int count) {
+exception_frame ExceptionHandler(struct list * exceptions, int ensure, int else_block, int count) {
   exception_frame frame = (exception_frame) GC_MALLOC(sizeof(struct ExceptionFrame));
   assert(frame);
   frame -> exceptions = exceptions;
   frame -> ensure = ensure;
   frame -> count = count;
+  frame -> else_block = else_block;
   // Push to the exception handler stack
   stack_push(_exception_frames, frame);
   return frame;
