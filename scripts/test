@@ -21,3 +21,4 @@ do
 done
 ~/bin/tester $@
 find $root/test -type f | grep "\." -v | xargs rm
+

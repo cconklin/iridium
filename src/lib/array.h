@@ -115,6 +115,15 @@ struct array * array_push(struct array * ary, void * value) {
   return array_set(ary, ary -> length, value);
 }
 
+// array_pop
+// Returns the element at the end of the array, removing it
+void * array_pop(struct array * ary) {
+  // Ensure that there is something to pop
+  if (ary -> length < 1)
+    return NULL;
+  return array_get(ary, --(ary -> length) );
+}
+
 // array_shift
 // returns the first value of the array, moving the remaining elements one back
 void * array_shift(struct array * ary) {
