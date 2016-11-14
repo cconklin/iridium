@@ -32,7 +32,7 @@
 
 // Macros for methods and method names
 #define iridium_method_name(class, name) Iridium_##class##_##name
-#define iridium_classmethod_name(class, name) iridium_method_name
+#define iridium_classmethod_name(class, name) iridium_method_name(class, name)
 
 #define iridium_method(class, name) object iridium_method_name(class, name)(struct dict * locals)
 #define iridium_classmethod(class, name) iridium_method(class, name)
