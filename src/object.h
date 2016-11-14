@@ -32,10 +32,10 @@
 
 // Macros for methods and method names
 #define iridium_method_name(class, name) Iridium_##class##_##name
-#define iridium_classmethod_name(class, name) iridium_method_name(class, name)
+#define iridium_classmethod_name(class, name) IridiumClassmethod_##class##_##name
 
 #define iridium_method(class, name) object iridium_method_name(class, name)(struct dict * locals)
-#define iridium_classmethod(class, name) iridium_method(class, name)
+#define iridium_classmethod(class, name) object iridium_classmethod_name(class, name)(struct dict * locals)
 
 // Locals
 #define local(name) dict_get(locals, ATOM(name))
@@ -111,7 +111,8 @@ object Fixnum;
 object nil = NULL;
 
 iridium_classmethod(Class, new);
-iridium_method(Class, initialize);
+iridium_method(Class, new);
+iridium_method(Object, initialize);
 iridium_method(Object, __get__);
 iridium_method(Object, __set__);
 iridium_method(Function, __call__);
@@ -530,13 +531,34 @@ struct dict * process_args(object function, struct array * _args) {
 // class Class
 
 // Class.new
+// Constructor of classes
+// Locals used: self, superclass, args
+// Output:      obj (new class)
+iridium_classmethod(Class, new) {
+  // Receiver
+  object self = local("self");
+  // Superclass
+  object superclass = local("superclass");
+  // Any args for initialize
+  object args = local("args");
+  // Create the class
+  object obj = construct(self);
+  // Set the superclass (needed for invoke to work)
+  set_attribute(obj, ATOM("superclass"), PUBLIC, superclass);
+  // Call initialize, merging the superclass with any other args
+  invoke(obj, "initialize", destructure(array_push(array_new(), superclass), args));
+  // Return the created object
+  return obj;
+}
+
+// Class#new
 // Constructor of objects
 // Inputs: locals (struct dict *, dictionary of local variables used in closures)
 //            Locals used: self, args
 // Output:  obj (object)
 
 // function new(* args)
-iridium_classmethod(Class, new) {
+iridium_method(Class, new) {
 
   // Value of the receiver
   object self = local("self");
@@ -545,31 +567,12 @@ iridium_classmethod(Class, new) {
   
   // Container for the object under construction
   object obj = construct(self);
-
   // Send off to the object initialize method
   invoke(obj, "initialize", destructure(array_new(), args));
   
   // Now that the object is constructed and initialized, return it
   return obj;
   
-}
-
-// Class#initialize
-// Initializes new classes with a superclass
-// Inputs: locals (struct dict *, dictionary of local variables used in closures)
-//            Locals used: self
-//          args
-//            Arity: 1/0
-//            superclass: Object
-// Output:  obj (object)
-
-iridium_method(Class, initialize) {
-  // set self
-  object self = local("self");
-  object superclass = local("superclass");
-  // set super to the passed value, if present
-  set_attribute(self, ATOM("superclass"), PUBLIC, superclass);
-  return NIL;
 }
 
 // class Object
@@ -584,7 +587,6 @@ iridium_method(Class, initialize) {
 //            name
 // Output:  obj (object)
 // Iridium Example: obj.get(:value) # => :some_value
-
 
 iridium_method(Object, __get__) {
 
@@ -836,6 +838,14 @@ iridium_method(Tuple, __set_index__) {
 
 // class Fixnum
 
+void * int2ptr(int val) {
+  return (void *) *((unsigned long long *) &val);
+}
+
+int ptr2int(void * ptr) {
+  return (int) *((int *) &ptr);
+}
+
 iridium_classmethod(Fixnum, new) {
   object fixnum = local("fixnum");
   return FIXNUM(INT(fixnum));
@@ -849,12 +859,13 @@ iridium_method(Fixnum, __plus__) {
 
 object FIXNUM(int val) {
   object fixnum = construct(Fixnum);
-  internal_set_attribute(fixnum, ATOM("value"), val);
+  
+  internal_set_attribute(fixnum, ATOM("value"), int2ptr(val));
   return fixnum;
 }
 
 int INT(object fixnum) {
-  return internal_get_attribute(fixnum, ATOM("value"), int);
+  return ptr2int(internal_get_attribute(fixnum, ATOM("value"), void *));
 }
 
 // class NilClass
@@ -1046,6 +1057,61 @@ void endHandler(exception_frame e) {
   // Check to ensure that this is not called incorrectly
   assert(e == stack_top(_exception_frames));
   stack_pop(_exception_frames);
+}
+
+// Creates the objects defined here
+void IR_init_Object() {
+  
+  struct IridiumArgument * args;
+  struct IridiumArgument * name;
+  struct IridiumArgument * class_superclass;
+  object call, get, class_new, class_inst_new, obj_init;
+  
+  // Create class
+  Class = construct(Class);
+  Class -> class = Class;
+  
+  // Create Atom
+  Atom = construct(Class);
+  
+  // Create object
+  Object = construct(Class);
+  set_attribute(Atom, ATOM("superclass"), PUBLIC, Object);
+  set_attribute(Class, ATOM("superclass"), PUBLIC, Object);
+  set_attribute(Object, ATOM("superclass"), PUBLIC, Object);
+  
+  // Create Function
+  Function = construct(Class);
+  set_attribute(Function, ATOM("superclass"), PUBLIC, Object);
+
+  args = argument_new(ATOM("args"), NULL, 1);
+  call = FUNCTION(ATOM("__call__"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Function, __call__));
+
+  name = argument_new(ATOM("name"), NULL, 0);
+  get = FUNCTION(ATOM("__get__"), list_new(name), dict_new(ObjectHashsize), iridium_method_name(Object, __get__));
+
+  set_instance_attribute(Function, ATOM("__call__"), PUBLIC, call);
+  set_instance_attribute(Object, ATOM("__get__"), PUBLIC, get);
+
+  // Bootstrap Class
+  class_superclass = argument_new(ATOM("superclass"), Object, 0);
+  class_new = FUNCTION(ATOM("new"), list_cons(list_new(class_superclass), args), dict_new(ObjectHashsize), iridium_classmethod_name(Class, new));
+  set_attribute(Class, ATOM("new"), PUBLIC, class_new);
+  class_inst_new = FUNCTION(ATOM("new"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Class, new));
+  set_instance_attribute(Class, ATOM("new"), PUBLIC, class_inst_new);
+  // Bootstrap Object
+  obj_init = FUNCTION(ATOM("initialize"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Object, initialize));
+  set_instance_attribute(Object, ATOM("initialize"), PUBLIC, obj_init);
+
+  Tuple = construct(Class);
+  NilClass = construct(Class);
+  Fixnum = construct(Class);
+  
+  set_attribute(Tuple, ATOM("superclass"), PUBLIC, Object);
+  // NilClass Inherits from itself -- that way stuff defined on object doesn't affect it.
+  set_attribute(NilClass, ATOM("superclass"), PUBLIC, NilClass);
+  set_instance_attribute(NilClass, ATOM("__get__"), PUBLIC, get);
+  set_attribute(Fixnum, ATOM("superclass"), PUBLIC, Object);
 }
 
 #endif

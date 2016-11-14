@@ -102,8 +102,9 @@ iridium_method(Float, __plus__) {
 
 /* Setup Code */
 void IR_init_Float() {
-  Float = construct(Class);
-  set_attribute(Float, ATOM("superclass"), PUBLIC, Object);
+  Float = invoke(Class, "new", array_new());
+  // Float = construct(Class);
+  // set_attribute(Float, ATOM("superclass"), PUBLIC, Object);
   object new_func = FUNCTION(ATOM("new"), list_new(argument_new(ATOM("val"), NULL, 0)), dict_new(ObjectHashsize), iridium_classmethod_name(Float, new));
   set_attribute(Float, ATOM("new"), PUBLIC, new_func);
   object plus_func = FUNCTION(ATOM("__plus__"), list_new(argument_new(ATOM("other"), NULL, 0)), dict_new(ObjectHashsize), iridium_method_name(Float, __plus__));
