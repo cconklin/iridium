@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <math.h>
 // #include <gc.h>
 
 #ifndef DICT_H
@@ -21,12 +22,18 @@
 #endif
 
 
-#define hash(h, key) ((unsigned int) key) % h -> hashsize
+#define hash(h, key) ((unsigned long long int) key) % h -> hashsize
+
+union dict_value {
+  void * ptr;
+  double flt;
+  long long int integral;
+};
 
 struct dict_entry {
   struct dict_entry * next;
   void * key; // Use an address of memory as the key
-  void * value; // Store some arbitrary data
+  union dict_value value; // Store some arbitrary data
 };
 
 struct dict {
@@ -54,7 +61,7 @@ struct dict * dict_new(unsigned int hashsize) {
   return h;
 }
 
-void dict_set(struct dict * h, void * key, void * value) {
+struct dict_entry * dict_set_base(struct dict * h, void * key) {
   struct dict_entry * entry ;
   // associate key with value in hash
   if (!(entry = lookup(h, key))) {
@@ -65,7 +72,22 @@ void dict_set(struct dict * h, void * key, void * value) {
     (h -> hashtab)[hash(h, key)] = entry; // Make this the first element seen when looked up in the hashtab array.
   }
   entry -> key = key;
-  entry -> value = value;
+  return entry;
+}
+
+void dict_set(struct dict * h, void * key, void * value) {
+  struct dict_entry * entry = dict_set_base(h, key);
+  (entry -> value).ptr = value;
+}
+
+void dict_set_integral(struct dict * h, void * key, long long int value) {
+  struct dict_entry * entry = dict_set_base(h, key);
+  (entry -> value).integral = value;
+}
+
+void dict_set_flt(struct dict * h, void * key, double value) {
+  struct dict_entry * entry = dict_set_base(h, key);
+  (entry -> value).flt = value;
 }
 
 struct dict * dict_with(struct dict * h, void * key, void * value) {
@@ -88,9 +110,27 @@ struct dict_entry * lookup(struct dict * h, void * key) {
 void * dict_get(struct dict * h, void * key) {
   struct dict_entry * e = lookup(h, key);
   if (e) {
-    return e -> value;
+    return (e -> value).ptr;
   } else {
     return NULL;
+  }
+}
+
+long long int dict_get_integral(struct dict * h, void * key) {
+  struct dict_entry * e = lookup(h, key);
+  if (e) {
+    return (e -> value).integral;
+  } else {
+    return 0;
+  }
+}
+
+double dict_get_flt(struct dict * h, void * key) {
+  struct dict_entry * e = lookup(h, key);
+  if (e) {
+    return (e -> value).flt;
+  } else {
+    return NAN;
   }
 }
 
@@ -123,7 +163,7 @@ struct dict * dict_merge(struct dict * mergee, struct dict * merger) {
     while (entry != NULL) {
       // Found a key value pair
       // Add it to the new dict
-      dict_set(result, entry -> key, entry -> value);
+      dict_set(result, entry -> key, (entry -> value).ptr);
       entry = entry -> next;
     }
   }
@@ -140,7 +180,7 @@ struct dict * dict_copy(struct dict * h) {
     while (entry != NULL) {
       // Found a key value pair
       // Add it to the new dict
-      dict_set(result, entry -> key, entry -> value);
+      dict_set(result, entry -> key, (entry -> value).ptr);
       entry = entry -> next;
     }
   }

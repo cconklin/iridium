@@ -2,18 +2,7 @@
 #include "test_helper.h"
 
 void setup() {
-  // Create Class
-  Class = construct(Class);
-  Class -> class = Class;
-
-  // Create Atom
-  Atom = construct(Class);
-
-  // Create Object
-  Object = construct(Class);
-  set_attribute(Atom, ATOM("superclass"), PUBLIC, Object);
-  set_attribute(Class, ATOM("superclass"), PUBLIC, Object);
-  set_attribute(Object, ATOM("superclass"), PUBLIC, Object);
+  IR_init_Object();
 }
 
 int main(int argc, char * argv[]) {

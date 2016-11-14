@@ -107,11 +107,14 @@ object Atom;
 object Tuple;
 object NilClass;
 object Fixnum;
+object String;
 
 object nil = NULL;
 
 iridium_classmethod(Class, new);
 iridium_method(Class, new);
+iridium_method(Class, to_s);
+iridium_method(Object, to_s);
 iridium_method(Object, initialize);
 iridium_method(Object, __get__);
 iridium_method(Object, __set__);
@@ -127,6 +130,8 @@ object FUNCTION(object name, struct list * args, struct dict * bindings, object 
 object TUPLE(struct array * values);
 int INT(object);
 object FIXNUM(int);
+object IR_STRING(char *);
+char * C_STRING(object);
 
 object invoke(object obj, char * name, struct array * args);
 object calls(object callable, struct array * args);
@@ -284,6 +289,8 @@ attribute_lookup(object receiver, void * attribute, unsigned char access) {
 // internal_get_attribute
 // Returns an attribute of obj which is INTERNAL
 #define internal_get_attribute(obj, attr, cast) ((cast)(dict_get(((object) obj) -> internal_attributes, attr)))
+#define internal_get_flt(obj, attr, cast) ((cast)(dict_get_flt(((object) obj) -> internal_attributes, attr)))
+#define internal_get_integral(obj, attr, cast) ((cast)(dict_get_integral(((object) obj) -> internal_attributes, attr)))
 
 // set_attribute
 // mutates the receiver, setting the attribute with `access` to a new value
@@ -347,6 +354,8 @@ object set_instance_attribute(object receiver, void * attribute, unsigned char a
 // mutates the receiver, setting attribute with INTERNAL access to a new value
 // NOTE: could run into issue where attribute is set before with a lower access (which means that an attribute that ought to be internal isn't)
 #define internal_set_attribute(receiver, attribute, value) dict_set(receiver -> internal_attributes, attribute, value)
+#define internal_set_flt(receiver, attribute, value) dict_set_flt(receiver -> internal_attributes, attribute, value)
+#define internal_set_integral(receiver, attribute, value) dict_set_integral(receiver -> internal_attributes, attribute, value)
 
 // function_bind
 // Bind locals to functions
@@ -539,14 +548,18 @@ iridium_classmethod(Class, new) {
   object self = local("self");
   // Superclass
   object superclass = local("superclass");
+  // Class name
+  object name = local("name");
   // Any args for initialize
   object args = local("args");
   // Create the class
   object obj = construct(self);
   // Set the superclass (needed for invoke to work)
   set_attribute(obj, ATOM("superclass"), PUBLIC, superclass);
+  // Set the name
+  set_attribute(obj, ATOM("name"), PUBLIC, name);
   // Call initialize, merging the superclass with any other args
-  invoke(obj, "initialize", destructure(array_push(array_new(), superclass), args));
+  invoke(obj, "initialize", destructure(array_push(array_push(array_new(), name), superclass), args));
   // Return the created object
   return obj;
 }
@@ -575,7 +588,35 @@ iridium_method(Class, new) {
   
 }
 
+// Class#to_s
+// Converts a class into an iridium string
+// Locals used: self
+// Output: Iridium String
+iridium_method(Class, to_s) {
+  // Receiver
+  object self = local("self");
+  object str = get_attribute(self, ATOM("name"), PUBLIC);
+  return str;
+}
+
 // class Object
+
+// Object#to_s
+// Converts an object into an iridium string
+// Locals used: self
+// Output: Iridium String
+iridium_method(Object, to_s) {
+  // Receiver
+  object self = local("self");
+  object class_name = get_attribute(self->class, ATOM("name"), PUBLIC);
+  char buffer[1000];
+  char * c_str;
+  sprintf(buffer, "#<%s:%p>", C_STRING(class_name), self);
+  c_str = GC_MALLOC((strlen(buffer) + 1) * sizeof(char));
+  assert(c_str);
+  strcpy(c_str, buffer);
+  return IR_STRING(c_str);
+}
 
 // Object#__get__
 // Gets attributes of objects, looking up the object hierarchy
@@ -752,10 +793,26 @@ void add_atom(char * name, object atom) {
   str_dict_set(ATOM_TABLE(), name, atom);
 }
 
+// Create the `:string` atom
+object create_str_atom() {
+  // Allocate memory for the object
+  object str_atom = construct(CLASS(Atom));
+  // Set atom name
+  internal_set_attribute(str_atom, str_atom, "string");
+
+  // Add it to the Atom table
+  add_atom("string", str_atom);
+
+  // Return the atom
+  return str_atom;
+}
+
 // Create the `:self` atom
 object create_self_atom() {
   // Allocate memory for the object
   object self_atom = construct(CLASS(Atom));
+  // Set atom name
+  internal_set_attribute(self_atom, ATOM("string"), "self");
 
   // Add it to the Atom table
   add_atom("self", self_atom);
@@ -777,6 +834,8 @@ object _ATOM(char * name) {
     // The atom does not exist
     // Create the new object
     atom = construct(CLASS(Atom));
+    // Set atom name
+    internal_set_attribute(atom, ATOM("string"), name);
 
     // Add it to the Atom table
     add_atom(name, atom);
@@ -838,17 +897,9 @@ iridium_method(Tuple, __set_index__) {
 
 // class Fixnum
 
-void * int2ptr(int val) {
-  return (void *) *((unsigned long long *) &val);
-}
-
-int ptr2int(void * ptr) {
-  return (int) *((int *) &ptr);
-}
-
 iridium_classmethod(Fixnum, new) {
   object fixnum = local("fixnum");
-  return FIXNUM(INT(fixnum));
+  return fixnum;
 }
 
 iridium_method(Fixnum, __plus__) {
@@ -860,12 +911,24 @@ iridium_method(Fixnum, __plus__) {
 object FIXNUM(int val) {
   object fixnum = construct(Fixnum);
   
-  internal_set_attribute(fixnum, ATOM("value"), int2ptr(val));
+  internal_set_integral(fixnum, ATOM("value"), val);
   return fixnum;
 }
 
 int INT(object fixnum) {
-  return ptr2int(internal_get_attribute(fixnum, ATOM("value"), void *));
+  return internal_get_integral(fixnum, ATOM("value"), int);
+}
+
+// class String
+
+object IR_STRING(char * c_str) {
+  object str = construct(String);
+  internal_set_attribute(str, ATOM("str"), c_str);
+  return str;
+}
+
+char * C_STRING(object str) {
+  return internal_get_attribute(str, ATOM("str"), char *);
 }
 
 // class NilClass
@@ -1059,13 +1122,18 @@ void endHandler(exception_frame e) {
   stack_pop(_exception_frames);
 }
 
+void IR_PUTS(object obj) {
+  printf("%s\n", C_STRING(invoke(obj, "to_s", array_new())));
+}
+
 // Creates the objects defined here
 void IR_init_Object() {
   
   struct IridiumArgument * args;
   struct IridiumArgument * name;
   struct IridiumArgument * class_superclass;
-  object call, get, class_new, class_inst_new, obj_init;
+  struct IridiumArgument * class_name;
+  object call, get, class_new, class_inst_new, obj_init, class_to_s, object_to_s;
   
   // Create class
   Class = construct(Class);
@@ -1073,6 +1141,7 @@ void IR_init_Object() {
   
   // Create Atom
   Atom = construct(Class);
+  create_str_atom();
   
   // Create object
   Object = construct(Class);
@@ -1093,15 +1162,28 @@ void IR_init_Object() {
   set_instance_attribute(Function, ATOM("__call__"), PUBLIC, call);
   set_instance_attribute(Object, ATOM("__get__"), PUBLIC, get);
 
+  String = construct(Class);
+  set_attribute(String, ATOM("superclass"), PUBLIC, Object);
+
   // Bootstrap Class
   class_superclass = argument_new(ATOM("superclass"), Object, 0);
-  class_new = FUNCTION(ATOM("new"), list_cons(list_new(class_superclass), args), dict_new(ObjectHashsize), iridium_classmethod_name(Class, new));
+  class_name = argument_new(ATOM("name"), NULL, 0);
+  class_new = FUNCTION(ATOM("new"), list_cons(list_cons(list_new(args), class_superclass), class_name), dict_new(ObjectHashsize), iridium_classmethod_name(Class, new));
   set_attribute(Class, ATOM("new"), PUBLIC, class_new);
   class_inst_new = FUNCTION(ATOM("new"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Class, new));
   set_instance_attribute(Class, ATOM("new"), PUBLIC, class_inst_new);
+  class_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Class, to_s));
+  set_instance_attribute(Class, ATOM("to_s"), PUBLIC, class_to_s);
   // Bootstrap Object
   obj_init = FUNCTION(ATOM("initialize"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Object, initialize));
   set_instance_attribute(Object, ATOM("initialize"), PUBLIC, obj_init);
+  object_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Object, to_s));
+  set_instance_attribute(Object, ATOM("to_s"), PUBLIC, object_to_s);
+  // Bootstrap everything
+  set_attribute(Class, ATOM("name"), PUBLIC, IR_STRING("Class"));
+  set_attribute(Object, ATOM("name"), PUBLIC, IR_STRING("Object"));
+  set_attribute(Atom, ATOM("name"), PUBLIC, IR_STRING("Atom"));
+  set_attribute(Function, ATOM("name"), PUBLIC, IR_STRING("Function"));
 
   Tuple = construct(Class);
   NilClass = construct(Class);
@@ -1112,6 +1194,9 @@ void IR_init_Object() {
   set_attribute(NilClass, ATOM("superclass"), PUBLIC, NilClass);
   set_instance_attribute(NilClass, ATOM("__get__"), PUBLIC, get);
   set_attribute(Fixnum, ATOM("superclass"), PUBLIC, Object);
+  set_attribute(Tuple, ATOM("name"), PUBLIC, IR_STRING("Tuple"));
+  set_attribute(NilClass, ATOM("name"), PUBLIC, IR_STRING("NilClass"));
+  set_attribute(Fixnum, ATOM("name"), PUBLIC, IR_STRING("Fixnum"));
 }
 
 #endif

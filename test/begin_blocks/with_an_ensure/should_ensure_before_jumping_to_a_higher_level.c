@@ -11,7 +11,6 @@ int main(int argc, char * argv[]) {
   exception_frame e = ExceptionHandler(exceptions, 0, 0, 0);
   int y = 0;
   exception_frame e_2;
-  
   switch (setjmp(e -> env)) {
     case 0:
       // begin

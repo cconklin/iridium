@@ -66,7 +66,7 @@ void str_dict_set(struct dict * h, char * key, void * value) {
     entry -> next = (h -> hashtab)[hashval]; // Make the head of the entry linked list
     (h -> hashtab)[hashval] = entry; // Make this the first element seen when looked up in the hashtab array.
   }
-  entry -> value = value;
+  (entry -> value).ptr = value;
   entry -> key = GC_MALLOC(strlen(key) + 1);
   assert(entry -> key);
   strcpy(entry -> key, key);
@@ -92,7 +92,7 @@ struct dict_entry * str_lookup(struct dict * h, char * key) {
 void * str_dict_get(struct dict * h, char * key) {
   struct dict_entry * e = str_lookup(h, key);
   if (e) {
-    return e -> value;
+    return (e -> value).ptr;
   } else {
     return NULL;
   }
@@ -127,7 +127,7 @@ struct dict * str_dict_merge(struct dict * mergee, struct dict * merger) {
     while (entry != NULL) {
       // Found a key value pair
       // Add it to the new str_dict
-      str_dict_set(result, entry -> key, entry -> value);
+      str_dict_set(result, entry -> key, (entry -> value).ptr);
       entry = entry -> next;
     }
   }
@@ -144,7 +144,7 @@ struct dict * str_dict_copy(struct dict * h) {
     while (entry != NULL) {
       // Found a key value pair
       // Add it to the new str_dict
-      str_dict_set(result, entry -> key, entry -> value);
+      str_dict_set(result, entry -> key, (entry -> value).ptr);
       entry = entry -> next;
     }
   }

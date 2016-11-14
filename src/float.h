@@ -6,34 +6,6 @@
 // Class name
 object Float;
 
-/* double2ptr
- *
- * Converts a double into a pointer value
- *
- * Arguments:
- * - val (double)
- *
- * Returns:
- * - (void *) with the same binary value as +val+
- */
-void * double2ptr(double val) {
-  return (void *) *((unsigned long long *) &val);
-}
-
-/* ptr2double
- *
- * Converts a pointer into a double value
- *
- * Arguments:
- * - ptr (void *)
- *
- * Returns:
- * - (double) with the same binary value as +ptr+
- */
-double ptr2double(void * ptr) {
-  return (double) *((double *) & ptr);
-}
-
 /* Float.new
  *
  * Creates a float
@@ -62,7 +34,7 @@ iridium_classmethod(Float, new) {
  */
 object IR_FLOAT(double val) {
   object flt = construct(Float);
-  internal_set_attribute(flt, ATOM("value"), double2ptr(val));
+  internal_set_flt(flt, ATOM("value"), val);
   return flt;
 }
 
@@ -77,7 +49,7 @@ object IR_FLOAT(double val) {
  * - C double
  */
 double C_DOUBLE(object flt) {
-  return ptr2double(internal_get_attribute(flt, ATOM("value"), void *));
+  return internal_get_flt(flt, ATOM("value"), double);
 }
 
 /* __plus__
@@ -95,14 +67,14 @@ iridium_method(Float, __plus__) {
   double l, r;
   object self = local("self"); // Receiver
   object other = local("other"); // Other float
-  l = ptr2double(internal_get_attribute(self, ATOM("value"), void *));
-  r = ptr2double(internal_get_attribute(other, ATOM("value"), void *));
+  l = C_DOUBLE(self);
+  r = C_DOUBLE(other);
   return IR_FLOAT(l + r);
 }
 
 /* Setup Code */
 void IR_init_Float() {
-  Float = invoke(Class, "new", array_new());
+  Float = invoke(Class, "new", array_push(array_new(), IR_STRING("Float")));
   // Float = construct(Class);
   // set_attribute(Float, ATOM("superclass"), PUBLIC, Object);
   object new_func = FUNCTION(ATOM("new"), list_new(argument_new(ATOM("val"), NULL, 0)), dict_new(ObjectHashsize), iridium_classmethod_name(Float, new));
