@@ -437,6 +437,10 @@ object calls(object callable, struct array * args) {
   // TODO raise exception if not
   // invoke the get_function to get the call_function
   call_function = func(dict_with(bind_self(callable), ATOM("name"), ATOM("__call__")));
+
+  // FIXME Remove once the NoMethodError exception is set up
+  assert(call_function != NIL);
+
   // call_function IS an Iridium Function
   // TODO raise exception if not
   bindings = process_args(call_function, args);
@@ -1133,7 +1137,8 @@ void IR_init_Object() {
   struct IridiumArgument * name;
   struct IridiumArgument * class_superclass;
   struct IridiumArgument * class_name;
-  object call, get, class_new, class_inst_new, obj_init, class_to_s, object_to_s;
+  struct IridiumArgument * other;
+  object call, get, class_new, class_inst_new, obj_init, class_to_s, object_to_s, fix_plus;
   
   // Create class
   Class = construct(Class);
@@ -1197,6 +1202,11 @@ void IR_init_Object() {
   set_attribute(Tuple, ATOM("name"), PUBLIC, IR_STRING("Tuple"));
   set_attribute(NilClass, ATOM("name"), PUBLIC, IR_STRING("NilClass"));
   set_attribute(Fixnum, ATOM("name"), PUBLIC, IR_STRING("Fixnum"));
+
+  // Init Fixnum
+  other = argument_new(ATOM("other"), NULL, 0);
+  fix_plus = FUNCTION(ATOM("__plus__"), list_new(other), dict_new(ObjectHashsize), iridium_method_name(Fixnum, __plus__));
+  set_instance_attribute(Fixnum, ATOM("__plus__"), PUBLIC, fix_plus);
 }
 
 #endif

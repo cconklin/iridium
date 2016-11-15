@@ -28,5 +28,14 @@ iridium_method(List, initialize) {
   return self;
 }
 
+// List Init
+void IR_init_List() {
+  struct IridiumArgument * args = argument_new(ATOM("args"), NULL, 1);
+  object list_initialize;
+  List = invoke(Class, "new", array_push(array_new(), IR_STRING("List")));
+  list_initialize = FUNCTION(ATOM("initialize"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(List, initialize));
+  set_instance_attribute(List, ATOM("initialize"), PUBLIC, list_initialize);
+}
+
 #endif
 
