@@ -8,7 +8,7 @@ int main(int argc, char * argv[]) {
   object result = send(List, "new");
 
   // It should have an (empty) internal list
-  assertEqual(list_head(internal_get_attribute(result, ATOM("list"), struct list *)), NULL);
+  assertEqual(internal_get_attribute(result, ATOM("list"), struct list *), NULL);
 
   return 0;
 }

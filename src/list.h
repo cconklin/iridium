@@ -17,7 +17,7 @@ iridium_method(List, initialize) {
   struct array * arg_values = destructure(array_new(), args);
   struct list * l;
   if (arg_values -> length == 0) {
-    l = list_new(NULL); // Empty list
+    l = NULL; // Empty list
   } else {
     l = list_new(array_pop(arg_values));
     while (arg_values -> length) {
