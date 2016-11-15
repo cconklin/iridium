@@ -6,8 +6,6 @@ int main(int argc, char * argv []) {
   object flt, flt_2;
   object result;
   double val;
-  struct dict * bindings;
-  struct array * args = array_new();
 
   setup();
 
@@ -15,9 +13,7 @@ int main(int argc, char * argv []) {
   flt = IR_FLOAT(5.0);
   flt_2 = IR_FLOAT(9.5);
 
-  array_push(args, flt_2);
-
-  result = invoke(flt, "__plus__", args);
+  result = send(flt, "__plus__", flt_2);
 
   val = C_DOUBLE(result);
   assertDoublesEqual(val, 14.5);

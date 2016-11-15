@@ -20,16 +20,12 @@ int main(int argc, char * argv[]) {
   // test with a splatted args and an required arg, filling both
   a = argument_new(ATOM("args"), NULL, 1);
   b = argument_new(ATOM("b"), NULL, 0);
-  func = FUNCTION(ATOM("func"), list_cons(list_new(b), a), dict_new(ObjectHashsize), iridium_method_name(Test, func_splat_and_required));
+  func = FUNCTION(ATOM("func"), ARGLIST(a, b), dict_new(ObjectHashsize), iridium_method_name(Test, func_splat_and_required));
   obj = ATOM("obj");
   set_attribute(obj, ATOM("f"), PUBLIC, func);
-  args = array_new();
-  array_push(args, ATOM("a"));
-  array_push(args, ATOM("b"));
-  array_push(args, ATOM("c"));
   // function f(* args, b)
   // obj.f(:a, :b, :c) # > args = {:a, :b}, b = :c
-  invoke(obj, "f", args);
+  send(obj, "f", ATOM("a"), ATOM("b"), ATOM("c"));
 
   return 0;
 }

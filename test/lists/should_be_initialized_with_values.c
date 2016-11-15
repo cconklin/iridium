@@ -5,11 +5,7 @@ int main(int argc, char * argv[]) {
   IR_init_Object();
   IR_init_List();
 
-  struct array * args = array_new();
-  array_set(args, 0, ATOM("a"));
-  array_set(args, 1, ATOM("b"));
-
-  object result = invoke(List, "new", args);
+  object result = send(List, "new", ATOM("a"), ATOM("b"));
 
   // It should have its head be the first element passed
   assertEqual(list_head(internal_get_attribute(result, ATOM("list"), struct list *)), ATOM("a"));

@@ -4,6 +4,7 @@
 // #include <gc.h>
 #include <string.h>
 #include <setjmp.h>
+#include <stdarg.h>
 
 #ifndef OBJECT_H
 #define OBJECT_H
@@ -71,6 +72,25 @@ struct IridiumArgument {
   object default_value; // Object, NULL if required
   char splat; // Whether the argument takes multiple values
 };
+
+struct list * _ARGLIST(int unused, ...) {
+  va_list args;
+  struct list * l = NULL;
+  struct array * ary = array_new();
+  void * elem;
+  va_start(args, unused);
+  // Doing this to reverse the list
+  while ((elem = va_arg(args, void *))) {
+    array_push(ary, elem);
+  }
+  va_end(args);
+  while ((elem = array_pop(ary))) {
+    l = list_cons(l, elem);
+  }
+  return l;
+}
+
+#define ARGLIST(...) _ARGLIST(0, ##__VA_ARGS__, 0)
 
 // Hashsize for object attribute hashes
 #define ObjectHashsize 30
@@ -292,6 +312,13 @@ attribute_lookup(object receiver, void * attribute, unsigned char access) {
 #define internal_get_flt(obj, attr, cast) ((cast)(dict_get_flt(((object) obj) -> internal_attributes, attr)))
 #define internal_get_integral(obj, attr, cast) ((cast)(dict_get_integral(((object) obj) -> internal_attributes, attr)))
 
+// internal_set_attribute
+// mutates the receiver, setting attribute with INTERNAL access to a new value
+// NOTE: could run into issue where attribute is set before with a lower access (which means that an attribute that ought to be internal isn't)
+#define internal_set_attribute(receiver, attribute, value) dict_set(receiver -> internal_attributes, attribute, value)
+#define internal_set_flt(receiver, attribute, value) dict_set_flt(receiver -> internal_attributes, attribute, value)
+#define internal_set_integral(receiver, attribute, value) dict_set_integral(receiver -> internal_attributes, attribute, value)
+
 // set_attribute
 // mutates the receiver, setting the attribute with `access` to a new value
 object set_attribute(object receiver, void * attribute, unsigned char access, object value) {
@@ -304,6 +331,11 @@ object set_attribute(object receiver, void * attribute, unsigned char access, ob
   // set the new value
   attr -> value = (void *) value;
   dict_set(receiver -> attributes, attribute, attr);
+  // Owner info for functions
+  if (value -> class == Function) {
+    internal_set_attribute(value, ATOM("owner"), receiver);
+    internal_set_integral(value, ATOM("owner_type"), 0); // 0: attribute of object
+  }
   return value;
 }
 
@@ -347,15 +379,13 @@ object set_instance_attribute(object receiver, void * attribute, unsigned char a
   // set the new value
   attr -> value = (void *) value;
   dict_set(receiver -> instance_attributes, attribute, attr);
+  // Owner info for functions
+  if (value -> class == Function) {
+    internal_set_attribute(value, ATOM("owner"), receiver);
+    internal_set_integral(value, ATOM("owner_type"), 1); // 0: instance attribute of object
+  }
   return value;
 }
-
-// internal_set_attribute
-// mutates the receiver, setting attribute with INTERNAL access to a new value
-// NOTE: could run into issue where attribute is set before with a lower access (which means that an attribute that ought to be internal isn't)
-#define internal_set_attribute(receiver, attribute, value) dict_set(receiver -> internal_attributes, attribute, value)
-#define internal_set_flt(receiver, attribute, value) dict_set_flt(receiver -> internal_attributes, attribute, value)
-#define internal_set_integral(receiver, attribute, value) dict_set_integral(receiver -> internal_attributes, attribute, value)
 
 // function_bind
 // Bind locals to functions
@@ -424,6 +454,22 @@ object invoke(object obj, char * name, struct array * args) {
   object callable = iridium_method_name(Object, __get__)(dict_with(bind_self(obj), ATOM("name"), ATOM(name)));
   return calls(callable, args);
 }
+
+object _send(object obj, char * name, ...) {
+  va_list ap;
+  va_start(ap, name);
+  object argument;
+  struct array * args = array_new();
+  while ((argument = va_arg(ap, object))) {
+    args = array_push(args, argument);
+  }
+  va_end(ap);
+  return invoke(obj, name, args);
+}
+
+#define send(obj, name, ...) _send(obj, name , ##__VA_ARGS__, 0)
+
+#define pubget(obj, name) get_attribute(obj, ATOM(name), PUBLIC)
 
 // Function for generic invocations
 // Used by the translator
@@ -741,6 +787,27 @@ object FUNCTION(object name, struct list * args, struct dict * bindings, object 
   internal_set_attribute(self, ATOM("bindings"), bindings);
   internal_set_attribute(self, ATOM("function"), func);
   return self;
+}
+
+iridium_method(Function, to_s) {
+  object self = local("self");
+  object name = get_attribute(self, ATOM("name"), PUBLIC);
+  char * given_name = internal_get_attribute(name, ATOM("string"), char *);
+  char buffer[100];
+  object owner = internal_get_attribute(self, ATOM("owner"), object);
+  // 1: instance attribute of owner, 0: attribute of owner
+  int owner_type = internal_get_integral(self, ATOM("owner_type"), int);
+  if (owner == self) {
+    // Avoid to_s'ing ourself forever
+    sprintf(buffer, "#<Function self.%s:%p>", given_name, self);
+  } else if (owner) {
+    sprintf(buffer, "#<Function %s%c%s:%p>", C_STRING(invoke(owner, "to_s", array_new())), (owner_type ? '#' : '.'), given_name, self);
+  } else {
+    sprintf(buffer, "#<Function %s:%p>", given_name, self);
+  }
+  char * full_name = GC_MALLOC((strlen(buffer) + 1) * sizeof(char));
+  strcpy(full_name, buffer);
+  return IR_STRING(full_name);
 }
 
 // class Atom
@@ -1162,7 +1229,7 @@ void IR_init_Object() {
   struct IridiumArgument * class_superclass;
   struct IridiumArgument * class_name;
   struct IridiumArgument * other;
-  object call, get, class_new, class_inst_new, obj_init, class_to_s, object_to_s, fix_plus, nil_to_s, fix_to_s, atom_to_s;
+  object call, get, class_new, class_inst_new, obj_init, class_to_s, object_to_s, fix_plus, nil_to_s, fix_to_s, atom_to_s, func_to_s;
   
   // Create class
   Class = construct(Class);
@@ -1241,6 +1308,10 @@ void IR_init_Object() {
   // Init Atom
   atom_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Atom, to_s));
   set_instance_attribute(Atom, ATOM("to_s"), PUBLIC, atom_to_s);
+
+  // Init Function
+  func_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Function, to_s));
+  set_instance_attribute(Function, ATOM("to_s"), PUBLIC, func_to_s);
 }
 
 #endif

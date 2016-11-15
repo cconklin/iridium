@@ -4,14 +4,13 @@
 
 int main(int argc, char * argv []) {
   object fixnum, fixnum_2;
-  struct dict * bindings;
 
   setup();
 
   fixnum = FIXNUM(5);
   fixnum_2 = FIXNUM(9);
 
-  invoke(fixnum, "__plus__", array_push(array_new(), fixnum_2));
+  send(fixnum, "__plus__", fixnum_2);
 
   // Shouldn't mutate the arguments
   assertEqual(INT(fixnum), 5);

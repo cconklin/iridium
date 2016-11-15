@@ -5,7 +5,6 @@
 int main(int argc, char * argv []) {
   object fixnum, fixnum_2;
   int integer;
-  struct dict * bindings;
 
   setup();
 
@@ -13,7 +12,7 @@ int main(int argc, char * argv []) {
   fixnum = FIXNUM(5);
   fixnum_2 = FIXNUM(9);
 
-  integer = INT(invoke(fixnum, "__plus__", array_push(array_new(), fixnum_2)));
+  integer = INT(send(fixnum, "__plus__", fixnum_2));
   assertEqual(integer, 14);
 
   return 0;

@@ -96,14 +96,15 @@ iridium_method(Float, to_s) {
 
 /* Setup Code */
 void IR_init_Float() {
-  Float = invoke(Class, "new", array_push(array_new(), IR_STRING("Float")));
-  // Float = construct(Class);
-  // set_attribute(Float, ATOM("superclass"), PUBLIC, Object);
-  object new_func = FUNCTION(ATOM("new"), list_new(argument_new(ATOM("val"), NULL, 0)), dict_new(ObjectHashsize), iridium_classmethod_name(Float, new));
+  Float = send(Class, "new", IR_STRING("Float"));
+
+  object new_func = FUNCTION(ATOM("new"), ARGLIST(argument_new(ATOM("val"), NULL, 0)), dict_new(ObjectHashsize), iridium_classmethod_name(Float, new));
   set_attribute(Float, ATOM("new"), PUBLIC, new_func);
-  object plus_func = FUNCTION(ATOM("__plus__"), list_new(argument_new(ATOM("other"), NULL, 0)), dict_new(ObjectHashsize), iridium_method_name(Float, __plus__));
+
+  object plus_func = FUNCTION(ATOM("__plus__"), ARGLIST(argument_new(ATOM("other"), NULL, 0)), dict_new(ObjectHashsize), iridium_method_name(Float, __plus__));
   set_instance_attribute(Float, ATOM("__plus__"), PUBLIC, plus_func);
-  object to_s_func = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Float, to_s));
+
+  object to_s_func = FUNCTION(ATOM("to_s"), ARGLIST(), dict_new(ObjectHashsize), iridium_method_name(Float, to_s));
   set_instance_attribute(Float, ATOM("to_s"), PUBLIC, to_s_func);
 }
 

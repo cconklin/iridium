@@ -11,7 +11,7 @@ int main(int argc, char * argv []) {
 
   flt = IR_FLOAT(5.0);
 
-  c_flt = C_STRING(invoke(flt, "to_s", array_new()));
+  c_flt = C_STRING(send(flt, "to_s"));
 
   assertEqual(strcmp(c_flt, "5.000000"), 0);
 

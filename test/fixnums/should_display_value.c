@@ -11,7 +11,7 @@ int main(int argc, char * argv []) {
 
   integer = FIXNUM(-11);
 
-  c_integer = C_STRING(invoke(integer, "to_s", array_new()));
+  c_integer = C_STRING(send(integer, "to_s"));
 
   assertEqual(strcmp(c_integer, "-11"), 0);
 
