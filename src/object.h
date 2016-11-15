@@ -923,6 +923,16 @@ int INT(object fixnum) {
   return internal_get_integral(fixnum, ATOM("value"), int);
 }
 
+iridium_method(Fixnum, to_s) {
+  object self = local("self");
+  int val = INT(self);
+  char buffer[30];
+  sprintf(buffer, "%d", val);
+  char * str = GC_MALLOC((strlen(buffer) + 1) * sizeof(char));
+  strcpy(str, buffer);
+  return IR_STRING(str);
+}
+
 // class String
 
 object IR_STRING(char * c_str) {
@@ -944,6 +954,10 @@ object create_nil() {
   nil = construct(CLASS(NilClass));
   // TODO make most attributes dissapear
   return nil;
+}
+
+iridium_method(NilClass, to_s) {
+  return IR_STRING("nil");
 }
 
 // class Exception
@@ -1138,7 +1152,7 @@ void IR_init_Object() {
   struct IridiumArgument * class_superclass;
   struct IridiumArgument * class_name;
   struct IridiumArgument * other;
-  object call, get, class_new, class_inst_new, obj_init, class_to_s, object_to_s, fix_plus;
+  object call, get, class_new, class_inst_new, obj_init, class_to_s, object_to_s, fix_plus, nil_to_s, fix_to_s;
   
   // Create class
   Class = construct(Class);
@@ -1207,6 +1221,12 @@ void IR_init_Object() {
   other = argument_new(ATOM("other"), NULL, 0);
   fix_plus = FUNCTION(ATOM("__plus__"), list_new(other), dict_new(ObjectHashsize), iridium_method_name(Fixnum, __plus__));
   set_instance_attribute(Fixnum, ATOM("__plus__"), PUBLIC, fix_plus);
+  fix_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Fixnum, to_s));
+  set_instance_attribute(Fixnum, ATOM("to_s"), PUBLIC, fix_to_s);
+
+  // Init nil
+  nil_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(NilClass, to_s));
+  set_instance_attribute(NilClass, ATOM("to_s"), PUBLIC, nil_to_s);
 }
 
 #endif

@@ -72,6 +72,28 @@ iridium_method(Float, __plus__) {
   return IR_FLOAT(l + r);
 }
 
+/* to_s
+ *
+ * Display the float as a literal value
+ *
+ * Arguments:
+ * - self
+ *
+ * Returns:
+ * - Iridium String
+ */
+iridium_method(Float, to_s) {
+  object self = local("self");
+  double val = C_DOUBLE(self);
+  char buffer[100];
+  char * str;
+  sprintf(buffer, "%lf", val);
+  str = GC_MALLOC((strlen(buffer) + 1) * sizeof(char));
+  assert(str);
+  strcpy(str, buffer);
+  return IR_STRING(str);
+}
+
 /* Setup Code */
 void IR_init_Float() {
   Float = invoke(Class, "new", array_push(array_new(), IR_STRING("Float")));
@@ -81,6 +103,8 @@ void IR_init_Float() {
   set_attribute(Float, ATOM("new"), PUBLIC, new_func);
   object plus_func = FUNCTION(ATOM("__plus__"), list_new(argument_new(ATOM("other"), NULL, 0)), dict_new(ObjectHashsize), iridium_method_name(Float, __plus__));
   set_instance_attribute(Float, ATOM("__plus__"), PUBLIC, plus_func);
+  object to_s_func = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Float, to_s));
+  set_instance_attribute(Float, ATOM("to_s"), PUBLIC, to_s_func);
 }
 
 #endif
