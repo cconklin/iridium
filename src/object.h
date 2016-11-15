@@ -847,6 +847,16 @@ object _ATOM(char * name) {
   return atom;
 }
 
+iridium_method(Atom, to_s) {
+  object self = local("self");
+  char buffer[100];
+  sprintf(buffer, ":%s", internal_get_attribute(self, ATOM("string"), char *));
+  char * str = GC_MALLOC((strlen(buffer + 1) * sizeof(char)));
+  assert(str);
+  strcpy(str, buffer);
+  return IR_STRING(str);
+}
+
 // class Tuple
 
 object TUPLE(struct array * values) {
@@ -1152,7 +1162,7 @@ void IR_init_Object() {
   struct IridiumArgument * class_superclass;
   struct IridiumArgument * class_name;
   struct IridiumArgument * other;
-  object call, get, class_new, class_inst_new, obj_init, class_to_s, object_to_s, fix_plus, nil_to_s, fix_to_s;
+  object call, get, class_new, class_inst_new, obj_init, class_to_s, object_to_s, fix_plus, nil_to_s, fix_to_s, atom_to_s;
   
   // Create class
   Class = construct(Class);
@@ -1227,6 +1237,10 @@ void IR_init_Object() {
   // Init nil
   nil_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(NilClass, to_s));
   set_instance_attribute(NilClass, ATOM("to_s"), PUBLIC, nil_to_s);
+
+  // Init Atom
+  atom_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Atom, to_s));
+  set_instance_attribute(Atom, ATOM("to_s"), PUBLIC, atom_to_s);
 }
 
 #endif
