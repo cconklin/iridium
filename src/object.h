@@ -784,7 +784,7 @@ object FUNCTION(object name, struct list * args, struct dict * bindings, object 
   object self = construct(CLASS(Function));
   internal_set_attribute(self, ATOM("args"), args);
   set_attribute(self, ATOM("name"), PUBLIC, name);
-  internal_set_attribute(self, ATOM("bindings"), bindings);
+  internal_set_attribute(self, ATOM("bindings"), dict_copy(bindings));
   internal_set_attribute(self, ATOM("function"), func);
   return self;
 }
