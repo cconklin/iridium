@@ -38,8 +38,6 @@
 #define iridium_method(class, name) object iridium_method_name(class, name)(struct dict * locals)
 #define iridium_classmethod(class, name) object iridium_classmethod_name(class, name)(struct dict * locals)
 
-// Locals
-#define local(name) dict_get(locals, ATOM(name))
 
 // Struct underlying all Iridium objects
 typedef struct IridiumObject {
@@ -384,6 +382,21 @@ object set_instance_attribute(object receiver, void * attribute, unsigned char a
     internal_set_integral(value, ATOM("owner_type"), 1); // 0: instance attribute of object
   }
   return value;
+}
+
+// Locals
+#define local(name) _local(locals, ATOM(name))
+object _local(struct dict * locals, object atm) {
+    object value = dict_get(locals, atm);
+    if (value == NULL) {
+        value = dict_get(locals, ATOM("self"));
+        if (value == NULL) {
+            return NULL;
+        } else {
+            return get_attribute(value, atm, PRIVATE);
+        }
+    }
+    return value;
 }
 
 // function_bind
