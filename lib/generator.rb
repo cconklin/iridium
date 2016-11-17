@@ -30,8 +30,8 @@ class Generator
     active_variables = []
     modified_variables = []
     literals = {}
-    builtin_constants = %i[Object Class Atom Function List Tuple Dictionary Fixnum Float String Module]
-    open_constants = %i[Object Class Atom Function List Tuple Dictionary Fixnum Float String Module]
+    builtin_constants = %i[Object Class Atom Function List Tuple Dictionary Fixnum Float String Module NilClass]
+    open_constants = %i[Object Class Atom Function List Tuple Dictionary Fixnum Float String Module NilClass]
     
     # Set up the initial context
     code << "struct dict * locals = dict_new(ObjectHashsize);"

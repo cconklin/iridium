@@ -12,8 +12,8 @@ int main(int argc, char * argv[]) {
 
   object Owner, Child;
   
-  Owner = send(Class, "new", IR_STRING("Owner"));
-  Child = send(Class, "new", IR_STRING("Child"), Owner);
+  Owner = send(CLASS(Class), "new", IR_STRING("Owner"));
+  Child = send(CLASS(Class), "new", IR_STRING("Child"), Owner);
 
   // Name does not have owner when anonymous
   anon = FUNCTION(ATOM("anon"), NULL, dict_new(ObjectHashsize), iridium_method_name(Test, func));

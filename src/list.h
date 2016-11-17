@@ -4,7 +4,7 @@
 #define IRIDIUM_LIST
 
 // Class name
-object List;
+object CLASS(List);
 
 // List#initialize
 // Creates a list
@@ -32,9 +32,9 @@ iridium_method(List, initialize) {
 void IR_init_List() {
   struct IridiumArgument * args = argument_new(ATOM("args"), NULL, 1);
   object list_initialize;
-  List = send(Class, "new", IR_STRING("List"));
+  CLASS(List) = send(CLASS(Class), "new", IR_STRING("List"));
   list_initialize = FUNCTION(ATOM("initialize"), ARGLIST(args), dict_new(ObjectHashsize), iridium_method_name(List, initialize));
-  set_instance_attribute(List, ATOM("initialize"), PUBLIC, list_initialize);
+  set_instance_attribute(CLASS(List), ATOM("initialize"), PUBLIC, list_initialize);
 }
 
 #endif

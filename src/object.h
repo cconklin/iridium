@@ -108,8 +108,7 @@ struct list * _ARGLIST(int unused, ...) {
 // TODO define NIL macro
 #define NIL (nil ? nil : (nil = create_nil()))
 
-// TODO define the CLASS macro
-#define CLASS(name) name
+#define CLASS(name) ir_cmp_##name
 
 // Macro for superclasses
 #define superclass(class) get_attribute(class, ATOM("superclass"), PUBLIC)
@@ -120,14 +119,14 @@ struct list * _ARGLIST(int unused, ...) {
 
 // Declarations
 
-object Class;
-object Object;
-object Function;
-object Atom;
-object Tuple;
-object NilClass;
-object Fixnum;
-object String;
+object CLASS(Class);
+object CLASS(Object);
+object CLASS(Function);
+object CLASS(Atom);
+object CLASS(Tuple);
+object CLASS(NilClass);
+object CLASS(Fixnum);
+object CLASS(String);
 
 object nil = NULL;
 
@@ -332,7 +331,7 @@ object set_attribute(object receiver, void * attribute, unsigned char access, ob
   attr -> value = (void *) value;
   dict_set(receiver -> attributes, attribute, attr);
   // Owner info for functions
-  if (value -> class == Function) {
+  if (value -> class == CLASS(Function)) {
     internal_set_attribute(value, ATOM("owner"), receiver);
     internal_set_integral(value, ATOM("owner_type"), 0); // 0: attribute of object
   }
@@ -380,7 +379,7 @@ object set_instance_attribute(object receiver, void * attribute, unsigned char a
   attr -> value = (void *) value;
   dict_set(receiver -> instance_attributes, attribute, attr);
   // Owner info for functions
-  if (value -> class == Function) {
+  if (value -> class == CLASS(Function)) {
     internal_set_attribute(value, ATOM("owner"), receiver);
     internal_set_integral(value, ATOM("owner_type"), 1); // 0: instance attribute of object
   }
@@ -990,7 +989,7 @@ iridium_method(Fixnum, __plus__) {
 }
 
 object FIXNUM(int val) {
-  object fixnum = construct(Fixnum);
+  object fixnum = construct(CLASS(Fixnum));
   
   internal_set_integral(fixnum, ATOM("value"), val);
   return fixnum;
@@ -1013,7 +1012,7 @@ iridium_method(Fixnum, to_s) {
 // class String
 
 object IR_STRING(char * c_str) {
-  object str = construct(String);
+  object str = construct(CLASS(String));
   internal_set_attribute(str, ATOM("str"), c_str);
   return str;
 }
@@ -1232,22 +1231,22 @@ void IR_init_Object() {
   object call, get, class_new, class_inst_new, obj_init, class_to_s, object_to_s, fix_plus, nil_to_s, fix_to_s, atom_to_s, func_to_s;
   
   // Create class
-  Class = construct(Class);
-  Class -> class = Class;
+  CLASS(Class) = construct(CLASS(Class));
+  CLASS(Class) -> class = CLASS(Class);
   
   // Create Atom
-  Atom = construct(Class);
+  CLASS(Atom) = construct(CLASS(Class));
   create_str_atom();
   
   // Create object
-  Object = construct(Class);
-  set_attribute(Atom, ATOM("superclass"), PUBLIC, Object);
-  set_attribute(Class, ATOM("superclass"), PUBLIC, Object);
-  set_attribute(Object, ATOM("superclass"), PUBLIC, Object);
+  CLASS(Object) = construct(CLASS(Class));
+  set_attribute(CLASS(Atom), ATOM("superclass"), PUBLIC, CLASS(Object));
+  set_attribute(CLASS(Class), ATOM("superclass"), PUBLIC, CLASS(Object));
+  set_attribute(CLASS(Object), ATOM("superclass"), PUBLIC, CLASS(Object));
   
   // Create Function
-  Function = construct(Class);
-  set_attribute(Function, ATOM("superclass"), PUBLIC, Object);
+  CLASS(Function) = construct(CLASS(Class));
+  set_attribute(CLASS(Function), ATOM("superclass"), PUBLIC, CLASS(Object));
 
   args = argument_new(ATOM("args"), NULL, 1);
   call = FUNCTION(ATOM("__call__"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Function, __call__));
@@ -1255,63 +1254,63 @@ void IR_init_Object() {
   name = argument_new(ATOM("name"), NULL, 0);
   get = FUNCTION(ATOM("__get__"), list_new(name), dict_new(ObjectHashsize), iridium_method_name(Object, __get__));
 
-  set_instance_attribute(Function, ATOM("__call__"), PUBLIC, call);
-  set_instance_attribute(Object, ATOM("__get__"), PUBLIC, get);
+  set_instance_attribute(CLASS(Function), ATOM("__call__"), PUBLIC, call);
+  set_instance_attribute(CLASS(Object), ATOM("__get__"), PUBLIC, get);
 
-  String = construct(Class);
-  set_attribute(String, ATOM("superclass"), PUBLIC, Object);
+  CLASS(String) = construct(CLASS(Class));
+  set_attribute(CLASS(String), ATOM("superclass"), PUBLIC, CLASS(Object));
 
   // Bootstrap Class
-  class_superclass = argument_new(ATOM("superclass"), Object, 0);
+  class_superclass = argument_new(ATOM("superclass"), CLASS(Object), 0);
   class_name = argument_new(ATOM("name"), NULL, 0);
   class_new = FUNCTION(ATOM("new"), list_cons(list_cons(list_new(args), class_superclass), class_name), dict_new(ObjectHashsize), iridium_classmethod_name(Class, new));
-  set_attribute(Class, ATOM("new"), PUBLIC, class_new);
+  set_attribute(CLASS(Class), ATOM("new"), PUBLIC, class_new);
   class_inst_new = FUNCTION(ATOM("new"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Class, new));
-  set_instance_attribute(Class, ATOM("new"), PUBLIC, class_inst_new);
+  set_instance_attribute(CLASS(Class), ATOM("new"), PUBLIC, class_inst_new);
   class_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Class, to_s));
-  set_instance_attribute(Class, ATOM("to_s"), PUBLIC, class_to_s);
+  set_instance_attribute(CLASS(Class), ATOM("to_s"), PUBLIC, class_to_s);
   // Bootstrap Object
   obj_init = FUNCTION(ATOM("initialize"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Object, initialize));
-  set_instance_attribute(Object, ATOM("initialize"), PUBLIC, obj_init);
+  set_instance_attribute(CLASS(Object), ATOM("initialize"), PUBLIC, obj_init);
   object_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Object, to_s));
-  set_instance_attribute(Object, ATOM("to_s"), PUBLIC, object_to_s);
+  set_instance_attribute(CLASS(Object), ATOM("to_s"), PUBLIC, object_to_s);
   // Bootstrap everything
-  set_attribute(Class, ATOM("name"), PUBLIC, IR_STRING("Class"));
-  set_attribute(Object, ATOM("name"), PUBLIC, IR_STRING("Object"));
-  set_attribute(Atom, ATOM("name"), PUBLIC, IR_STRING("Atom"));
-  set_attribute(Function, ATOM("name"), PUBLIC, IR_STRING("Function"));
+  set_attribute(CLASS(Class), ATOM("name"), PUBLIC, IR_STRING("Class"));
+  set_attribute(CLASS(Object), ATOM("name"), PUBLIC, IR_STRING("Object"));
+  set_attribute(CLASS(Atom), ATOM("name"), PUBLIC, IR_STRING("Atom"));
+  set_attribute(CLASS(Function), ATOM("name"), PUBLIC, IR_STRING("Function"));
 
-  Tuple = construct(Class);
-  NilClass = construct(Class);
-  Fixnum = construct(Class);
+  CLASS(Tuple) = construct(CLASS(Class));
+  CLASS(NilClass) = construct(CLASS(Class));
+  CLASS(Fixnum) = construct(CLASS(Class));
   
-  set_attribute(Tuple, ATOM("superclass"), PUBLIC, Object);
+  set_attribute(CLASS(Tuple), ATOM("superclass"), PUBLIC, CLASS(Object));
   // NilClass Inherits from itself -- that way stuff defined on object doesn't affect it.
-  set_attribute(NilClass, ATOM("superclass"), PUBLIC, NilClass);
-  set_instance_attribute(NilClass, ATOM("__get__"), PUBLIC, get);
-  set_attribute(Fixnum, ATOM("superclass"), PUBLIC, Object);
-  set_attribute(Tuple, ATOM("name"), PUBLIC, IR_STRING("Tuple"));
-  set_attribute(NilClass, ATOM("name"), PUBLIC, IR_STRING("NilClass"));
-  set_attribute(Fixnum, ATOM("name"), PUBLIC, IR_STRING("Fixnum"));
+  set_attribute(CLASS(NilClass), ATOM("superclass"), PUBLIC, CLASS(NilClass));
+  set_instance_attribute(CLASS(NilClass), ATOM("__get__"), PUBLIC, get);
+  set_attribute(CLASS(Fixnum), ATOM("superclass"), PUBLIC, CLASS(Object));
+  set_attribute(CLASS(Tuple), ATOM("name"), PUBLIC, IR_STRING("Tuple"));
+  set_attribute(CLASS(NilClass), ATOM("name"), PUBLIC, IR_STRING("NilClass"));
+  set_attribute(CLASS(Fixnum), ATOM("name"), PUBLIC, IR_STRING("Fixnum"));
 
   // Init Fixnum
   other = argument_new(ATOM("other"), NULL, 0);
   fix_plus = FUNCTION(ATOM("__plus__"), list_new(other), dict_new(ObjectHashsize), iridium_method_name(Fixnum, __plus__));
-  set_instance_attribute(Fixnum, ATOM("__plus__"), PUBLIC, fix_plus);
+  set_instance_attribute(CLASS(Fixnum), ATOM("__plus__"), PUBLIC, fix_plus);
   fix_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Fixnum, to_s));
-  set_instance_attribute(Fixnum, ATOM("to_s"), PUBLIC, fix_to_s);
+  set_instance_attribute(CLASS(Fixnum), ATOM("to_s"), PUBLIC, fix_to_s);
 
   // Init nil
   nil_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(NilClass, to_s));
-  set_instance_attribute(NilClass, ATOM("to_s"), PUBLIC, nil_to_s);
+  set_instance_attribute(CLASS(NilClass), ATOM("to_s"), PUBLIC, nil_to_s);
 
   // Init Atom
   atom_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Atom, to_s));
-  set_instance_attribute(Atom, ATOM("to_s"), PUBLIC, atom_to_s);
+  set_instance_attribute(CLASS(Atom), ATOM("to_s"), PUBLIC, atom_to_s);
 
   // Init Function
   func_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Function, to_s));
-  set_instance_attribute(Function, ATOM("to_s"), PUBLIC, func_to_s);
+  set_instance_attribute(CLASS(Function), ATOM("to_s"), PUBLIC, func_to_s);
 }
 
 #endif

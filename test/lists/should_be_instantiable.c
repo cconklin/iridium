@@ -5,7 +5,7 @@ int main(int argc, char * argv[]) {
   IR_init_Object();
   IR_init_List();
 
-  object result = send(List, "new");
+  object result = send(CLASS(List), "new");
 
   // It should have an (empty) internal list
   assertEqual(internal_get_attribute(result, ATOM("list"), struct list *), NULL);
