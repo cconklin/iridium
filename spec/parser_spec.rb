@@ -243,7 +243,16 @@ describe Parser do
       END
       expect(parser.parse(func)).to eq([[:function, :x, [], [[:return, 5]]]])
     end
-    
+  
+    it "should raise an error if there is no return value" do
+      func = <<-END
+      function x
+        return
+      end
+      END
+      expect { parser.parse(func) }.to raise_error ParseError
+    end
+   
     it "should not allow functions to be defined in functions" do
       func = <<-END
       function x
