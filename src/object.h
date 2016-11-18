@@ -663,6 +663,25 @@ iridium_method(Class, to_s) {
 
 // class Object
 
+// Object#puts
+// Displays to stdout
+// Locals used: args
+// Output: nil
+iridium_method(Object, puts) {
+  int idx = 0;
+  struct array * obj_ary = internal_get_attribute(local("args"), ATOM("array"), struct array *);
+  object * objs = (object *) obj_ary -> elements;
+  int end = obj_ary -> length;
+  for (idx = 0; idx < end-1; idx ++) {
+    printf("%s ", C_STRING(send(objs[idx], "to_s")));
+  }
+  if (end-1>=0) {
+    printf("%s", C_STRING(send(objs[end-1], "to_s")));
+  }
+  printf("\n");
+  return NIL;
+}
+
 // Object#to_s
 // Converts an object into an iridium string
 // Locals used: self
@@ -1034,6 +1053,16 @@ char * C_STRING(object str) {
   return internal_get_attribute(str, ATOM("str"), char *);
 }
 
+// String#to_s
+// Returns a copy of the same string
+iridium_method(String, to_s) {
+  object self = local("self");
+  char * str = C_STRING(self);
+  char * str_copy = GC_MALLOC((strlen(str)+1)*sizeof(char));
+  strcpy(str_copy, str);
+  return IR_STRING(str_copy);
+}
+
 // class NilClass
 
 object create_nil() {
@@ -1241,7 +1270,7 @@ void IR_init_Object() {
   struct IridiumArgument * class_superclass;
   struct IridiumArgument * class_name;
   struct IridiumArgument * other;
-  object call, get, class_new, class_inst_new, obj_init, class_to_s, object_to_s, fix_plus, nil_to_s, fix_to_s, atom_to_s, func_to_s;
+  object call, get, class_new, class_inst_new, obj_init, class_to_s, object_to_s, fix_plus, nil_to_s, fix_to_s, atom_to_s, func_to_s, obj_puts, str_to_s;
   
   // Create class
   CLASS(Class) = construct(CLASS(Class));
@@ -1283,15 +1312,19 @@ void IR_init_Object() {
   class_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Class, to_s));
   set_instance_attribute(CLASS(Class), ATOM("to_s"), PUBLIC, class_to_s);
   // Bootstrap Object
+  obj_puts = FUNCTION(ATOM("puts"), ARGLIST(argument_new(ATOM("args"), NULL, 1)), dict_new(ObjectHashsize), iridium_method_name(Object, puts));
+  set_instance_attribute(CLASS(Object), ATOM("puts"), PUBLIC, obj_puts);
   obj_init = FUNCTION(ATOM("initialize"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Object, initialize));
   set_instance_attribute(CLASS(Object), ATOM("initialize"), PUBLIC, obj_init);
   object_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Object, to_s));
   set_instance_attribute(CLASS(Object), ATOM("to_s"), PUBLIC, object_to_s);
+
   // Bootstrap everything
   set_attribute(CLASS(Class), ATOM("name"), PUBLIC, IR_STRING("Class"));
   set_attribute(CLASS(Object), ATOM("name"), PUBLIC, IR_STRING("Object"));
   set_attribute(CLASS(Atom), ATOM("name"), PUBLIC, IR_STRING("Atom"));
   set_attribute(CLASS(Function), ATOM("name"), PUBLIC, IR_STRING("Function"));
+  set_attribute(CLASS(String), ATOM("name"), PUBLIC, IR_STRING("String"));
 
   CLASS(Tuple) = construct(CLASS(Class));
   CLASS(NilClass) = construct(CLASS(Class));
@@ -1324,6 +1357,10 @@ void IR_init_Object() {
   // Init Function
   func_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Function, to_s));
   set_instance_attribute(CLASS(Function), ATOM("to_s"), PUBLIC, func_to_s);
+
+  // Init String
+  str_to_s = FUNCTION(ATOM("to_s"), ARGLIST(), dict_new(ObjectHashsize), iridium_method_name(String, to_s));
+  set_instance_attribute(CLASS(String), ATOM("to_s"), PUBLIC, str_to_s);
 }
 
 #endif

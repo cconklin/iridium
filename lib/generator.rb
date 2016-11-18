@@ -9,12 +9,19 @@ class Generator
 
   def generate
     level = 0
-    code = [generate_prototypes, generate_callables, generate_main]
+    code = [generate_includes, generate_prototypes, generate_callables, generate_main]
     ([@constants] + code).join("\n").split("\n").map do |line|
       level -= 1 if line[-1] == "}" || line[0] == "}" 
       newline = ("    " * level) + line
       level += 1 if line[-1] == "{"
       newline
+    end.join("\n")
+  end
+
+  def generate_includes
+    %w[src/iridium].map do |header|
+      header_path = File.absolute_path File.join(File.dirname(__FILE__), "..", header)
+      "#include \"#{header_path}.h\""
     end.join("\n")
   end
 
@@ -33,16 +40,8 @@ class Generator
     builtin_constants = %i[Object Class Atom Function List Tuple Dictionary Fixnum Float String Module NilClass]
     open_constants = %i[Object Class Atom Function List Tuple Dictionary Fixnum Float String Module NilClass]
     
-    # Set up the initial context
-    code << "struct dict * locals = dict_new(ObjectHashsize);"
-    code << "object ir_main = IR_MAIN_OBJECT();"
-    code << "struct array * self_stack = array_new();"
-    push_self code, "ir_main"
     # Ensure that self is put in any closures
     modified_variables << "self"
-    # Ensure that self is given the correct signature
-    active_variables << "self"
-    new_variables << "self"
 
     generate_main_block code, @tree, new_variables: new_variables,
                                      active_variables: active_variables,
@@ -50,10 +49,10 @@ class Generator
                                      literals: literals,
                                      open_constants: open_constants
     
-    (active_variables - new_variables).uniq.each do |var|
+    (active_variables - new_variables - [:self]).uniq.each do |var|
       code.unshift "object ir_cmp_#{var} = local(\"#{var}\");" unless var[0] == var[0].upcase
     end
-    new_variables.uniq.each do |var|
+    (new_variables - [:self]).uniq.each do |var|
       code.unshift "object ir_cmp_#{var} = NULL;" unless var[0] == var[0].upcase
     end
 
@@ -65,7 +64,15 @@ class Generator
       @constants.unshift "object ir_cmp_#{constant} = NULL;"
     end
 
+    # Set up the initial context
+    code.unshift "array_push(self_stack, ir_cmp_self);"
+    code.unshift "dict_set(locals, ATOM(\"self\"), ir_cmp_self);"
+    code.unshift "object ir_cmp_self = ir_main;"
+    code.unshift "struct array * self_stack = array_new();"
+    code.unshift "object ir_main = IR_MAIN_OBJECT();"
+    code.unshift "struct dict * locals = dict_new(ObjectHashsize);"
     code.unshift "void ir_user_main() {"
+    
     code << "}"
     code.join("\n") 
   end
@@ -76,7 +83,7 @@ class Generator
     code << "array_push(self_stack, ir_cmp_self);"
   end
 
-  def pop_self(code)
+  def pop_self(code, method: :<<)
     code << "ir_cmp_self = array_pop(self_stack);"
     code << "dict_set(locals, ATOM(\"self\"), ir_cmp_self);"
   end
