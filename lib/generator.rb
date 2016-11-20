@@ -9,13 +9,14 @@ class Generator
 
   def generate
     level = 0
-    code = [generate_includes, generate_prototypes, generate_callables, generate_main]
-    ([@constants] + code).join("\n").split("\n").map do |line|
+    code = [generate_includes, [@constants], generate_prototypes, generate_callables, generate_main]
+    gencode = code.join("\n").split("\n").map do |line|
       level -= 1 if line[-1] == "}" || line[0] == "}" 
       newline = ("    " * level) + line
       level += 1 if line[-1] == "{"
       newline
     end.join("\n")
+    gencode
   end
 
   def generate_includes
@@ -110,7 +111,7 @@ class Generator
           superclass = node[2] || :Object
           unless open_constants.include? name
             open_constants << name
-            code << "ir_cmp_#{name} = invoke(ir_cmp_Class, \"new\", ARGLIST(IR_STRING(\"#{name}\"), ir_cmp_#{superclass}));"
+            code << "ir_cmp_#{name} = invoke(ir_cmp_Class, \"new\", array_push(array_push(array_new(), IR_STRING(\"#{name}\")), ir_cmp_#{superclass}));"
           end
           push_self code, "ir_cmp_#{name}"
           generate_main_block code, node[3], new_variables: new_variables,
@@ -164,6 +165,7 @@ class Generator
       code.unshift "object #{name} = #{value};"
     end
     code.unshift "object #{name}(struct dict * locals) {"
+    code << "return NIL;"
     code << "}"
     code.join("\n")
   end
@@ -296,7 +298,7 @@ class Generator
           "calls(#{generate_expression(expr[1], active_variables: active_variables, literals: literals)}, #{arg_ary})"
         when :"."
           # Attribute Get
-          "get_attribute(#{generate_expression(expr[1], active_variables: active_variables, literals: literals)}, ATOM(\"#{expr[2]}\"))"
+          "invoke(#{generate_expression(expr[1], active_variables: active_variables, literals: literals)}, \"__get__\", array_push(array_new(), ATOM(\"#{expr[2]}\")))"
         when :lambda
           # Annonymous Function
           # [:lambda, [:x, {y: 10}, [:destructure, :z]], "code_name"]
