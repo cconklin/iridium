@@ -1,0 +1,8 @@
+class Greeter
+  method greet
+    puts("Hello World!")
+  end
+end
+
+Greeter.new().greet()
+
