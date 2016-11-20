@@ -1,3 +1,10 @@
 #!/bin/bash
-ruby $(dirname $0)/ircc.rb $@
+
+IRCC_BIN="$(dirname "`readlink $0`")"
+
+if [[ "$IRCC_BIN" == "." ]]; then
+    # Not in a symlink
+    IRCC_BIN=$(dirname $0)
+fi
+ruby ${IRCC_BIN}/ircc.rb $@
 
