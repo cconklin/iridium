@@ -10,7 +10,7 @@ int main(int argc, char * argv []) {
   fixnum = FIXNUM(5);
   fixnum_2 = FIXNUM(9);
 
-  send(fixnum, "__plus__", fixnum_2);
+  send(fixnum, "__add__", fixnum_2);
 
   // Shouldn't mutate the arguments
   assertEqual(INT(fixnum), 5);

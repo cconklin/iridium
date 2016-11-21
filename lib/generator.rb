@@ -313,7 +313,14 @@ class Generator
           end
           "invoke(ir_cmp_List, \"new\", #{arg_ary})"
         when :tuple
-          warn "Not Yet Implemented: tuple literals"
+          arg_ary = expr[1].reduce("array_new()") do |acc, arg|
+            if arg.respond_to?(:[]) && arg[0] == :destructure
+              "destructure(#{acc}, #{generate_expression(arg[1], active_variables: active_variables, literals: literals)})"
+            else
+              "array_push(#{acc}, #{generate_expression(arg, active_variables: active_variables, literals: literals)})"
+            end
+          end
+          "invoke(ir_cmp_Tuple, \"new\", #{arg_ary})"
         when :dictionary
           warn "Not Yet Implemented: dictionary literals"
       end

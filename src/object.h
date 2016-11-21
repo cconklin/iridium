@@ -115,6 +115,14 @@ struct list * _ARGLIST(int unused, ...) {
 #define ATOM(name) ((! strcmp(name, "self")) ? SELF_ATOM : _ATOM(name))
 #define SELF_ATOM (_SELF_ATOM ? _SELF_ATOM : (_SELF_ATOM = create_self_atom()))
 
+// Macro for defining methods
+#define DEF_METHOD(receiver, name, arglist, func) \
+  set_instance_attribute(receiver, ATOM(name), PUBLIC, \
+      FUNCTION(ATOM(name), arglist, dict_new(ObjectHashsize), func))
+#define DEF_FUNCTION(receiver, name, arglist, func) \
+  set_attribute(receiver, ATOM(name), PUBLIC, \
+      FUNCTION(ATOM(name), arglist, dict_new(ObjectHashsize), func))
+
 // Declarations
 
 object CLASS(Class);
@@ -130,7 +138,8 @@ object nil = NULL;
 
 iridium_classmethod(Class, new);
 iridium_method(Class, new);
-iridium_method(Class, to_s);
+iridium_method(Class, inspect);
+iridium_method(Object, inspect);
 iridium_method(Object, to_s);
 iridium_method(Object, initialize);
 iridium_method(Object, __get__);
@@ -650,11 +659,11 @@ iridium_method(Class, new) {
   
 }
 
-// Class#to_s
+// Class#inspect
 // Converts a class into an iridium string
 // Locals used: self
 // Output: Iridium String
-iridium_method(Class, to_s) {
+iridium_method(Class, inspect) {
   // Receiver
   object self = local("self");
   object str = get_attribute(self, ATOM("name"), PUBLIC);
@@ -682,11 +691,11 @@ iridium_method(Object, puts) {
   return NIL;
 }
 
-// Object#to_s
+// Object#inspect
 // Converts an object into an iridium string
 // Locals used: self
 // Output: Iridium String
-iridium_method(Object, to_s) {
+iridium_method(Object, inspect) {
   // Receiver
   object self = local("self");
   object class_name = get_attribute(self->class, ATOM("name"), PUBLIC);
@@ -697,6 +706,17 @@ iridium_method(Object, to_s) {
   assert(c_str);
   strcpy(c_str, buffer);
   return IR_STRING(c_str);
+}
+
+
+// Object#to_s
+// Converts an object into an iridium string
+// Locals used: self
+// Output: Iridium String
+iridium_method(Object, to_s) {
+  // Receiver
+  object self = local("self");
+  return invoke(self, "inspect", array_new());
 }
 
 // Object#__get__
@@ -820,7 +840,7 @@ object FUNCTION(object name, struct list * args, struct dict * bindings, object 
   return self;
 }
 
-iridium_method(Function, to_s) {
+iridium_method(Function, inspect) {
   object self = local("self");
   object name = get_attribute(self, ATOM("name"), PUBLIC);
   char * given_name = internal_get_attribute(name, ATOM("string"), char *);
@@ -832,7 +852,7 @@ iridium_method(Function, to_s) {
     // Avoid to_s'ing ourself forever
     sprintf(buffer, "#<Function self.%s:%p>", given_name, self);
   } else if (owner) {
-    sprintf(buffer, "#<Function %s%c%s:%p>", C_STRING(invoke(owner, "to_s", array_new())), (owner_type ? '#' : '.'), given_name, self);
+    sprintf(buffer, "#<Function %s%c%s:%p>", C_STRING(invoke(owner, "inspect", array_new())), (owner_type ? '#' : '.'), given_name, self);
   } else {
     sprintf(buffer, "#<Function %s:%p>", given_name, self);
   }
@@ -945,7 +965,7 @@ object _ATOM(char * name) {
   return atom;
 }
 
-iridium_method(Atom, to_s) {
+iridium_method(Atom, inspect) {
   object self = local("self");
   char buffer[100];
   sprintf(buffer, ":%s", internal_get_attribute(self, ATOM("string"), char *));
@@ -1006,6 +1026,38 @@ iridium_method(Tuple, __set_index__) {
   return value;
 }
 
+iridium_method(Tuple, inspect) {
+  object self = local("self");
+  struct array * ary = internal_get_attribute(self, ATOM("array"), struct array *);
+  int idx, sidx;
+  unsigned int strsize = 0;
+  unsigned ary_len = (ary->length - ary->start);
+  char ** strs = malloc(ary_len*sizeof(char *));
+  char * str;
+  assert(strs);
+  for (idx = ary -> start; idx < ary -> length; idx++) {
+    sidx = idx - (ary -> start);
+    strs[sidx] = C_STRING(invoke(array_get(ary, idx), "inspect", array_new()));
+    strsize += strlen(strs[sidx]);
+  }
+  if (ary_len > 1) {
+    strsize += (ary_len-1) * 2; // A space and comma for each entry (except for the last)
+  }
+  strsize += 2; // opening and closing brackets
+  strsize++; // Account for the terminating NULL
+  str = GC_MALLOC(strsize*sizeof(char));
+  assert(str);
+  str[0] = '{';
+  str[1] = 0;
+  for (idx = 0; idx < ary_len-1; idx++) {
+    strcat(str, strs[idx]);
+    strcat(str, ", ");
+  }
+  strcat(str, strs[ary_len-1]);
+  strcat(str, "}");
+  free(strs);
+  return IR_STRING(str);
+}
 
 // class Fixnum
 
@@ -1014,7 +1066,7 @@ iridium_classmethod(Fixnum, new) {
   return fixnum;
 }
 
-iridium_method(Fixnum, __plus__) {
+iridium_method(Fixnum, __add__) {
   object self = local("self");
   object other = local("other");
   return FIXNUM(INT(self) + INT(other));
@@ -1031,7 +1083,7 @@ int INT(object fixnum) {
   return internal_get_integral(fixnum, ATOM("value"), int);
 }
 
-iridium_method(Fixnum, to_s) {
+iridium_method(Fixnum, inspect) {
   object self = local("self");
   int val = INT(self);
   char buffer[30];
@@ -1058,8 +1110,24 @@ char * C_STRING(object str) {
 iridium_method(String, to_s) {
   object self = local("self");
   char * str = C_STRING(self);
-  char * str_copy = GC_MALLOC((strlen(str)+1)*sizeof(char));
+  unsigned int l = strlen(str);
+  char * str_copy = GC_MALLOC((l+1)*sizeof(char));
   strcpy(str_copy, str);
+  return IR_STRING(str_copy);
+}
+
+// String#inspect
+// Returns a copy of the same string with quotes
+iridium_method(String, inspect) {
+  object self = local("self");
+  char * str = C_STRING(self);
+  unsigned int l = strlen(str);
+  char * str_copy = GC_MALLOC((l+3)*sizeof(char));
+  str_copy[0] = '"';
+  str_copy[1] = 0;
+  strcat(str_copy, str);
+  str_copy[l+1] = '"';
+  str_copy[l+2] = 0;
   return IR_STRING(str_copy);
 }
 
@@ -1074,7 +1142,7 @@ object create_nil() {
   return nil;
 }
 
-iridium_method(NilClass, to_s) {
+iridium_method(NilClass, inspect) {
   return IR_STRING("nil");
 }
 
@@ -1270,7 +1338,7 @@ void IR_init_Object() {
   struct IridiumArgument * class_superclass;
   struct IridiumArgument * class_name;
   struct IridiumArgument * other;
-  object call, get, class_new, class_inst_new, obj_init, class_to_s, object_to_s, fix_plus, nil_to_s, fix_to_s, atom_to_s, func_to_s, obj_puts, str_to_s;
+  object call, get, class_new, class_inst_new, obj_init, class_inspect, object_inspect, fix_plus, nil_inspect, fix_inspect, atom_inspect, func_inspect, obj_puts, str_inspect;
   
   // Create class
   CLASS(Class) = construct(CLASS(Class));
@@ -1309,15 +1377,16 @@ void IR_init_Object() {
   set_attribute(CLASS(Class), ATOM("new"), PUBLIC, class_new);
   class_inst_new = FUNCTION(ATOM("new"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Class, new));
   set_instance_attribute(CLASS(Class), ATOM("new"), PUBLIC, class_inst_new);
-  class_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Class, to_s));
-  set_instance_attribute(CLASS(Class), ATOM("to_s"), PUBLIC, class_to_s);
+  class_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Class, inspect));
+  set_instance_attribute(CLASS(Class), ATOM("inspect"), PUBLIC, class_inspect);
   // Bootstrap Object
   obj_puts = FUNCTION(ATOM("puts"), ARGLIST(argument_new(ATOM("args"), NULL, 1)), dict_new(ObjectHashsize), iridium_method_name(Object, puts));
   set_instance_attribute(CLASS(Object), ATOM("puts"), PUBLIC, obj_puts);
   obj_init = FUNCTION(ATOM("initialize"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Object, initialize));
   set_instance_attribute(CLASS(Object), ATOM("initialize"), PUBLIC, obj_init);
-  object_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Object, to_s));
-  set_instance_attribute(CLASS(Object), ATOM("to_s"), PUBLIC, object_to_s);
+  object_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Object, inspect));
+  set_instance_attribute(CLASS(Object), ATOM("inspect"), PUBLIC, object_inspect);
+  DEF_METHOD(CLASS(Object), "to_s", ARGLIST(), iridium_method_name(Object, to_s));
 
   // Bootstrap everything
   set_attribute(CLASS(Class), ATOM("name"), PUBLIC, IR_STRING("Class"));
@@ -1341,26 +1410,35 @@ void IR_init_Object() {
 
   // Init Fixnum
   other = argument_new(ATOM("other"), NULL, 0);
-  fix_plus = FUNCTION(ATOM("__plus__"), list_new(other), dict_new(ObjectHashsize), iridium_method_name(Fixnum, __plus__));
-  set_instance_attribute(CLASS(Fixnum), ATOM("__plus__"), PUBLIC, fix_plus);
-  fix_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Fixnum, to_s));
-  set_instance_attribute(CLASS(Fixnum), ATOM("to_s"), PUBLIC, fix_to_s);
+  fix_plus = FUNCTION(ATOM("__add__"), list_new(other), dict_new(ObjectHashsize), iridium_method_name(Fixnum, __add__));
+  set_instance_attribute(CLASS(Fixnum), ATOM("__add__"), PUBLIC, fix_plus);
+  fix_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Fixnum, inspect));
+  set_instance_attribute(CLASS(Fixnum), ATOM("inspect"), PUBLIC, fix_inspect);
 
   // Init nil
-  nil_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(NilClass, to_s));
-  set_instance_attribute(CLASS(NilClass), ATOM("to_s"), PUBLIC, nil_to_s);
+  nil_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(NilClass, inspect));
+  set_instance_attribute(CLASS(NilClass), ATOM("inspect"), PUBLIC, nil_inspect);
+  DEF_METHOD(CLASS(NilClass), "to_s", ARGLIST(), iridium_method_name(NilClass, inspect));
 
   // Init Atom
-  atom_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Atom, to_s));
-  set_instance_attribute(CLASS(Atom), ATOM("to_s"), PUBLIC, atom_to_s);
+  atom_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Atom, inspect));
+  set_instance_attribute(CLASS(Atom), ATOM("inspect"), PUBLIC, atom_inspect);
 
   // Init Function
-  func_to_s = FUNCTION(ATOM("to_s"), NULL, dict_new(ObjectHashsize), iridium_method_name(Function, to_s));
-  set_instance_attribute(CLASS(Function), ATOM("to_s"), PUBLIC, func_to_s);
+  func_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Function, inspect));
+  set_instance_attribute(CLASS(Function), ATOM("inspect"), PUBLIC, func_inspect);
 
   // Init String
-  str_to_s = FUNCTION(ATOM("to_s"), ARGLIST(), dict_new(ObjectHashsize), iridium_method_name(String, to_s));
-  set_instance_attribute(CLASS(String), ATOM("to_s"), PUBLIC, str_to_s);
+  str_inspect = FUNCTION(ATOM("inspect"), ARGLIST(), dict_new(ObjectHashsize), iridium_method_name(String, inspect));
+  set_instance_attribute(CLASS(String), ATOM("inspect"), PUBLIC, str_inspect);
+  DEF_METHOD(CLASS(String), "to_s", ARGLIST(), iridium_method_name(String, to_s));
+
+  // Init Tuple
+  DEF_METHOD(CLASS(Tuple), "inspect", ARGLIST(), iridium_method_name(Tuple, inspect));
+  DEF_METHOD(CLASS(Tuple), "reduce", ARGLIST(argument_new(ATOM("accumulator"), NULL, 0), argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(Tuple, reduce));
+  DEF_METHOD(CLASS(Tuple), "__get_index__", ARGLIST(argument_new(ATOM("index"), NULL, 0)), iridium_method_name(Tuple, __get_index__));
+  DEF_METHOD(CLASS(Tuple), "__set_index__", ARGLIST(argument_new(ATOM("index"), NULL, 0), argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Tuple, __set_index__));
+  DEF_FUNCTION(CLASS(Tuple), "new", ARGLIST(argument_new(ATOM("args"), NULL, 1)), iridium_classmethod_name(Tuple, new));
 }
 
 #endif

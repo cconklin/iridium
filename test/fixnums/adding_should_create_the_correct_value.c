@@ -12,7 +12,7 @@ int main(int argc, char * argv []) {
   fixnum = FIXNUM(5);
   fixnum_2 = FIXNUM(9);
 
-  integer = INT(send(fixnum, "__plus__", fixnum_2));
+  integer = INT(send(fixnum, "__add__", fixnum_2));
   assertEqual(integer, 14);
 
   return 0;
