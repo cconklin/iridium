@@ -9,8 +9,8 @@ int main(int argc, char * argv[]) {
   setup();
   object self = ATOM("self");
   object turtle = ATOM("turtle");
-  char * c_self = C_STRING(send(self, "to_s"));
-  char * c_turtle = C_STRING(send(turtle, "to_s"));
+  char * c_self = C_STRING(send(self, "inspect"));
+  char * c_turtle = C_STRING(send(turtle, "inspect"));
 
   assertEqual(strcmp(c_self, ":self"), 0);
   assertEqual(strcmp(c_turtle, ":turtle"), 0);

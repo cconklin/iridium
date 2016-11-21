@@ -11,7 +11,7 @@ int main(int argc, char * argv[]) {
   // it should allow objects to ignore attributes up the ancestor chain
   set_instance_attribute(CLASS(Atom), instance_attr, PUBLIC, instance_val);
   no_attribute(a, instance_attr);
-  assertEqual(get_attribute(a, instance_attr, PUBLIC), NIL); // eventually rasie an exception
+  assertEqual(get_attribute(a, instance_attr, PUBLIC), NULL); // eventually rasie an exception
 
   return 0;
 }

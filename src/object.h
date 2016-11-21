@@ -135,6 +135,8 @@ object CLASS(Fixnum);
 object CLASS(String);
 object CLASS(Boolean);
 
+object CLASS(AttributeError);
+
 object ir_cmp_true;
 object ir_cmp_false;
 
@@ -166,6 +168,7 @@ int INT(object);
 object FIXNUM(int);
 object IR_STRING(char *);
 char * C_STRING(object);
+void handleException(object);
 
 object invoke(object obj, char * name, struct array * args);
 object calls(object callable, struct array * args);
@@ -188,15 +191,18 @@ object _SELF_ATOM = NULL;
 
 // Function to determine object inheritance
 
+void IR_PUTS(object);
+
 int kindOf(object obj, object class) {
+  object obj_class = obj -> class;
   while (1) {
-    if (isA(obj, class)) {
+    if (obj_class == class) {
       return 1;
     }
-    if (class == superclass(class)) {
+    if (obj_class == superclass(obj_class)) {
       break;
     }
-    class = superclass(class);
+    obj_class = superclass(obj_class);
   }
   return 0;
 }
@@ -254,7 +260,7 @@ iridium_attribute attribute_lookup(object, void *, unsigned char);
 object
 get_attribute(object receiver, void * attribute, unsigned char access) {
   iridium_attribute result = attribute_lookup(receiver, attribute, access);
-  return (result && result -> real) ? result -> value : NIL ;
+  return (result && result -> real) ? result -> value : NULL;
 }
 
 // Helper function
@@ -401,16 +407,28 @@ object set_instance_attribute(object receiver, void * attribute, unsigned char a
   return value;
 }
 
+object function_bind(object, struct dict *);
+
 // Locals
 #define local(name) _local(locals, ATOM(name))
 object _local(struct dict * locals, object atm) {
     object value = dict_get(locals, atm);
+    object attribute;
+    struct dict * vars;
     if (value == NULL) {
         value = dict_get(locals, ATOM("self"));
         if (value == NULL) {
             return NULL;
         } else {
-            return get_attribute(value, atm, PRIVATE);
+            attribute = get_attribute(value, atm, PRIVATE);
+            // If the attribute is found, is it a function?
+            if (isA(attribute, CLASS(Function))) {
+              vars = internal_get_attribute(attribute, ATOM("bindings"), struct dict *);
+              // The function better have some bindings, even if it is an empty dictionary.
+              assert(vars);
+              attribute = function_bind(attribute, dict_with(vars, ATOM("self"), value));
+            }
+            value = attribute;
         }
     }
     return value;
@@ -751,7 +769,17 @@ iridium_method(Object, __get__) {
   
   // Look for the attribute
   object attribute = get_attribute(self, name, PUBLIC);
-  
+
+  // If the attribute is NULL: raise an exception
+  if (NULL == attribute) {
+    object reason = send(name, "to_s");
+    reason = send(reason, "__add__", IR_STRING(" is not defined on "));
+    reason = send(reason, "__add__", invoke(self, "inspect", array_new()));
+    reason = send(reason, "__add__", IR_STRING(":"));
+    reason = send(reason, "__add__", invoke(self->class, "inspect", array_new()));
+    handleException(send(CLASS(AttributeError), "new", reason));
+  }
+
   // If the attribute is found, is it a function?
   if (isA(attribute, CLASS(Function))) {
     vars = internal_get_attribute(attribute, ATOM("bindings"), struct dict *);
@@ -983,6 +1011,15 @@ iridium_method(Atom, inspect) {
   return IR_STRING(str);
 }
 
+iridium_method(Atom, to_s) {
+  object self = local("self");
+  char * buffer = internal_get_attribute(self, ATOM("string"), char *);
+  char * str = GC_MALLOC((strlen(buffer + 1) * sizeof(char)));
+  assert(str);
+  strcpy(str, buffer);
+  return IR_STRING(str);
+}
+
 // class Tuple
 
 object TUPLE(struct array * values) {
@@ -1076,6 +1113,22 @@ iridium_classmethod(true, inspect) {
 iridium_classmethod(false, inspect) {
     return IR_STRING("false");
 }
+
+// Class AttributeError
+
+iridium_method(AttributeError, initialize) {
+    object self = local("self");
+    object message = local("message");
+    send(self, "__set__", ATOM("message"), message);
+    return NIL;
+}
+
+iridium_method(AttributeError, reason) {
+    object self = local("self");
+    object message = send(self, "__get__", ATOM("message"));
+    return message;
+}
+
 // class Fixnum
 
 iridium_classmethod(Fixnum, new) {
@@ -1414,6 +1467,7 @@ void IR_init_Object() {
   object_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Object, inspect));
   set_instance_attribute(CLASS(Object), ATOM("inspect"), PUBLIC, object_inspect);
   DEF_METHOD(CLASS(Object), "to_s", ARGLIST(), iridium_method_name(Object, to_s));
+  DEF_METHOD(CLASS(Object), "__set__", ARGLIST(name, argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Object, __set__));
 
   // Bootstrap everything
   set_attribute(CLASS(Class), ATOM("name"), PUBLIC, IR_STRING("Class"));
@@ -1451,6 +1505,7 @@ void IR_init_Object() {
   // Init Atom
   atom_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Atom, inspect));
   set_instance_attribute(CLASS(Atom), ATOM("inspect"), PUBLIC, atom_inspect);
+  DEF_METHOD(CLASS(Atom), "to_s", ARGLIST(), iridium_method_name(Atom, to_s));
 
   // Init Function
   func_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Function, inspect));
@@ -1469,11 +1524,17 @@ void IR_init_Object() {
   DEF_FUNCTION(CLASS(Tuple), "new", ARGLIST(argument_new(ATOM("args"), NULL, 1)), iridium_classmethod_name(Tuple, new));
 
   // Init Boolean
-  CLASS(Boolean) = send(CLASS(Class), "new", ATOM("Boolean"));
+  CLASS(Boolean) = send(CLASS(Class), "new", IR_STRING("Boolean"));
   ir_cmp_true = send(CLASS(Boolean), "new");
   ir_cmp_false = send(CLASS(Boolean), "new");
   DEF_FUNCTION(ir_cmp_true, "inspect", ARGLIST(), iridium_classmethod_name(true, inspect));
   DEF_FUNCTION(ir_cmp_false, "inspect", ARGLIST(), iridium_classmethod_name(false, inspect));
+
+  // TODO: Add full exception support
+  // Init AttributeError
+  CLASS(AttributeError) = send(CLASS(Class), "new", IR_STRING("AttributeError"));
+  DEF_METHOD(CLASS(AttributeError), "initialize", ARGLIST(argument_new(ATOM("message"), NIL, 0)), iridium_method_name(AttributeError, initialize));
+  DEF_METHOD(CLASS(AttributeError), "reason", ARGLIST(), iridium_method_name(AttributeError, reason));
 }
 
 #endif
