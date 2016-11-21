@@ -1,6 +1,7 @@
 #include "object.h"
 #include "float.h"
 #include "list.h"
+#include "string.h"
 
 void ir_user_main();
 
@@ -8,6 +9,7 @@ void IR_INIT(void) {
     IR_init_Object();
     IR_init_List();
     IR_init_Float();
+    IR_init_String();
 }
 
 iridium_classmethod(ir_main, to_s) {

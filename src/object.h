@@ -133,8 +133,16 @@ object CLASS(Tuple);
 object CLASS(NilClass);
 object CLASS(Fixnum);
 object CLASS(String);
+object CLASS(Boolean);
+
+object ir_cmp_true;
+object ir_cmp_false;
 
 object nil = NULL;
+
+object _exprval;
+#define TRUTHY(expr) ((_exprval = expr) == nil ? 0 : (_exprval != ir_cmp_false))
+#define FALSY(expr) (!TRUTHY(expr))
 
 iridium_classmethod(Class, new);
 iridium_method(Class, new);
@@ -1059,6 +1067,15 @@ iridium_method(Tuple, inspect) {
   return IR_STRING(str);
 }
 
+// class Boolean
+
+iridium_classmethod(true, inspect) {
+    return IR_STRING("true");
+}
+
+iridium_classmethod(false, inspect) {
+    return IR_STRING("false");
+}
 // class Fixnum
 
 iridium_classmethod(Fixnum, new) {
@@ -1070,6 +1087,16 @@ iridium_method(Fixnum, __add__) {
   object self = local("self");
   object other = local("other");
   return FIXNUM(INT(self) + INT(other));
+}
+
+iridium_method(Fixnum, __eq__) {
+  object self = local("self");
+  object other = local("other");
+  if (INT(self) == INT(other)) {
+    return ir_cmp_true;
+  } else {
+    return ir_cmp_false;
+  }
 }
 
 object FIXNUM(int val) {
@@ -1414,6 +1441,7 @@ void IR_init_Object() {
   set_instance_attribute(CLASS(Fixnum), ATOM("__add__"), PUBLIC, fix_plus);
   fix_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Fixnum, inspect));
   set_instance_attribute(CLASS(Fixnum), ATOM("inspect"), PUBLIC, fix_inspect);
+  DEF_METHOD(CLASS(Fixnum), "__eq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Fixnum, __eq__));
 
   // Init nil
   nil_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(NilClass, inspect));
@@ -1439,6 +1467,13 @@ void IR_init_Object() {
   DEF_METHOD(CLASS(Tuple), "__get_index__", ARGLIST(argument_new(ATOM("index"), NULL, 0)), iridium_method_name(Tuple, __get_index__));
   DEF_METHOD(CLASS(Tuple), "__set_index__", ARGLIST(argument_new(ATOM("index"), NULL, 0), argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Tuple, __set_index__));
   DEF_FUNCTION(CLASS(Tuple), "new", ARGLIST(argument_new(ATOM("args"), NULL, 1)), iridium_classmethod_name(Tuple, new));
+
+  // Init Boolean
+  CLASS(Boolean) = send(CLASS(Class), "new", ATOM("Boolean"));
+  ir_cmp_true = send(CLASS(Boolean), "new");
+  ir_cmp_false = send(CLASS(Boolean), "new");
+  DEF_FUNCTION(ir_cmp_true, "inspect", ARGLIST(), iridium_classmethod_name(true, inspect));
+  DEF_FUNCTION(ir_cmp_false, "inspect", ARGLIST(), iridium_classmethod_name(false, inspect));
 }
 
 #endif

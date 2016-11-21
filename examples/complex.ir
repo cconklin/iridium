@@ -1,0 +1,51 @@
+class Complex
+
+  method initialize(real, imaginary)
+    self.real = real
+    self.imaginary = imaginary
+  end
+
+  # Return the complex conjugate
+
+  method conjugate
+    return Complex.new(self.real, 0 - self.imaginary)
+  end
+
+  # Operators
+
+  method __add__(other)
+    return Complex.new(self.real + other.real, self.imaginary + other.imaginary)
+  end
+
+  method __sub__(other)
+    return Complex.new(self.real - other.real, self.imaginary - other.imaginary)
+  end
+
+  method __mult__(other)
+    return Complex.new(self.real * other.real - self.imaginary * other.imaginary, self.imaginary * other.real + self.real * other.imaginary)
+  end
+
+  method __div__(other)
+    return Complex.new((self.real * other.real + self.imaginary * other.imaginary) / (other.real * other.imaginary),
+                       (self.imaginary * other.real - self.real * other.imaginary) / (other.real * other.imaginary))
+  end
+
+  # Type Coercions
+
+  method to_s
+    if self.real == 0
+      return self.imaginary.to_s() + "i"
+    elseif self.imaginary == 0
+      return self.real.to_s()
+    else
+      return "(" + self.real.to_s() + "+" + self.imaginary.to_s() + "i)"
+    end
+  end
+
+end
+
+c1 = Complex.new(1, 0)
+c2 = Complex.new(0, 7)
+
+puts(c1, "+", c2, "=", c1 + c2)
+
