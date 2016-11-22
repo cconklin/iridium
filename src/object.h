@@ -136,6 +136,7 @@ object CLASS(String);
 object CLASS(Boolean);
 
 object CLASS(AttributeError);
+object CLASS(NameError);
 
 object ir_cmp_true;
 object ir_cmp_false;
@@ -188,6 +189,9 @@ struct IridiumArgument * argument_new(object name, object default_value, char sp
 
 // :self atom
 object _SELF_ATOM = NULL;
+
+object _send(object, char *, ...);
+#define send(obj, name, ...) _send(obj, name , ##__VA_ARGS__, 0)
 
 // Function to determine object inheritance
 
@@ -418,9 +422,14 @@ object _local(struct dict * locals, object atm) {
     if (value == NULL) {
         value = dict_get(locals, ATOM("self"));
         if (value == NULL) {
-            return NULL;
+            // NameError
+            handleException(send(CLASS(NameError), "new", IR_STRING("self")));
         } else {
             attribute = get_attribute(value, atm, PRIVATE);
+            if (attribute == NULL) {
+                // NameError
+                handleException(send(CLASS(NameError), "new", invoke(atm, "to_s", array_new())));
+            }
             // If the attribute is found, is it a function?
             if (isA(attribute, CLASS(Function))) {
               vars = internal_get_attribute(attribute, ATOM("bindings"), struct dict *);
@@ -513,8 +522,6 @@ object _send(object obj, char * name, ...) {
   va_end(ap);
   return invoke(obj, name, args);
 }
-
-#define send(obj, name, ...) _send(obj, name , ##__VA_ARGS__, 0)
 
 #define pubget(obj, name) get_attribute(obj, ATOM(name), PUBLIC)
 
@@ -1535,6 +1542,10 @@ void IR_init_Object() {
   CLASS(AttributeError) = send(CLASS(Class), "new", IR_STRING("AttributeError"));
   DEF_METHOD(CLASS(AttributeError), "initialize", ARGLIST(argument_new(ATOM("message"), NIL, 0)), iridium_method_name(AttributeError, initialize));
   DEF_METHOD(CLASS(AttributeError), "reason", ARGLIST(), iridium_method_name(AttributeError, reason));
+
+  CLASS(NameError) = send(CLASS(Class), "new", IR_STRING("NameError"));
+  DEF_METHOD(CLASS(NameError), "initialize", ARGLIST(argument_new(ATOM("message"), NIL, 0)), iridium_method_name(AttributeError, initialize));
+  DEF_METHOD(CLASS(NameError), "reason", ARGLIST(), iridium_method_name(AttributeError, reason));
 }
 
 #endif
