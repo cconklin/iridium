@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Written entirly for TextMate support
+
 IRCC_BIN="$(dirname "`readlink $0`")"
 
 if [[ "$IRCC_BIN" == "." ]]; then
@@ -9,4 +11,5 @@ fi
 
 export PATH=~/.rvm/bin:$PATH
 
-rvm-auto-ruby ${IRCC_BIN}/ircc.rb $@
+rvm-auto-ruby ${IRCC_BIN}/ircc.rb $2 -o $1
+$1
