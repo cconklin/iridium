@@ -121,9 +121,11 @@ class Generator
                                              open_constants: open_constants
           pop_self code
         when :function
+          new_variables << node[1]
           code << "set_attribute(ir_cmp_self, ATOM(\"#{node[1]}\"), PUBLIC,"
           code << "  FUNCTION(ATOM(\"#{node[1]}\"), #{generate_arglist(node[2], active_variables: active_variables, literals: literals)}, dict_new(ObjectHashsize), #{node[3]} ));"
         when :method
+          new_variables << node[1]
           code << "set_instance_attribute(ir_cmp_self, ATOM(\"#{node[1]}\"), PUBLIC,"
           code << "  FUNCTION(ATOM(\"#{node[1]}\"), #{generate_arglist(node[2], active_variables: active_variables, literals: literals)}, dict_new(ObjectHashsize), #{node[3]} ));"
         else
@@ -323,6 +325,8 @@ class Generator
           "invoke(ir_cmp_Tuple, \"new\", #{arg_ary})"
         when :dictionary
           warn "Not Yet Implemented: dictionary literals"
+        when :===
+          "(#{generate_expression(expr[1], active_variables: active_variables, literals: literals)} == #{generate_expression(expr[2], active_variables: active_variables, literals: literals)} ? ir_cmp_true : ir_cmp_false)"
       end
     end
   end
@@ -336,7 +340,7 @@ class Generator
               "ATOM(\"#{arg}\"), NULL, 0"
             elsif arg.is_a? Hash
               # Default Value
-              "ATOM(\"#{arg.first[0]}\"), #{generate_expression args.first[1], active_variables: active_variables, literals: literals}, 0"
+              "ATOM(\"#{arg.first[0]}\"), #{generate_expression arg.first[1], active_variables: active_variables, literals: literals}, 0"
             else
               # Splat
               "ATOM(\"#{arg[1]}\"), NULL, 1"

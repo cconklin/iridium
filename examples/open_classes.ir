@@ -1,0 +1,14 @@
+class Tuple
+  method join(joiner)
+    return reduce("") -> (element, accumulator)
+      if accumulator == ""
+        return element.to_s()
+      else
+        return accumulator + joiner + element.to_s()
+      end
+    end
+  end
+end
+
+puts({"foo", "bar", "baz"}.join("-").inspect())
+puts({}.join("-").inspect())

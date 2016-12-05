@@ -137,6 +137,7 @@ object CLASS(Boolean);
 
 object CLASS(AttributeError);
 object CLASS(NameError);
+object CLASS(TypeError);
 
 object ir_cmp_true;
 object ir_cmp_false;
@@ -849,7 +850,6 @@ iridium_method(Object, initialize) {
 
 // Function#__call__
 // Invokes a function
-
 // method __call__(* args)
 iridium_method(Function, __call__) {
   // Locals to be passed to the C function
@@ -1087,6 +1087,9 @@ iridium_method(Tuple, inspect) {
   int idx, sidx;
   unsigned int strsize = 0;
   unsigned ary_len = (ary->length - ary->start);
+  if (ary_len == 0) {
+    return IR_STRING("{}");
+  }
   char ** strs = malloc(ary_len*sizeof(char *));
   char * str;
   assert(strs);
@@ -1549,6 +1552,10 @@ void IR_init_Object() {
   CLASS(NameError) = send(CLASS(Class), "new", IR_STRING("NameError"));
   DEF_METHOD(CLASS(NameError), "initialize", ARGLIST(argument_new(ATOM("message"), NIL, 0)), iridium_method_name(AttributeError, initialize));
   DEF_METHOD(CLASS(NameError), "reason", ARGLIST(), iridium_method_name(AttributeError, reason));
+
+  CLASS(TypeError) = send(CLASS(Class), "new", IR_STRING("TypeError"));
+  DEF_METHOD(CLASS(TypeError), "initialize", ARGLIST(argument_new(ATOM("message"), NIL, 0)), iridium_method_name(AttributeError, initialize));
+  DEF_METHOD(CLASS(TypeError), "reason", ARGLIST(), iridium_method_name(AttributeError, reason));
 }
 
 #endif
