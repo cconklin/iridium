@@ -571,6 +571,7 @@ struct dict * process_args(object function, struct array * _args) {
   int splat = 0;
   int first_optional = -1;
   int index = 0;
+  int splat_idx = 0;
   int length = 0;
   int arg_length = args -> length;
   unsigned int required = 0;
@@ -628,8 +629,10 @@ struct dict * process_args(object function, struct array * _args) {
       }
       index ++;  
     } else {
-      while (index < (arg_length - (length - splat))) {
+      splat_idx = 0;
+      while (splat_idx < (arg_length - (length - splat))) {
         array_push(partial_args, array_shift(args));
+        splat_idx ++;
         index ++;
       }
       // Splatted argument
