@@ -19,6 +19,7 @@ iridium_classmethod(ir_main, to_s) {
     sprintf(buffer, "#<Object(main):%p>", self);
     char * c_str = GC_MALLOC((strlen(buffer) + 1) * sizeof(char));
     assert(c_str);
+    strcpy(c_str, buffer);
     return IR_STRING(c_str); 
 }
 
