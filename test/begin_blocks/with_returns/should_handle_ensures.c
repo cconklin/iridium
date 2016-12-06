@@ -32,7 +32,7 @@ int returns_in_nested_begin() {
       exceptions = list_new(EXCEPTION(AnotherException, 1));
       e_2 = ExceptionHandler(exceptions, 1, 0, 1);
       switch (setjmp(e_2 -> env)) {
-        case 0:      
+        case 0:
           return_in_begin_block();
           return 0;
           END_BEGIN(e_2);

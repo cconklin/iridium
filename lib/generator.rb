@@ -38,6 +38,7 @@ class Generator
     active_variables = []
     modified_variables = []
     literals = {}
+    exception_handlers = []
     builtin_constants = %i[Object Class Atom Function List Tuple Dictionary Fixnum Float String Module NilClass]
     open_constants = %i[Object Class Atom Function List Tuple Dictionary Fixnum Float String Module NilClass]
     
@@ -48,7 +49,8 @@ class Generator
                                      active_variables: active_variables,
                                      modified_variables: modified_variables,
                                      literals: literals,
-                                     open_constants: open_constants
+                                     open_constants: open_constants, 
+                                     exception_handlers: exception_handlers
     
     (active_variables - new_variables - [:self]).uniq.each do |var|
       code.unshift "object ir_cmp_#{var} = local(\"#{var}\");" unless var[0] == var[0].upcase
@@ -59,6 +61,10 @@ class Generator
 
     literals.each do |name, value|
       code.unshift "object #{name} = #{value};"
+    end
+
+    exception_handlers.each do |handler|
+      code.unshift "exception_frame #{handler};"
     end
 
     (open_constants - builtin_constants).each do |constant|
@@ -90,7 +96,7 @@ class Generator
     code << "dict_set(locals, ATOM(\"self\"), ir_cmp_self);"
   end
 
-  def generate_main_block(code, tree, new_variables:, active_variables:, modified_variables:, literals:, open_constants:)
+  def generate_main_block(code, tree, new_variables:, active_variables:, modified_variables:, literals:, open_constants:, exception_handlers:)
      tree.each do |node|
       if node.respond_to? :each
         case node.first
@@ -105,7 +111,8 @@ class Generator
                                              active_variables: active_variables,
                                              modified_variables: modified_variables,
                                              literals: literals,
-                                             open_constants: open_constants
+                                             open_constants: open_constants,
+                                             exception_handlers: exception_handlers
           pop_self code
         when :class
           name = node[1]
@@ -119,7 +126,8 @@ class Generator
                                              active_variables: active_variables,
                                              modified_variables: modified_variables,
                                              literals: literals,
-                                             open_constants: open_constants
+                                             open_constants: open_constants,
+                                             exception_handlers: exception_handlers
           pop_self code
         when :function
           new_variables << node[1]
@@ -135,7 +143,8 @@ class Generator
                                          active_variables: active_variables,
                                          new_variables: new_variables,
                                          literals: literals,
-                                         in_begin: false
+                                         in_begin: false,
+                                         exception_handlers: exception_handlers
         end
       else
         # Arbitrary statement
@@ -143,7 +152,8 @@ class Generator
                                        active_variables: active_variables,
                                        new_variables: new_variables,
                                        literals: literals,
-                                       in_begin: false
+                                       in_begin: false,
+                                       exception_handlers: exception_handlers
       end
     end
    
@@ -159,7 +169,8 @@ class Generator
     active_variables = []
     new_variables = []
     literals = {}
-    code = generate_block statements, active_variables: active_variables, new_variables: new_variables, literals: literals
+    exception_handlers = []
+    code = generate_block statements, active_variables: active_variables, new_variables: new_variables, literals: literals, exception_handlers: exception_handlers
     (active_variables - new_variables).uniq.each do |var|
       code.unshift "object ir_cmp_#{var} = local(\"#{var}\");" unless var[0] == var[0].upcase
     end
@@ -169,6 +180,9 @@ class Generator
     literals.each do |name, value|
       code.unshift "object #{name} = #{value};"
     end
+    exception_handlers.each do |handler|
+      code.unshift "exception_frame #{handler};"
+    end
     code.unshift "int _handler_count = 0;"
     code.unshift "object #{name}(struct dict * locals) {"
     code << "return NIL;"
@@ -176,23 +190,25 @@ class Generator
     code.join("\n")
   end
 
-  def generate_block(statements, modified_variables: nil, active_variables: nil, new_variables: nil, literals: nil, in_begin: false)
+  def generate_block(statements, modified_variables: nil, active_variables: nil, new_variables: nil, literals: nil, in_begin: false, exception_handlers: nil)
     code = []
     modified_variables ||= []
     new_variables ||= []
     active_variables ||= []
     literals ||= {}
+    exception_handlers ||= {}
     statements.each do |statement|
       generate_statement code, statement, modified_variables: modified_variables,
                                           active_variables: active_variables,
                                           new_variables: new_variables,
                                           literals: literals,
-                                          in_begin: in_begin
+                                          in_begin: in_begin, 
+                                          exception_handlers: exception_handlers
     end
     code
   end
 
-  def generate_statement(code, statement, modified_variables:, active_variables:, new_variables:, literals:, in_begin:)
+  def generate_statement(code, statement, modified_variables:, active_variables:, new_variables:, literals:, in_begin:, exception_handlers:)
     case statement.first
       when :"="
         # Assignment
@@ -211,20 +227,20 @@ class Generator
         clauses = statement[1]
         code.concat save_vars(modified_variables) if clauses.any? {|cl| contains_lambda? cl[0] }
         code << "if (TRUTHY(#{generate_expression(clauses[0][0], active_variables: active_variables, literals: literals)})) {"
-        code << generate_block(clauses[0][1], modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals)
+        code << generate_block(clauses[0][1], modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, exception_handlers: exception_handlers)
         clauses[1..-1].each do |clause|
           if clause[0] == :else
             code << "} else {"
           else
             code << "} else if (TRUTHY(#{generate_expression(clause[0], active_variables: active_variables, literals: literals)})) {"
           end
-          code << generate_block(clause[1], modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals)
+          code << generate_block(clause[1], modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, exception_handlers: exception_handlers)
         end
         code << "}"
       when :while
         code.concat save_vars(modified_variables) if contains_lambda? statement[1]
         code << "while (TRUTHY(#{generate_expression(statement[1], active_variables: active_variables, literals: literals)})) {"
-        code << generate_block(statement[2], modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals)
+        code << generate_block(statement[2], modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, exception_handlers: exception_handlers)
         code << "}"
       when :unless
         code << "if (FALSY(#{generate_expression(statement[1][0][0], active_variables: active_variables, literals: literals)})) {"
@@ -232,7 +248,8 @@ class Generator
                                modified_variables: modified_variables,
                                active_variables: active_variables,
                                new_variables: new_variables,
-                               literals: literals)
+                               literals: literals,
+                               exception_handlers: exception_handlers)
         code << "}"
       when :nofunction
         code << "no_attribute(#{generate_expression(:self, active_variables: active_variables, literals: literals)},"
@@ -253,11 +270,12 @@ class Generator
           "EXCEPTION(CLASS(#{exc}), #{idx})"
         end
         exception_list = "ARGLIST(#{exception_list.join(',')})"
-        code << "exception_frame #{handler_var} = ExceptionHandler(#{exception_list}, #{ensure_section.empty? ? 0 : 1}, 0, _handler_count++);"
+        exception_handlers << handler_var
+        code << "#{handler_var} = ExceptionHandler(#{exception_list}, #{ensure_section.empty? ? 0 : 1}, 0, _handler_count++);"
         # Rest goes here
         code << "switch (setjmp(#{handler_var} -> env)) {"
         code << "case 0:"
-        code.concat(generate_block(begin_section, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: true))
+        code.concat(generate_block(begin_section, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: true, exception_handlers: exception_handlers))
         code << "END_BEGIN(#{handler_var});"
         rescue_sections.each_with_index do |(exc, handler), i|
           exc_idx = i + 1
@@ -273,13 +291,13 @@ class Generator
               modified_variables << exc_variable
             end
             code << "ir_cmp_#{exc_variable} = _raised;"
-            code.concat(generate_block(exc_block, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: true))
+            code.concat(generate_block(exc_block, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: true, exception_handlers: exception_handlers))
           end
           code << "END_RESCUE(#{handler_var});"
         end
         unless ensure_section.empty?
           code << "case ENSURE_JUMP:"
-          code.concat(generate_block(ensure_section, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: false))
+          code.concat(generate_block(ensure_section, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: false, exception_handlers: exception_handlers))
           code << "END_ENSURE(#{handler_var});"
         end
         code << "}"

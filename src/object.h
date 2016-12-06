@@ -1281,6 +1281,12 @@ typedef struct ExceptionFrame {
   struct list * exceptions;
   // Location to jump to
   jmp_buf env;
+  // Has it already rescued? Used to determine if the handler should be ignored
+  // because of an exception within a rescue/else
+  int already_rescued;
+  // Has it already rescued? Used to determine if the handler should be ignored
+  // because of an exception within a ensure
+  int in_ensure;
 } * exception_frame;
 
 /*
@@ -1307,7 +1313,6 @@ typedef struct ExceptionFrame {
   _handler_count --;
 */
 
-// TODO what about the case with an exception within a handler? I think that the rescues for that handler are able to catch that (shouldn't happen)
 #define ENSURE_JUMP -1
 #define END_ENSURE(frame) endHandler(frame); if (_rescuing) handleException(_raised); break
 // End the handler first so that if an exception is raised in the `ensure`,
@@ -1321,8 +1326,12 @@ void endHandler(exception_frame e);
 // Location that an ensure jumps to if it completes normally when an exception is raised
 jmp_buf _handler_env;
 
+// Now that the ensure has been run, don't let it catch any other exceptions
+// or run the ensure again
 #define ensure(e) \
   if ( e -> ensure ) {\
+    e -> in_ensure = 1;\
+    e -> already_rescued = 1;\
     if (! setjmp(_handler_env)) \
       longjmp(e -> env, ENSURE_JUMP);}\
   else\
@@ -1381,16 +1390,23 @@ void handleException(object exception) {
   // Should have at least one handler
   while(! stack_empty(frames)) {
     frame = (exception_frame) stack_top(frames);
-    if ((e = catchesException(frame, exception))) {
+    if ((e = catchesException(frame, exception)) && !(frame -> already_rescued)) {
       // Jump to the appropriate handler
       // Binding of the exception to the variable happens during the exception handler
       // Before we jump, we need to indicate that we are no longer handling the exception
       // since a handler has been located
       _rescuing = 0;
+      frame -> already_rescued = 1;
       longjmp(frame -> env, e -> jump_location);
     }
-    // Run the ensure
-    ensure(frame);
+    if (!(frame -> in_ensure)) {
+      // Run the ensure
+      ensure(frame);
+    } else {
+      // There was an exception within the ensure
+      // That means it never removed itself from the stack
+      endHandler(frame);
+    }
   }
   // Should NEVER get here
 }
@@ -1402,6 +1418,8 @@ exception_frame ExceptionHandler(struct list * exceptions, int ensure, int else_
   frame -> ensure = ensure;
   frame -> count = count;
   frame -> else_block = else_block;
+  frame -> already_rescued = 0;
+  frame -> in_ensure = 0;
   // Push to the exception handler stack
   stack_push(_exception_frames, frame);
   return frame;
@@ -1420,9 +1438,15 @@ void return_in_begin_block() {
   assert(frames);
   // Should have at least one handler
   while(! stack_empty(frames)) {
-    frame = (exception_frame) stack_pop(frames);
-    // Run the ensure
-    ensure(frame);
+    frame = (exception_frame) stack_top(frames);
+    if (!(frame -> in_ensure)) {
+      // Run the ensure
+      ensure(frame);
+    } else {
+      // There was an exception within the ensure
+      // That means it never removed itself from the stack
+      endHandler(frame);
+    }
     // This is the last frame in this iridium function
     // Don't process any more
     if (frame -> count == 0) {
