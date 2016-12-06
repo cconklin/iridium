@@ -17,7 +17,7 @@ int returns_in_begin() {
       // ...
       return_in_begin_block();
       return 1;
-      END_ENSURE;
+      END_ENSURE(e);
   }
 }
 
@@ -39,14 +39,14 @@ int returns_in_nested_begin() {
         case ENSURE_JUMP:
           return_in_begin_block();
           return 1;
-          END_ENSURE;
+          END_ENSURE(e_2);
       }
       END_BEGIN(e);
     case ENSURE_JUMP:
       // ensure
       return_in_begin_block();
       return 2;
-      END_ENSURE;
+      END_ENSURE(e);
   }
 }
 

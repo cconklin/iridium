@@ -280,7 +280,7 @@ class Generator
         unless ensure_section.empty?
           code << "case ENSURE_JUMP:"
           code.concat(generate_block(ensure_section, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: false))
-          code << "END_ENSURE;"
+          code << "END_ENSURE(#{handler_var});"
         end
         code << "}"
         code << "_handler_count--;"

@@ -25,7 +25,7 @@ int main(int argc, char * argv[]) {
           END_BEGIN(e_2);
         case ENSURE_JUMP:
           y = 1;
-          END_ENSURE;
+          END_ENSURE(e_2);
       }
       END_BEGIN(e);
     case 1:

@@ -23,7 +23,7 @@ int main(int argc, char * argv[]) {
       // ensure
       // ...
       x = 2;
-      END_ENSURE;    
+      END_ENSURE(e);    
   }
   assert(stack_empty(_exception_frames));
   assertEqual(x, 2);

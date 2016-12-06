@@ -1307,24 +1307,26 @@ typedef struct ExceptionFrame {
   _handler_count --;
 */
 
-// TODO what about the case with an exception within a handler? I don't think the ensure will be run in this case
-// FIXME returns in rescues don't run the ensure for that frame
+// TODO what about the case with an exception within a handler? I think that the rescues for that handler are able to catch that (shouldn't happen)
 #define ENSURE_JUMP -1
-#define END_ENSURE if (_rescuing) handleException(_raised); break
+#define END_ENSURE(frame) endHandler(frame); if (_rescuing) handleException(_raised); break
 // End the handler first so that if an exception is raised in the `ensure`,
 // this handler will not rescue it
-#define END_BEGIN(frame) run_else(frame); endHandler(frame); ensure(frame); break
+#define END_BEGIN(frame) run_else(frame); ensure(frame); break
 #define END_RESCUE(frame) ensure(frame); break
-#define END_ELSE(frame) endHandler(frame); ensure(frame); break
+#define END_ELSE(frame) ensure(frame); break
 #define ELSE_JUMP -2
 
+void endHandler(exception_frame e);
 // Location that an ensure jumps to if it completes normally when an exception is raised
 jmp_buf _handler_env;
 
 #define ensure(e) \
-  if ( e -> ensure ) \
+  if ( e -> ensure ) {\
     if (! setjmp(_handler_env)) \
-      longjmp(e -> env, ENSURE_JUMP);
+      longjmp(e -> env, ENSURE_JUMP);}\
+  else\
+    endHandler(e);
 
 #define run_else(e) \
   if ( e -> else_block ) \
@@ -1378,7 +1380,7 @@ void handleException(object exception) {
   _rescuing = 1;
   // Should have at least one handler
   while(! stack_empty(frames)) {
-    frame = (exception_frame) stack_pop(frames);
+    frame = (exception_frame) stack_top(frames);
     if ((e = catchesException(frame, exception))) {
       // Jump to the appropriate handler
       // Binding of the exception to the variable happens during the exception handler
