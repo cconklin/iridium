@@ -79,8 +79,9 @@ class Generator
     code.unshift "object ir_main = IR_MAIN_OBJECT();"
     code.unshift "struct dict * locals = dict_new(ObjectHashsize);"
     code.unshift "int _handler_count = 0;"
-    code.unshift "void ir_user_main() {"
-    
+    code.unshift "object ir_user_main() {"
+
+    code << "return NIL;"
     code << "}"
     code.join("\n") 
   end
@@ -291,8 +292,8 @@ class Generator
               modified_variables << exc_variable
             end
             code << "ir_cmp_#{exc_variable} = _raised;"
-            code.concat(generate_block(exc_block, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: true, exception_handlers: exception_handlers))
           end
+          code.concat(generate_block(exc_block, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: true, exception_handlers: exception_handlers))
           code << "END_RESCUE(#{handler_var});"
         end
         unless ensure_section.empty?
@@ -300,6 +301,13 @@ class Generator
           code.concat(generate_block(ensure_section, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: false, exception_handlers: exception_handlers))
           code << "END_ENSURE(#{handler_var});"
         end
+        code << "case FRAME_RETURN:"
+        code << "if (#{handler_var} -> count == 0) {"
+        code << "return #{handler_var} -> return_value;"
+        code << "} else {"
+        code << "return_in_begin_block(#{handler_var} -> return_value);"
+        code << "}"
+        code << "break;"
         code << "}"
         code << "_handler_count--;"
       when :set
@@ -307,9 +315,10 @@ class Generator
         code << "              ATOM(\"#{statement[2]}\"), PUBLIC, #{generate_expression(statement[3], active_variables: active_variables, literals: literals)});"
       when :return
         if in_begin
-          code << "return_in_begin_block();"
+          code << "return_in_begin_block(#{generate_expression(statement[1], active_variables: active_variables, literals: literals)});"
+        else
+          code << "return #{generate_expression(statement[1], active_variables: active_variables, literals: literals)};"
         end
-        code << "return #{generate_expression(statement[1], active_variables: active_variables, literals: literals)};"
       else
         # Some expression
         code << generate_expression(statement, active_variables: active_variables, literals: literals) + ";"

@@ -3,7 +3,7 @@
 #include "list.h"
 #include "string.h"
 
-void ir_user_main();
+object ir_user_main();
 
 void IR_INIT(void) {
     IR_init_Object();

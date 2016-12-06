@@ -1287,6 +1287,8 @@ typedef struct ExceptionFrame {
   // Has it already rescued? Used to determine if the handler should be ignored
   // because of an exception within a ensure
   int in_ensure;
+  // Return value from begin block/rescue
+  object return_value;
 } * exception_frame;
 
 /*
@@ -1308,7 +1310,9 @@ typedef struct ExceptionFrame {
       END_RESCUE(e);
     case ENSURE_JUMP:
       // ...
-      END_ENSURE;
+      END_ENSURE(e);
+    case FRAME_RETURN:
+      return e -> return_value;
   }
   _handler_count --;
 */
@@ -1321,6 +1325,7 @@ typedef struct ExceptionFrame {
 #define END_RESCUE(frame) ensure(frame); break
 #define END_ELSE(frame) ensure(frame); break
 #define ELSE_JUMP -2
+#define FRAME_RETURN -3
 
 void endHandler(exception_frame e);
 // Location that an ensure jumps to if it completes normally when an exception is raised
@@ -1420,6 +1425,7 @@ exception_frame ExceptionHandler(struct list * exceptions, int ensure, int else_
   frame -> else_block = else_block;
   frame -> already_rescued = 0;
   frame -> in_ensure = 0;
+  frame -> return_value = NULL;
   // Push to the exception handler stack
   stack_push(_exception_frames, frame);
   return frame;
@@ -1432,13 +1438,15 @@ exception_frame ExceptionHandler(struct list * exceptions, int ensure, int else_
 //  return_in_begin_block();
 //  return value;
 
-void return_in_begin_block() {
+void return_in_begin_block(object return_value) {
   struct stack * frames = _exception_frames;
   exception_frame frame;
   assert(frames);
   // Should have at least one handler
   while(! stack_empty(frames)) {
     frame = (exception_frame) stack_top(frames);
+    // Record intended return value
+    frame -> return_value = return_value;
     if (!(frame -> in_ensure)) {
       // Run the ensure
       ensure(frame);
@@ -1459,6 +1467,10 @@ void endHandler(exception_frame e) {
   // Check to ensure that this is not called incorrectly
   assert(e == stack_top(_exception_frames));
   stack_pop(_exception_frames);
+  // If it showed intent at returning a value, try to return it
+  if (e -> return_value) {    
+    longjmp(e -> env, FRAME_RETURN);
+  }
 }
 
 void IR_PUTS(object obj) {
