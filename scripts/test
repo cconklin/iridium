@@ -19,6 +19,17 @@ do
     chmod 777 ${test_name}
   fi
 done
+for test_file in $(find $root/test -name "*.ir")
+do
+  test_name="${test_file%.*}"
+  ircc ${test_file} -o ${test_name} >& /dev/null
+  if [[ ! -e ${test_name} ]]; then
+    echo '#!/bin/bash' > ${test_name}
+    echo "echo 'Compile Error: $test_file'" >> ${test_name}
+    echo "exit 3" >> ${test_name}
+    chmod 777 ${test_name}
+  fi
+done
 ~/bin/tester $@
 find $root/test -type f | grep "\." -v | xargs rm
 

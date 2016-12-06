@@ -1,0 +1,32 @@
+class AssertionError < AttributeError
+  method reason
+    return "Assertion Failed: " + message
+  end
+end
+
+function test_deep_exception
+  begin
+    return 5
+  ensure
+    return 7
+  end
+end
+
+function test_exceptions
+  x = test_deep_exception()
+  return x + 1
+end
+
+begin
+  result = test_exceptions()
+  if result != 8
+    raise(AssertionError.new("expected test_exceptions() to return 8, got " + result.inspect()))
+  end
+rescue AssertionError => e
+  puts(e.reason())
+  exit(1)
+rescue Object => e
+  # Some non-AssertionError exception
+  puts(e.class().inspect() + ": " + e.reason())  
+  exit(3)
+end

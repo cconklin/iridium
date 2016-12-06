@@ -298,7 +298,7 @@ class Generator
         end
         unless ensure_section.empty?
           code << "case ENSURE_JUMP:"
-          code.concat(generate_block(ensure_section, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: false, exception_handlers: exception_handlers))
+          code.concat(generate_block(ensure_section, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: true, exception_handlers: exception_handlers))
           code << "END_ENSURE(#{handler_var});"
         end
         code << "case FRAME_RETURN:"

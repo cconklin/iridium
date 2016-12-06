@@ -28,7 +28,7 @@ module Translator extend self
   end
 
   def sub_operators!(tree)
-    binary_operators = {:+ => :__add__, :- => :__sub__, :* => :__mult__, :/ => :__div__, :== => :__eq__, :< => :__lt__, :> => :__gt__, :<= => :__leq__, :>= => :__geq__}
+    binary_operators = {:+ => :__add__, :- => :__sub__, :* => :__mult__, :/ => :__div__, :== => :__eq__, :< => :__lt__, :> => :__gt__, :<= => :__leq__, :>= => :__geq__, :!= => :__neq__}
     tree.each do |node|
       if node.respond_to? :each
         sub_operators! node

@@ -714,6 +714,13 @@ iridium_method(Class, inspect) {
 
 // class Object
 
+// Object#class
+// Returns an object's class
+iridium_method(Object, class) {
+  object self = local("self");
+  return self -> class;
+}
+
 // Object#puts
 // Displays to stdout
 // Locals used: args
@@ -1179,6 +1186,17 @@ iridium_method(Fixnum, __eq__) {
   }
 }
 
+iridium_method(Fixnum, __neq__) {
+  object self = local("self");
+  object other = local("other");
+  if (INT(self) != INT(other)) {
+    return ir_cmp_true;
+  } else {
+    return ir_cmp_false;
+  }
+}
+
+
 object FIXNUM(int val) {
   object fixnum = construct(CLASS(Fixnum));
   
@@ -1251,6 +1269,13 @@ object create_nil() {
 
 iridium_method(NilClass, inspect) {
   return IR_STRING("nil");
+}
+
+// exit()
+iridium_method(Object, exit) {
+  object code = local("exitstatus");
+  exit(INT(code));
+  return NIL;
 }
 
 // class Exception
@@ -1536,6 +1561,8 @@ void IR_init_Object() {
   DEF_METHOD(CLASS(Object), "to_s", ARGLIST(), iridium_method_name(Object, to_s));
   DEF_METHOD(CLASS(Object), "__set__", ARGLIST(name, argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Object, __set__));
   DEF_METHOD(CLASS(Object), "raise", ARGLIST(argument_new(ATOM("exc"), NULL, 0)), iridium_method_name(Object, raise));
+  DEF_METHOD(CLASS(Object), "exit", ARGLIST(argument_new(ATOM("exitstatus"), NULL, 0)), iridium_method_name(Object, exit));
+  DEF_METHOD(CLASS(Object), "class", ARGLIST(), iridium_method_name(Object, class));
 
   // Bootstrap everything
   set_attribute(CLASS(Class), ATOM("name"), PUBLIC, IR_STRING("Class"));
@@ -1564,6 +1591,7 @@ void IR_init_Object() {
   fix_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Fixnum, inspect));
   set_instance_attribute(CLASS(Fixnum), ATOM("inspect"), PUBLIC, fix_inspect);
   DEF_METHOD(CLASS(Fixnum), "__eq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Fixnum, __eq__));
+  DEF_METHOD(CLASS(Fixnum), "__neq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Fixnum, __neq__));
 
   // Init nil
   nil_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(NilClass, inspect));
