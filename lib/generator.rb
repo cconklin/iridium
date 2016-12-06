@@ -72,6 +72,7 @@ class Generator
     code.unshift "struct array * self_stack = array_new();"
     code.unshift "object ir_main = IR_MAIN_OBJECT();"
     code.unshift "struct dict * locals = dict_new(ObjectHashsize);"
+    code.unshift "int _handler_count = 0;"
     code.unshift "void ir_user_main() {"
     
     code << "}"
@@ -133,14 +134,16 @@ class Generator
           generate_statement code, node, modified_variables: modified_variables,
                                          active_variables: active_variables,
                                          new_variables: new_variables,
-                                         literals: literals
+                                         literals: literals,
+                                         in_begin: false
         end
       else
         # Arbitrary statement
         generate_statement code, node, modified_variables: modified_variables,
                                        active_variables: active_variables,
                                        new_variables: new_variables,
-                                       literals: literals
+                                       literals: literals,
+                                       in_begin: false
       end
     end
    
@@ -166,13 +169,14 @@ class Generator
     literals.each do |name, value|
       code.unshift "object #{name} = #{value};"
     end
+    code.unshift "int _handler_count = 0;"
     code.unshift "object #{name}(struct dict * locals) {"
     code << "return NIL;"
     code << "}"
     code.join("\n")
   end
 
-  def generate_block(statements, modified_variables: nil, active_variables: nil, new_variables: nil, literals: nil)
+  def generate_block(statements, modified_variables: nil, active_variables: nil, new_variables: nil, literals: nil, in_begin: false)
     code = []
     modified_variables ||= []
     new_variables ||= []
@@ -182,12 +186,13 @@ class Generator
       generate_statement code, statement, modified_variables: modified_variables,
                                           active_variables: active_variables,
                                           new_variables: new_variables,
-                                          literals: literals
+                                          literals: literals,
+                                          in_begin: in_begin
     end
     code
   end
 
-  def generate_statement(code, statement, modified_variables:, active_variables:, new_variables:, literals:)
+  def generate_statement(code, statement, modified_variables:, active_variables:, new_variables:, literals:, in_begin:)
     case statement.first
       when :"="
         # Assignment
@@ -236,11 +241,56 @@ class Generator
         code << "no_instance_attribute(#{generate_expression(:self, active_variables: active_variables, literals: literals)},"
         code << "                      ATOM(\"#{statement[1]}\");"
       when :begin
-        warn "Not Yet Implemented: exceptions"
+        # [:begin, [[:"=", :x, 5]], {MyException: [:e, [[:"=", :x, 6]]]}, []]
+        begin_section = statement[1]
+        rescue_sections = statement[2]
+        ensure_section = statement[3]
+        handler_id = Translator.name(statement)
+        handler_var = "ir_exc_#{handler_id}"
+        # No else block allowed yet
+        exception_list = rescue_sections.keys.map.with_index do |exc, idx|
+          idx += 1 # start @ 1 (begin is 0)
+          "EXCEPTION(CLASS(#{exc}), #{idx})"
+        end
+        exception_list = "ARGLIST(#{exception_list.join(',')})"
+        code << "exception_frame #{handler_var} = ExceptionHandler(#{exception_list}, #{ensure_section.empty? ? 0 : 1}, 0, _handler_count++);"
+        # Rest goes here
+        code << "switch (setjmp(#{handler_var} -> env)) {"
+        code << "case 0:"
+        code.concat(generate_block(begin_section, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: true))
+        code << "END_BEGIN(#{handler_var});"
+        rescue_sections.each_with_index do |(exc, handler), i|
+          exc_idx = i + 1
+          exc_variable = handler[0]
+          exc_block = handler[1]
+          code << "case #{exc_idx}:"
+          if exc_variable
+            unless active_variables.include? exc_variable
+              active_variables << exc_variable
+              new_variables << exc_variable
+            end
+            unless modified_variables.include? exc_variable
+              modified_variables << exc_variable
+            end
+            code << "ir_cmp_#{exc_variable} = _raised;"
+            code.concat(generate_block(exc_block, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: true))
+          end
+          code << "END_RESCUE(#{handler_var});"
+        end
+        unless ensure_section.empty?
+          code << "case ENSURE_JUMP:"
+          code.concat(generate_block(ensure_section, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: false))
+          code << "END_ENSURE;"
+        end
+        code << "}"
+        code << "_handler_count--;"
       when :set
         code << "set_attribute(#{generate_expression(statement[1], active_variables: active_variables, literals: literals)},"
         code << "              ATOM(\"#{statement[2]}\"), PUBLIC, #{generate_expression(statement[3], active_variables: active_variables, literals: literals)});"
       when :return
+        if in_begin
+          code << "return_in_begin_block();"
+        end
         code << "return #{generate_expression(statement[1], active_variables: active_variables, literals: literals)};"
       else
         # Some expression

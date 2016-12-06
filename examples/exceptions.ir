@@ -1,0 +1,11 @@
+begin
+  raise(TypeError.new("This is a problem!"))
+rescue TypeError => e
+  b = 1
+  a = ->
+    puts(e.reason())
+  end
+ensure
+  puts("This always happens!")
+end
+a()

@@ -444,6 +444,11 @@ object _local(struct dict * locals, object atm) {
     return value;
 }
 
+#define set_local(name, value) _set_local(locals, ATOM(name), value)
+void _set_local(struct dict * locals, object name, object value) {
+  dict_set(locals, name, value);
+}
+
 // function_bind
 // Bind locals to functions
 // Does not mutate the receiver
@@ -725,6 +730,15 @@ iridium_method(Object, puts) {
     printf("%s", C_STRING(send(objs[end-1], "to_s")));
   }
   printf("\n");
+  return NIL;
+}
+
+// Object#raise
+// Raise an exception
+// Locals used: exc
+iridium_method(Object, raise) {
+  handleException(local("exc"));
+  // Shouldn't get here
   return NIL;
 }
 
@@ -1293,6 +1307,8 @@ typedef struct ExceptionFrame {
   _handler_count --;
 */
 
+// TODO what about the case with an exception within a handler? I don't think the ensure will be run in this case
+// FIXME returns in rescues don't run the ensure for that frame
 #define ENSURE_JUMP -1
 #define END_ENSURE if (_rescuing) handleException(_raised); break
 // End the handler first so that if an exception is raised in the `ensure`,
@@ -1481,6 +1497,7 @@ void IR_init_Object() {
   set_instance_attribute(CLASS(Object), ATOM("inspect"), PUBLIC, object_inspect);
   DEF_METHOD(CLASS(Object), "to_s", ARGLIST(), iridium_method_name(Object, to_s));
   DEF_METHOD(CLASS(Object), "__set__", ARGLIST(name, argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Object, __set__));
+  DEF_METHOD(CLASS(Object), "raise", ARGLIST(argument_new(ATOM("exc"), NULL, 0)), iridium_method_name(Object, raise));
 
   // Bootstrap everything
   set_attribute(CLASS(Class), ATOM("name"), PUBLIC, IR_STRING("Class"));
