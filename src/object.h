@@ -1443,7 +1443,7 @@ void return_in_begin_block() {
       // Run the ensure
       ensure(frame);
     } else {
-      // There was an exception within the ensure
+      // There was an return within the ensure
       // That means it never removed itself from the stack
       endHandler(frame);
     }
