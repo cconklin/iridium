@@ -25,7 +25,27 @@ iridium_method(List, initialize) {
     }
   }
   internal_set_attribute(self, ATOM("list"), l);
-  return self;
+  return NIL;
+}
+
+// List#reduce
+// Left fold for lists
+iridium_method(List, reduce) {
+  object self = local("self");
+  object accumulator = local("accumulator");
+  object fn = local("fn");
+  object element;
+  struct list * lst = internal_get_attribute(self, ATOM("list"), struct list *);
+  struct array * args;
+  while (lst) {
+    element = list_head(lst);
+    args = array_new();
+    array_set(args, 0, element);
+    array_set(args, 1, accumulator);
+    accumulator = calls(fn, args);
+    lst = list_tail(lst);
+  }
+  return accumulator;
 }
 
 // List Init
@@ -35,6 +55,7 @@ void IR_init_List() {
   CLASS(List) = send(CLASS(Class), "new", IR_STRING("List"));
   list_initialize = FUNCTION(ATOM("initialize"), ARGLIST(args), dict_new(ObjectHashsize), iridium_method_name(List, initialize));
   set_instance_attribute(CLASS(List), ATOM("initialize"), PUBLIC, list_initialize);
+  DEF_METHOD(CLASS(List), "reduce", ARGLIST(argument_new(ATOM("accumulator"), NULL, 0), argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(List, reduce));
 }
 
 #endif

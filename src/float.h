@@ -94,6 +94,14 @@ iridium_method(Float, to_s) {
   return IR_STRING(str);
 }
 
+// Hash method for Floats
+iridium_method(Float, hash) {
+  object self = local("self");
+  double dval = C_DOUBLE(self);
+  long long int val = *((long long int *) &dval);
+  return FIXNUM((val << 19) + (val >> 3));
+}
+
 /* Setup Code */
 void IR_init_Float() {
   CLASS(Float) = send(CLASS(Class), "new", IR_STRING("Float"));
@@ -106,6 +114,8 @@ void IR_init_Float() {
 
   object to_s_func = FUNCTION(ATOM("to_s"), ARGLIST(), dict_new(ObjectHashsize), iridium_method_name(Float, to_s));
   set_instance_attribute(CLASS(Float), ATOM("to_s"), PUBLIC, to_s_func);
+
+  DEF_METHOD(CLASS(Float), "hash", ARGLIST(), iridium_method_name(Float, hash));
 }
 
 #endif

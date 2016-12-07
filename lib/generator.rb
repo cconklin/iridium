@@ -401,7 +401,9 @@ class Generator
           end
           "invoke(ir_cmp_Tuple, \"new\", #{arg_ary})"
         when :dictionary
-          warn "Not Yet Implemented: dictionary literals"
+          # [:dictionary, {:":foo" => [:+, 2, 3], "baz" => :X, :v => 3}]
+          dict_lst = generate_expression([:list, expr[1].map {|k, v| [:tuple, [k, v]]}], active_variables: active_variables, literals: literals)
+          "invoke(ir_cmp_Dictionary, \"new\", array_push(array_new(), #{dict_lst}))"
         when :===
           "(#{generate_expression(expr[1], active_variables: active_variables, literals: literals)} == #{generate_expression(expr[2], active_variables: active_variables, literals: literals)} ? ir_cmp_true : ir_cmp_false)"
       end

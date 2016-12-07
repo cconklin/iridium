@@ -749,6 +749,19 @@ iridium_method(Object, raise) {
   return NIL;
 }
 
+// Object#__eq__
+// Returns true if objects are equal, false otherwise
+iridium_method(Object, __eq__) {
+  return (local("self") == local("other")) ? ir_cmp_true : ir_cmp_false;
+}
+
+// Object#__neq__
+// Returns true if objects are not equal, false otherwise
+iridium_method(Object, __neq__) {
+  return (local("self") != local("other")) ? ir_cmp_true : ir_cmp_false;
+}
+
+
 // Object#inspect
 // Converts an object into an iridium string
 // Locals used: self
@@ -1179,7 +1192,9 @@ iridium_method(Fixnum, __add__) {
 iridium_method(Fixnum, __eq__) {
   object self = local("self");
   object other = local("other");
-  if (INT(self) == INT(other)) {
+  if (self -> class != other -> class) {
+    return ir_cmp_false;
+  } else if (INT(self) == INT(other)) {
     return ir_cmp_true;
   } else {
     return ir_cmp_false;
@@ -1189,7 +1204,7 @@ iridium_method(Fixnum, __eq__) {
 iridium_method(Fixnum, __neq__) {
   object self = local("self");
   object other = local("other");
-  if (INT(self) != INT(other)) {
+  if (send(self, "__eq__", other) == ir_cmp_false) {
     return ir_cmp_true;
   } else {
     return ir_cmp_false;
@@ -1502,6 +1517,18 @@ void IR_PUTS(object obj) {
   printf("%s\n", C_STRING(invoke(obj, "to_s", array_new())));
 }
 
+// Hash method for objects
+iridium_method(Object, hash) {
+  return FIXNUM((long long int) local("self"));
+}
+
+// Hash method for Fixnums
+iridium_method(Fixnum, hash) {
+  object self = local("self");
+  long long int val = INT(self);
+  return FIXNUM((val << 19) + (val >> 3));
+}
+
 // Creates the objects defined here
 void IR_init_Object() {
   
@@ -1563,6 +1590,9 @@ void IR_init_Object() {
   DEF_METHOD(CLASS(Object), "raise", ARGLIST(argument_new(ATOM("exc"), NULL, 0)), iridium_method_name(Object, raise));
   DEF_METHOD(CLASS(Object), "exit", ARGLIST(argument_new(ATOM("exitstatus"), NULL, 0)), iridium_method_name(Object, exit));
   DEF_METHOD(CLASS(Object), "class", ARGLIST(), iridium_method_name(Object, class));
+  DEF_METHOD(CLASS(Object), "__eq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Object, __eq__));
+  DEF_METHOD(CLASS(Object), "__neq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Object, __neq__));
+  DEF_METHOD(CLASS(Object), "hash", ARGLIST(), iridium_method_name(Object, hash));
 
   // Bootstrap everything
   set_attribute(CLASS(Class), ATOM("name"), PUBLIC, IR_STRING("Class"));
@@ -1592,6 +1622,7 @@ void IR_init_Object() {
   set_instance_attribute(CLASS(Fixnum), ATOM("inspect"), PUBLIC, fix_inspect);
   DEF_METHOD(CLASS(Fixnum), "__eq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Fixnum, __eq__));
   DEF_METHOD(CLASS(Fixnum), "__neq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Fixnum, __neq__));
+  DEF_METHOD(CLASS(Fixnum), "hash", ARGLIST(), iridium_method_name(Fixnum, hash));
 
   // Init nil
   nil_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(NilClass, inspect));
