@@ -192,6 +192,28 @@ iridium_method(Dictionary, __set_index__) {
   return NIL;
 }
 
+// Dictionary#reduce
+// Takes an initial value and a function of the form
+// fn(key, value, acc) and returns the final accumulator
+iridium_method(Dictionary, reduce) {
+  object self = local("self");
+  object accumulator = local("accumulator");
+  object fn = local("fn");
+  struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
+  struct IR_DICTIONARY_ENTRY * entry = dict -> first;
+  struct array * args = array_new();
+  while (entry) {
+    // Set up the arguments
+    array_set(args, 0, entry -> key);
+    array_set(args, 1, entry -> value);
+    array_set(args, 2, accumulator);
+    // Call the annonymous fn
+    accumulator = calls(fn, args);
+    entry = entry -> ordered_next;
+  }
+  return accumulator;
+}
+
 // Dictionary Init
 void IR_init_Dictionary() {
   CLASS(Dictionary) = send(CLASS(Class), "new", IR_STRING("Dictionary"));
@@ -199,6 +221,7 @@ void IR_init_Dictionary() {
   DEF_METHOD(CLASS(Dictionary), "inspect", ARGLIST(), iridium_method_name(Dictionary, inspect));
   DEF_METHOD(CLASS(Dictionary), "__get_index__", ARGLIST(argument_new(ATOM("key"), NULL, 0)), iridium_method_name(Dictionary, __get_index__));
   DEF_METHOD(CLASS(Dictionary), "__set_index__", ARGLIST(argument_new(ATOM("key"), NULL, 0), argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Dictionary, __set_index__));
+  DEF_METHOD(CLASS(Dictionary), "reduce", ARGLIST(argument_new(ATOM("accumulator"), NULL, 0), argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(Dictionary, reduce));
 }
 
 #endif

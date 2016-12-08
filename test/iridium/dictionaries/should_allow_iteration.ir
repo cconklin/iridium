@@ -1,0 +1,26 @@
+class AssertionError < AttributeError
+  method reason
+    return "Assertion Failed: " + message
+  end
+end
+
+function assert(expr, reason="No reason given")
+  unless expr
+    raise(AssertionError.new(reason))
+  end
+end
+
+begin
+  expected = "(:a : 1)(\"bc\" : \"bar\")"
+  actual = %{:a => 1, "bc" => "bar"}.reduce("") -> (key, value, acc)
+    return acc + "(" + key.inspect() + " : " + value.inspect() + ")"
+  end
+  assert(expected == actual, "(Dictionary#reduce()) expected " + expected.inspect() + ", got " + actual.inspect())
+rescue AssertionError => e
+  puts(e.reason())
+  exit(1)
+rescue Object => e
+  # Some non-AssertionError exception
+  puts(e.class().inspect() + ": " + e.reason())  
+  exit(3)
+end
