@@ -20,7 +20,7 @@ grammar Iridium
   end
   
   rule class_statement
-    space? (private_method / private_function / method / function / attribute_assignment / invocation / function_invocation / nofunction / nomethod) ';'? space? linebreak? <Statement>
+    space? (private_method / private_function / method / function / attribute_assignment / index_assignment / invocation / function_invocation / nofunction / nomethod) ';'? space? linebreak? <Statement>
   end
   
   rule top_statement
@@ -28,7 +28,7 @@ grammar Iridium
   end
   
   rule statement
-    space? ( attribute_assignment / assignment / if / unless / while / return / invocation / function_invocation / begin ) ';'? space? linebreak? <Statement>
+    space? (index_assignment / attribute_assignment / assignment / if / unless / while / return / invocation / function_invocation / begin ) ';'? space? linebreak? <Statement>
   end
 
   ##################
@@ -108,6 +108,10 @@ grammar Iridium
 
   ##################
   # Assignment
+  
+  rule index_assignment
+    idx space? assignment_operator space? (invocation / expression) <IndexAssignment>
+  end
   
   rule attribute_assignment
     dot space? assignment_operator space? (invocation / expression) <AttributeAssignment>
@@ -297,6 +301,14 @@ grammar Iridium
 
   rule idx_invoke_chain
     (index_arguments / passed_arguments) idx_invoke_chain? <IndexInvokeChain>
+  end
+
+  rule idx_chain
+    index_arguments dot_chain? idx_chain? <IndexInvokeChain>
+  end
+
+  rule idx
+    (dot / primary) space? index_arguments idx_chain? <Index>  
   end
 
   rule index

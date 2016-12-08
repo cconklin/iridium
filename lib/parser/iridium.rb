@@ -422,6 +422,13 @@ module Iridium
     
   end
 
+  class IndexAssignment < Treetop::Runtime::SyntaxNode
+    def content
+      assignee = elements[0].content
+      return [:insert, assignee[1], assignee[2], elements[2].content]
+    end
+  end
+
   class Index < FunctionInvocation
     def content
       if elements.length > 2 # chained invocations

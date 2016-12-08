@@ -138,6 +138,28 @@ describe Parser do
     it "should parse with indexed access with expression arguments" do
       expect(parser.parse("x = y[4 + 5]")).to eq([[:"=", :x, [:[], :y, [[:+, 4, 5]]]]])
     end
+
+    it "should parse with indexed assignment" do
+      expect(parser.parse("x[5] = y[4 + 5]")).to eq([[:insert, :x, [5], [:[], :y, [[:+, 4, 5]]]]])
+    end
+
+    it "should parse with expression indexed assignment" do
+      expect(parser.parse("x[5 + 6] = y[4 + 5]")).to eq([[:insert, :x, [[:+, 5, 6]], [:[], :y, [[:+, 4, 5]]]]])
+    end
+
+    it "should parse with attribute indexed assignment" do
+      expect(parser.parse("x.b[5] = y[4 + 5]")).to eq([[:insert, [:".", :x, :b], [5], [:[], :y, [[:+, 4, 5]]]]])
+    end
+
+    # TODO implement this
+#    it "should parse with indexed attribute assignment" do
+#      expect(parser.parse("x[5].b = y[4 + 5]")).to eq([[:set, [:[], :x, [5]], :b, [:[], :y, [[:+, 4, 5]]]]])
+#    end
+
+    it "should parse with deep indexed assignment" do
+      expect(parser.parse("x[5][6] = y[4 + 5]")).to eq([[:insert, [:[], :x, [5]], [6], [:[], :y, [[:+, 4, 5]]]]])
+    end
+
   end
   describe "function definitions" do
     
