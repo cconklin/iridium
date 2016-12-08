@@ -182,6 +182,19 @@ iridium_method(Dictionary, __get_index__) {
   }
 }
 
+// Determine the presence of a key
+iridium_method(Dictionary, has_key) {
+  object self = local("self");
+  object key = local("key");
+  struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
+  struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(dict, key, NULL);
+  if (entry) {
+    return ir_cmp_true;
+  } else {
+    return ir_cmp_false;
+  }
+}
+
 // Insert/Update a dictionary by key
 iridium_method(Dictionary, __set_index__) {
   object self = local("self");
@@ -189,6 +202,15 @@ iridium_method(Dictionary, __set_index__) {
   object value = local("value");
   struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
   insert_IR_DICTIONARY(dict, key, value);
+  return NIL;
+}
+
+// Remove a dictionary element by key
+iridium_method(Dictionary, remove) {
+  object self = local("self");
+  object key = local("key");
+  struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
+  remove_IR_DICTIONARY(dict, key);
   return NIL;
 }
 
@@ -222,6 +244,8 @@ void IR_init_Dictionary() {
   DEF_METHOD(CLASS(Dictionary), "__get_index__", ARGLIST(argument_new(ATOM("key"), NULL, 0)), iridium_method_name(Dictionary, __get_index__));
   DEF_METHOD(CLASS(Dictionary), "__set_index__", ARGLIST(argument_new(ATOM("key"), NULL, 0), argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Dictionary, __set_index__));
   DEF_METHOD(CLASS(Dictionary), "reduce", ARGLIST(argument_new(ATOM("accumulator"), NULL, 0), argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(Dictionary, reduce));
+  DEF_METHOD(CLASS(Dictionary), "remove", ARGLIST(argument_new(ATOM("key"), NULL, 0)), iridium_method_name(Dictionary, remove));
+  DEF_METHOD(CLASS(Dictionary), "has_key?", ARGLIST(argument_new(ATOM("key"), NULL, 0)), iridium_method_name(Dictionary, has_key));
 }
 
 #endif

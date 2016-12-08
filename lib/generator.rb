@@ -336,9 +336,9 @@ class Generator
       # Identifier
       case expr
         when :true
-          "TRUE"
+          "ir_cmp_true"
         when :false
-          "FALSE"
+          "ir_cmp_false"
         when :nil
           "NIL"
         else
