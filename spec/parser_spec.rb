@@ -98,7 +98,46 @@ describe Parser do
     it "should parse with annonymous functions" do
       expect(parser.parse("x = -> return 4 end")).to eq([[:"=", :x, [:lambda, [], [[:return, 4]]]]])
     end
-    
+
+    it "should parse with indexed access" do
+      expect(parser.parse("x = y[4]")).to eq([[:"=", :x, [:[], :y, [4]]]])
+    end
+
+    it "should parse with repeated indexed access" do
+      expect(parser.parse("x = y[4][5]")).to eq([[:"=", :x, [:[], [:[], :y, [4]], [5]]]])
+    end
+
+    it "should parse with much repeated indexed access" do
+      expect(parser.parse("x = y[4][5][6][7][8]")).to eq([[:"=", :x, [:[], [:[], [:[], [:[], [:[], :y, [4]], [5]], [6]], [7]], [8]] ]])
+    end
+
+    it "should parse with dots after access" do
+      expect(parser.parse("x = y[4].bar")).to eq([[:"=", :x, [:".", [:[], :y, [4]], :bar]]])   
+    end
+
+    it "should parse with attribute index after access" do
+      expect(parser.parse("x = y[4].bar[7]")).to eq([[:"=", :x, [:[], [:".", [:[], :y, [4]], :bar], [7]]]])   
+    end
+
+    it "should parse with deep attribute index after access" do
+      expect(parser.parse("x = y[4].bar.baz[7]")).to eq([[:"=", :x, [:[], [:".", [:".", [:[], :y, [4]], :bar], :baz], [7]]]])   
+    end
+
+    it "should parse with invocation after access" do
+      expect(parser.parse("x = y[4]()")).to eq([[:"=", :x, [:"()", [:[], :y, [4]], []]]])   
+    end
+
+    it "should parse with attribute invocation after access" do
+      expect(parser.parse("x = y[4].bar()")).to eq([[:"=", :x, [:"()", [:".", [:[], :y, [4]], :bar], []]]])   
+    end
+
+    it "should parse with indexed access with multiple arguments" do
+      expect(parser.parse("x = y[4, 5]")).to eq([[:"=", :x, [:[], :y, [4, 5]]]])
+    end
+
+    it "should parse with indexed access with expression arguments" do
+      expect(parser.parse("x = y[4 + 5]")).to eq([[:"=", :x, [:[], :y, [[:+, 4, 5]]]]])
+    end
   end
   describe "function definitions" do
     

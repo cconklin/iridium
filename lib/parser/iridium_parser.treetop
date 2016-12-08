@@ -126,7 +126,7 @@ grammar Iridium
   end
   
   rule call_chain
-    "." (function_invocation / identifier) call_chain? <CallChain>
+    "." (function_invocation / attribute_index / identifier) call_chain? <CallChain>
   end
   
   rule return
@@ -286,6 +286,23 @@ grammar Iridium
     / space? additive <Expression>
   end
 
+  # For use in a.b[c].d
+  rule attribute_index
+    identifier space? index_arguments <Index>
+  end
+
+  rule index_arguments
+    ('[' space? allcommaseparated? space? (splat / expression) space? ']' <IndexArgumentList>) / ('[' space? ']' <IndexArgumentList>)
+  end
+
+  rule idx_invoke_chain
+    (index_arguments / passed_arguments) idx_invoke_chain? <IndexInvokeChain>
+  end
+
+  rule index
+    (dot / primary) space? index_arguments idx_invoke_chain? call_chain? <Index>
+  end
+
   rule comparative
     additive space? comparative_operator space? additive <ComparativeExpression>
   end
@@ -300,6 +317,8 @@ grammar Iridium
     (dot / primary) space? multitive_operator space? multitive <MultitiveExpression>
     /
     invocation
+    /
+    index
     /
     dot
     /

@@ -377,7 +377,7 @@ module Iridium
     end
     
     def chained_call
-      elements.last if elements.last.is_a?(CallChain)
+      elements.last if (elements.last.is_a?(CallChain) or elements.last.is_a?(IndexInvokeChain))
     end
     
     def receiver
@@ -397,7 +397,22 @@ module Iridium
           resolve(chained_calls[1..-1], chained_calls.first)
         else
           if chained_calls.first[0] == :"()" # method
-            resolve(chained_calls[1..-1], [:"()", [:".", result, chained_calls.first[1]], chained_calls.first[2]])
+            if chained_calls.first.length == 2 # basic reinvoking
+              resolve(chained_calls[1..-1], [:"()", result, chained_calls.first[1]])
+            else
+              resolve(chained_calls[1..-1], [:"()", [:".", result, chained_calls.first[1]], chained_calls.first[2]])
+            end
+          elsif chained_calls.first[0] == :"[]" # index
+            if chained_calls.first.length == 2 # basic reindexing
+              resolve(chained_calls[1..-1], [:"[]", result, chained_calls.first[1]])
+            else # advanced reindexing / dot chain
+              if chained_calls.first[1].is_a?(Symbol)
+                # dot chain
+                resolve([[:[], chained_calls.first[2]]], [:".", result, chained_calls.first[1]])
+              else
+                resolve(chained_calls.first[2], [:"[]", result, chained_calls.first[1]])
+              end
+            end
           else # attribute
             resolve(chained_calls[1..-1], [:".", result, chained_calls.first])
           end
@@ -406,7 +421,34 @@ module Iridium
     end
     
   end
-  
+
+  class Index < FunctionInvocation
+    def content
+      if elements.length > 2 # chained invocations
+        if chained_call # chained invocation
+          resolve([[:"[]", receiver, args], *chained_call.content])
+        else
+          self
+        end
+      else
+        [:"[]", *elements.map(&:content)]
+      end
+    end    
+  end
+
+  class IndexArgumentList < ArgumentList
+  end
+
+  class IndexInvokeChain < Treetop::Runtime::SyntaxNode
+    def content
+      if elements.first.is_a?(IndexArgumentList)
+        [[:[]] + elements.map(&:content)]
+      else
+        [[:"()"] + elements.map(&:content)]
+      end
+    end
+  end
+
   class CallChain < Treetop::Runtime::SyntaxNode
     def content
       if elements.length == 1
