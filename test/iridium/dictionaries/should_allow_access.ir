@@ -1,0 +1,33 @@
+class AssertionError < AttributeError
+  method reason
+    return "Assertion Failed: " + message
+  end
+end
+
+function assert(expr, reason="No reason given")
+  unless expr
+    raise(AssertionError.new(reason))
+  end
+end
+
+begin
+  # Empty dictionary
+  assert(%{}[5] == nil, "(Dictionary#__get_index__()) expected nil, got " + %{}[5].inspect())
+
+  # Dictionary with one element
+  expected = 1
+  actual = %{:a => 1}[:a]
+  assert(expected == actual, "(Dictionary#__get_index__()) expected " + expected.inspect() + ", got " + actual.inspect())
+
+  # Dictionary with multiple elements
+  expected = "bar"
+  actual = %{:a => 1, "bc" => "bar"}["b" + "c"]
+  assert(expected == actual, "(Dictionary#__get_index__()) expected " + expected.inspect() + ", got " + actual.inspect())
+rescue AssertionError => e
+  puts(e.reason())
+  exit(1)
+rescue Object => e
+  # Some non-AssertionError exception
+  puts(e.class().inspect() + ": " + e.reason())  
+  exit(3)
+end

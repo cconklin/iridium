@@ -1628,6 +1628,8 @@ void IR_init_Object() {
   nil_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(NilClass, inspect));
   set_instance_attribute(CLASS(NilClass), ATOM("inspect"), PUBLIC, nil_inspect);
   DEF_METHOD(CLASS(NilClass), "to_s", ARGLIST(), iridium_method_name(NilClass, inspect));
+  DEF_METHOD(CLASS(NilClass), "__eq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Object, __eq__));
+  DEF_METHOD(CLASS(NilClass), "__neq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Object, __neq__));
 
   // Init Atom
   atom_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Atom, inspect));

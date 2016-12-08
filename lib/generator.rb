@@ -313,6 +313,10 @@ class Generator
       when :set
         code << "set_attribute(#{generate_expression(statement[1], active_variables: active_variables, literals: literals)},"
         code << "              ATOM(\"#{statement[2]}\"), PUBLIC, #{generate_expression(statement[3], active_variables: active_variables, literals: literals)});"
+      when :insert
+        # [:insert, :x, [5], [:[], :y, [[:+, 4, 5]]]]
+        arg_ary = generate_argarray(statement[2] + [statement[3]], active_variables: active_variables, literals: literals)
+        code << "invoke(#{generate_expression(statement[1], active_variables: active_variables, literals: literals)}, \"__set_index__\", #{arg_ary});"
       when :return
         if in_begin
           code << "return_in_begin_block(#{generate_expression(statement[1], active_variables: active_variables, literals: literals)});"
@@ -367,14 +371,13 @@ class Generator
         when :"()"
           # Invocation
           args = expr[2]
-          arg_ary = args.reduce("array_new()") do |acc, arg|
-            if arg.respond_to?(:[]) && arg[0] == :destructure
-              "destructure(#{acc}, #{generate_expression(arg[1], active_variables: active_variables, literals: literals)})"
-            else
-              "array_push(#{acc}, #{generate_expression(arg, active_variables: active_variables, literals: literals)})"
-            end
-          end
+          arg_ary = generate_argarray(args, active_variables: active_variables, literals: literals)
           "calls(#{generate_expression(expr[1], active_variables: active_variables, literals: literals)}, #{arg_ary})"
+        when :"[]"
+          # Indexing
+          # [:[], :y, [[:+, 4, 5]]]
+          arg_ary = generate_argarray(expr[2], active_variables: active_variables, literals: literals)
+          "invoke(#{generate_expression(expr[1], active_variables: active_variables, literals: literals)}, \"__get_index__\", #{arg_ary})"
         when :"."
           # Attribute Get
           "invoke(#{generate_expression(expr[1], active_variables: active_variables, literals: literals)}, \"__get__\", array_push(array_new(), ATOM(\"#{expr[2]}\")))"
@@ -383,22 +386,10 @@ class Generator
           # [:lambda, [:x, {y: 10}, [:destructure, :z]], "code_name"]
           "FUNCTION(ATOM(\"lambda\"), #{generate_arglist(expr[1], active_variables: active_variables, literals: literals)}, locals, #{expr[2]})"
         when :list
-          arg_ary = expr[1].reduce("array_new()") do |acc, arg|
-            if arg.respond_to?(:[]) && arg[0] == :destructure
-              "destructure(#{acc}, #{generate_expression(arg[1], active_variables: active_variables, literals: literals)})"
-            else
-              "array_push(#{acc}, #{generate_expression(arg, active_variables: active_variables, literals: literals)})"
-            end
-          end
+          arg_ary = generate_argarray(expr[1], active_variables: active_variables, literals: literals)
           "invoke(ir_cmp_List, \"new\", #{arg_ary})"
         when :tuple
-          arg_ary = expr[1].reduce("array_new()") do |acc, arg|
-            if arg.respond_to?(:[]) && arg[0] == :destructure
-              "destructure(#{acc}, #{generate_expression(arg[1], active_variables: active_variables, literals: literals)})"
-            else
-              "array_push(#{acc}, #{generate_expression(arg, active_variables: active_variables, literals: literals)})"
-            end
-          end
+          arg_ary = generate_argarray(expr[1], active_variables: active_variables, literals: literals)
           "invoke(ir_cmp_Tuple, \"new\", #{arg_ary})"
         when :dictionary
           # [:dictionary, {:":foo" => [:+, 2, 3], "baz" => :X, :v => 3}]
@@ -406,6 +397,16 @@ class Generator
           "invoke(ir_cmp_Dictionary, \"new\", array_push(array_new(), #{dict_lst}))"
         when :===
           "(#{generate_expression(expr[1], active_variables: active_variables, literals: literals)} == #{generate_expression(expr[2], active_variables: active_variables, literals: literals)} ? ir_cmp_true : ir_cmp_false)"
+      end
+    end
+  end
+
+  def generate_argarray(args, active_variables:, literals:)
+    args.reduce("array_new()") do |acc, arg|
+      if arg.respond_to?(:[]) && arg[0] == :destructure
+        "destructure(#{acc}, #{generate_expression(arg[1], active_variables: active_variables, literals: literals)})"
+      else
+        "array_push(#{acc}, #{generate_expression(arg, active_variables: active_variables, literals: literals)})"
       end
     end
   end

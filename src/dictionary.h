@@ -35,12 +35,12 @@ struct IR_DICTIONARY_ENTRY * lookup_IR_DICTIONARY(struct IR_DICTIONARY * dict, o
   unsigned long long int hash = (unsigned long long int) INT(send(key, "hash"));
   unsigned long long int searchval = hash % IR_DICTIONARY_HASHSIZE;
   struct IR_DICTIONARY_ENTRY * entry = dict -> hashtable[searchval];
-  * prev = NULL;
+  if (prev) * prev = NULL;
   while (NULL != entry) {
     if (ir_cmp_true == send(key, "__eq__", entry -> key)) {
       return entry;
     }
-    * prev = entry;
+    if (prev) * prev = entry;
     entry = entry -> next;
   }
   return NULL;
@@ -169,11 +169,36 @@ iridium_method(Dictionary, inspect) {
   return send(str, "__add__", IR_STRING("}"));
 }
 
+// Access a dictionary by key
+iridium_method(Dictionary, __get_index__) {
+  object self = local("self");
+  object key = local("key");
+  struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
+  struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(dict, key, NULL);
+  if (entry) {
+    return entry -> value;
+  } else {
+    return NIL;
+  }
+}
+
+// Insert/Update a dictionary by key
+iridium_method(Dictionary, __set_index__) {
+  object self = local("self");
+  object key = local("key");
+  object value = local("value");
+  struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
+  insert_IR_DICTIONARY(dict, key, value);
+  return NIL;
+}
+
 // Dictionary Init
 void IR_init_Dictionary() {
   CLASS(Dictionary) = send(CLASS(Class), "new", IR_STRING("Dictionary"));
   DEF_METHOD(CLASS(Dictionary), "initialize", ARGLIST(argument_new(ATOM("elements"), NULL, 0)), iridium_method_name(Dictionary, initialize));
   DEF_METHOD(CLASS(Dictionary), "inspect", ARGLIST(), iridium_method_name(Dictionary, inspect));
+  DEF_METHOD(CLASS(Dictionary), "__get_index__", ARGLIST(argument_new(ATOM("key"), NULL, 0)), iridium_method_name(Dictionary, __get_index__));
+  DEF_METHOD(CLASS(Dictionary), "__set_index__", ARGLIST(argument_new(ATOM("key"), NULL, 0), argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Dictionary, __set_index__));
 }
 
 #endif
