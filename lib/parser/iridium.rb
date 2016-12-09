@@ -10,7 +10,13 @@ module Iridium
       elements[0].content
     end
   end
-  
+
+  class Require < Treetop::Runtime::SyntaxNode
+    def content
+      [:require, elements[0].content]
+    end
+  end
+
   class IntegerLiteral < Treetop::Runtime::SyntaxNode
     def content
       text_value.to_i

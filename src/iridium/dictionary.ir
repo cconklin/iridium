@@ -1,0 +1,9 @@
+class Dictionary
+
+  method each(fn)
+    reduce(nil) -> (key, value, acc)
+      fn(key, value)
+    end
+  end
+
+end

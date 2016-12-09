@@ -22,9 +22,13 @@ grammar Iridium
   rule class_statement
     space? (private_method / private_function / method / function / attribute_assignment / index_assignment / invocation / function_invocation / nofunction / nomethod) ';'? space? linebreak? <Statement>
   end
-  
+
+  rule require
+    "require" space? string <Require>
+  end
+
   rule top_statement
-    space? (private_function / function / class / module / nofunction) ';'? space? linebreak? <Statement>
+    space? (private_function / function / class / module / nofunction / require) ';'? space? linebreak? <Statement>
   end
   
   rule statement

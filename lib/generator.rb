@@ -325,6 +325,7 @@ class Generator
         end
       else
         # Some expression
+        code.concat save_vars(modified_variables) if contains_lambda? statement
         code << generate_expression(statement, active_variables: active_variables, literals: literals) + ";"
     end
   end
@@ -442,9 +443,14 @@ class Generator
     else
       # Compound expression
       case expr.first
-        when :"()", :"."
-          # Invocation / Attribute Get
+        when :"."
+          # Attribute Get
           contains_lambda? expr[1]
+        when :"()"
+          # invocation
+          contains_lambda?(expr[1]) or expr[2].any? do |arg|
+            contains_lambda? arg
+          end
         when :lambda
           # Annonymous Function
           true

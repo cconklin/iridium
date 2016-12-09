@@ -5,6 +5,7 @@ require_relative "../lib/parser"
 require_relative "../lib/translator"
 require_relative "../lib/generator"
 require_relative "../lib/compiler"
+require_relative "../lib/loader"
 
 options = {output: "a.out", debug: false}
 
@@ -25,9 +26,8 @@ if ARGV.empty?
   exit 1
 end
 
-content = File.read ARGV[0]
-parser = Parser.new
-tree = parser.parse content
+loader = Loader.new
+tree = loader.load_from_file ARGV[0], Dir.pwd
 
 processed_tree = Translator.translate! tree
 

@@ -160,6 +160,10 @@ describe Parser do
       expect(parser.parse("x[5][6] = y[4 + 5]")).to eq([[:insert, [:[], :x, [5]], [6], [:[], :y, [[:+, 4, 5]]]]])
     end
 
+    it "should parse with requires" do
+      expect(parser.parse("require \"foo\"")).to eq([[:require, "foo"]])
+    end
+
   end
   describe "function definitions" do
     
