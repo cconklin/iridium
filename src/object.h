@@ -1699,6 +1699,7 @@ void IR_init_Object() {
   DEF_METHOD(CLASS(TypeError), "reason", ARGLIST(), iridium_method_name(AttributeError, reason));
 
   DEF_METHOD(CLASS(Module), "include", ARGLIST(argument_new(ATOM("module"), NULL, 0)), iridium_method_name(Module, include));
+  no_instance_attribute(CLASS(Module), ATOM("new"));
 }
 
 #endif
