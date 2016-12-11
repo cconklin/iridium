@@ -1,0 +1,5 @@
+require "enumerable"
+
+class Tuple
+  include(Enumerable)
+end

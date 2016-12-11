@@ -2,7 +2,7 @@ require_relative 'parser'
 
 class Loader
 
-  CORE_FILES = [*Dir.glob(File.join(File.dirname(File.dirname(__FILE__)), "src", "iridium", "*.ir"))].map {|f| File.basename f, ".ir"}
+  CORE_FILES = [File.join(File.dirname(File.dirname(__FILE__)), "src", "iridium", "core")]
   LOAD_PATH = [
     # Iridium files to bootstrap the language
     File.join(File.dirname(File.dirname(__FILE__)), "src", "iridium")
@@ -32,15 +32,15 @@ class Loader
     filepath = Loader.locate_file filename, base
     if @loaded_files.include? filepath
       # Already been loaded -- give an empty tree
-      []
+      [nil]
     else
       # Not loaded yet -- load the tree
       @loaded_files << filepath
       content = File.read filepath
       parser = Parser.new
       tree = parser.parse(content)
-      tree.unshift *CORE_FILES.map {|f| [:require, f]}
-      load_requires!(tree, File.dirname(filepath))
+      tree.unshift *(CORE_FILES - @loaded_files).map {|f| [:require, f]}
+      load_requires!(tree, File.dirname(filepath)).compact
     end
   end
 
@@ -61,7 +61,7 @@ class Loader
     node = tree[index]
     # load the required file
     replacement_tree = load_from_file(node[1] + ".ir", base)
-    # remove the require node
+    # remove the require nodea
     tree.delete_at index
     # replace the require node with what was required
     tree[index, 0] = replacement_tree

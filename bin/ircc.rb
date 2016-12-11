@@ -30,7 +30,6 @@ loader = Loader.new
 tree = loader.load_from_file ARGV[0], Dir.pwd
 
 processed_tree = Translator.translate! tree
-
 generator = Generator.new(processed_tree[:callables], processed_tree[:tree])
 
 Compiler.compile(generator.generate, output: options[:output], debug: options[:debug])

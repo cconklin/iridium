@@ -9,3 +9,6 @@ y = {1, 2, 3}
 puts(y.reduce(0) -> (arg, acc)
   return arg + acc
 end)
+
+# Same result with #sum (defined in Enumerable)
+puts(y.sum())

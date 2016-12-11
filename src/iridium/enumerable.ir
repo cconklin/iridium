@@ -1,0 +1,218 @@
+module Enumerable
+  
+  # Requires the implementation of a #reduce method, which is of the form:
+  #
+  # method reduce(accumulator, fn)
+  #
+  # The #reduce method returns the value of the accumulator after the iteration is complete
+  # The passed method, `fn` accepts an element in the enumerable and the accumulator, and
+  # returns the value of the accumulator over the next iteration.
+  
+  # all?
+  # Invokes the passed `fn` for each item in enumerable
+  # and returns false if at least one invocation returns false.
+  # Returns true otherwise.
+  
+  method all?(fn)
+    return reduce(true) -> (element, accumulator)
+      if accumulator == false
+        return false
+      else
+        return fn(element)
+      end 
+    end
+  end
+  
+  # any?
+  # Invokes the passed `fn` for each item in enumerable
+  # and returns true if at least one invocation returns true.
+  # Returns false otherwise.
+  
+  method any?(fn)
+    return reduce(false) -> (element, accumulator)
+      if accumulator == true
+        return true
+      else
+        return fn(element)
+      end 
+    end
+  end
+  
+  # count
+  # Returns the number of elements in enumerable for which `fn`
+  # evaluates to true
+  
+  method count(fn)
+    return reduce(0) -> (element, accumulator)
+      if fn(element)
+        return accumulator + 1
+      end
+    end
+  end
+  
+  # length
+  # Returns the length of the enumerable
+  
+  method length
+    return reduce(0) -> (_element, accumulator)
+      return accumulator + 1
+    end
+  end
+  
+  # each
+  # Invokes `fn` passing each element in enumerable, one at a time.
+  
+  method each(fn)
+    reduce(nil) -> (element, _accumulator)
+      fn(element)
+    end
+  end
+  
+  # chunk
+  # Splits enumerable on every element for which `fn` returns a new value
+  
+  method chunk(fn)
+    result = reduce([[], nil]) -> (element, accumulator)
+      if ( fn(element) == accumulator.last() ) and ( accumulator.first() != [] )
+        # Accumulator: [..., [...]] => [..., [..., element]]
+        # Same return value as previous, add to the group
+        return accumulator.first().last().cons(element)
+      else
+        # New return value, make new group
+        return accumulator.first().cons([element])
+      end
+    end
+    return result.first().reverse()
+  end
+  
+  # select
+  # returns a list for each element in enumerable that `fn` returns true
+  
+  method select(fn)
+    return reduce([], -> (element, accumulator)
+      if fn(element)
+        return accumulator.cons(element)
+      end
+    end).reverse()
+  end
+  
+  # reject
+  # returns a list for each element in enumerable that `fn` returns false
+  
+  method reject(fn)
+    return reduce([], -> (element, accumulator)
+      unless fn(element)
+        return accumulator.cons(element)
+      end
+    end).reverse()
+  end
+  
+  # empty?
+  # returns true if enumerable is empty
+  
+  method empty?
+    return reduce(true) -> (_element, _accumulator)
+      return false
+    end
+  end
+  
+  # map
+  # invokes `fn` on each element in enumerable, returning the resultant list
+  
+  method map(fn)
+    return reduce([], -> (element, accumulator)
+      return accumulator.cons(fn(*element))
+    end).reverse()
+  end
+  
+  # find
+  # returns the first item for which `fn` returns true
+  
+  method find(fn)
+    result = select(fn)
+    unless result.empty?()
+      return result.first()
+    end
+  end
+  
+  # join
+  # Joins the passed enumerable according to `joiner`
+  # Returns a String
+  # All elements must be convertable to strings
+  
+  method join(joiner)
+    return reduce("") -> (element, accumulator)
+      if accumulator == ""
+        return element.to_s()
+      else
+        return accumulator + joiner + element.to_s()
+      end
+    end
+  end
+  
+  # contains?
+  # Returns true if enumerable contains `value`
+
+  method contains?(value)
+    return not select(-> (element)
+      return element == value
+    end).empty?()
+  end
+  
+  # sum
+  # Returns the sum of all elements in enumerable
+  
+  method sum
+    return reduce(nil) -> (element, accumulator)
+      if accumulator == nil
+        return element
+      else
+        return element + accumulator
+      end
+    end
+  end
+  
+  # uniq
+  # returns a list of the unique elements in enumerable
+  
+  method uniq
+    return reduce([], -> (element, accumulator)
+      unless accumulator.contains?(element)
+        return accumulator.cons(element)
+      end
+      return accumulator
+    end).reverse()
+  end
+  
+  # flatten
+  # flattens enumerable, and all of its elements
+  # Example:
+  #   > [[2], 3, [[2], 3]].flatten()
+  #   [2, 3, 2, 3]
+  
+  method flatten
+    return reduce([], -> (element, accumulator)
+      if element.responds_to?(:flatten)
+        flattened = element.flatten()
+        flattened.each -> (elem)
+          accumulator = accumulator.cons(elem)
+        end
+        return accumulator
+      else
+        return accumulator.cons(element)
+      end
+    end).reverse()
+  end
+  
+  # reverse
+  # reverse order of enumerable
+  # Note: May move to the List or Tuple class
+  #       Probably will define in C for performance
+  
+  method reverse
+    return reduce([]) -> (element, accumulator)
+      return accumulator.cons(element)
+    end
+  end
+  
+end

@@ -125,6 +125,7 @@ struct list * _ARGLIST(int unused, ...) {
 
 // Declarations
 
+object CLASS(Module);
 object CLASS(Class);
 object CLASS(Object);
 object CLASS(Function);
@@ -230,8 +231,8 @@ arg(object a) {
 #define no_result ((! result) || (result -> access > access))
 
 // Macro for whether a module list has any modules
-#define modules_present(mod_list) ((mod_list) ? 0 : (list_length(mod_list) > 0))
-
+#define modules_present(mod_list) ((mod_list) ? (list_length(mod_list) > 0) : 0 )
+object CLASS(Enumerable);
 iridium_attribute
 instance_attribute_lookup(object receiver, void * attribute, unsigned char access) {
   // Try and get it from the objects instance attributes
@@ -246,8 +247,10 @@ instance_attribute_lookup(object receiver, void * attribute, unsigned char acces
     if (modules_present(modules)) {
       // If there are any included modules
       // Search all the modules until the attribute is found
-      for (module = list_head(modules); list_tail(modules) && no_result; modules = list_tail(modules), module = list_head(modules)) {
+      while (modules && no_result) {
+        module = list_head(modules);
         result = instance_attribute_lookup(module, attribute, access);
+        modules = list_tail(modules);
       }
     }
   }
@@ -877,6 +880,22 @@ iridium_method(Object, __set__) {
 // Iridium Example: obj.initialize() # => nil
 
 iridium_method(Object, initialize) {
+  return NIL;
+}
+
+// class Module
+
+iridium_method(Module, include) {
+  object self = local("self");
+  object mod = local("module");
+  if (mod -> class != CLASS(Module)) {
+    // Not including a module -- bad!
+    object reason = send(mod, "to_s");
+    reason = send(reason, "__add__", IR_STRING(" is not a module"));
+    handleException(send(CLASS(TypeError), "new", reason));
+  } else {
+    self -> included_modules = list_cons(self -> included_modules, mod);
+  }
   return NIL;
 }
 
@@ -1542,6 +1561,10 @@ void IR_init_Object() {
   // Create class
   CLASS(Class) = construct(CLASS(Class));
   CLASS(Class) -> class = CLASS(Class);
+
+  // Create Module
+  CLASS(Module) = construct(CLASS(Class));
+  CLASS(Module) -> class = CLASS(Class);
   
   // Create Atom
   CLASS(Atom) = construct(CLASS(Class));
@@ -1550,7 +1573,8 @@ void IR_init_Object() {
   // Create object
   CLASS(Object) = construct(CLASS(Class));
   set_attribute(CLASS(Atom), ATOM("superclass"), PUBLIC, CLASS(Object));
-  set_attribute(CLASS(Class), ATOM("superclass"), PUBLIC, CLASS(Object));
+  set_attribute(CLASS(Module), ATOM("superclass"), PUBLIC, CLASS(Object));
+  set_attribute(CLASS(Class), ATOM("superclass"), PUBLIC, CLASS(Module));
   set_attribute(CLASS(Object), ATOM("superclass"), PUBLIC, CLASS(Object));
   
   // Create Function
@@ -1577,7 +1601,7 @@ void IR_init_Object() {
   class_inst_new = FUNCTION(ATOM("new"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Class, new));
   set_instance_attribute(CLASS(Class), ATOM("new"), PUBLIC, class_inst_new);
   class_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Class, inspect));
-  set_instance_attribute(CLASS(Class), ATOM("inspect"), PUBLIC, class_inspect);
+  set_instance_attribute(CLASS(Module), ATOM("inspect"), PUBLIC, class_inspect);
   // Bootstrap Object
   obj_puts = FUNCTION(ATOM("puts"), ARGLIST(argument_new(ATOM("args"), NULL, 1)), dict_new(ObjectHashsize), iridium_method_name(Object, puts));
   set_instance_attribute(CLASS(Object), ATOM("puts"), PUBLIC, obj_puts);
@@ -1596,6 +1620,7 @@ void IR_init_Object() {
 
   // Bootstrap everything
   set_attribute(CLASS(Class), ATOM("name"), PUBLIC, IR_STRING("Class"));
+  set_attribute(CLASS(Module), ATOM("name"), PUBLIC, IR_STRING("Module"));
   set_attribute(CLASS(Object), ATOM("name"), PUBLIC, IR_STRING("Object"));
   set_attribute(CLASS(Atom), ATOM("name"), PUBLIC, IR_STRING("Atom"));
   set_attribute(CLASS(Function), ATOM("name"), PUBLIC, IR_STRING("Function"));
@@ -1672,6 +1697,8 @@ void IR_init_Object() {
   CLASS(TypeError) = send(CLASS(Class), "new", IR_STRING("TypeError"));
   DEF_METHOD(CLASS(TypeError), "initialize", ARGLIST(argument_new(ATOM("message"), NIL, 0)), iridium_method_name(AttributeError, initialize));
   DEF_METHOD(CLASS(TypeError), "reason", ARGLIST(), iridium_method_name(AttributeError, reason));
+
+  DEF_METHOD(CLASS(Module), "include", ARGLIST(argument_new(ATOM("module"), NULL, 0)), iridium_method_name(Module, include));
 }
 
 #endif

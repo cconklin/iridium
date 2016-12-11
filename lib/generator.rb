@@ -53,10 +53,10 @@ class Generator
                                      exception_handlers: exception_handlers
     
     (active_variables - new_variables - [:self]).uniq.each do |var|
-      code.unshift "object ir_cmp_#{var} = local(\"#{var}\");" unless var[0] == var[0].upcase
+      code.unshift "object #{variable_name(var)} = NULL;" unless var[0] == var[0].upcase
     end
     (new_variables - [:self]).uniq.each do |var|
-      code.unshift "object ir_cmp_#{var} = NULL;" unless var[0] == var[0].upcase
+      code.unshift "object #{variable_name(var)} = NULL;" unless var[0] == var[0].upcase
     end
 
     literals.each do |name, value|
@@ -173,10 +173,10 @@ class Generator
     exception_handlers = []
     code = generate_block statements, active_variables: active_variables, new_variables: new_variables, literals: literals, exception_handlers: exception_handlers
     (active_variables - new_variables).uniq.each do |var|
-      code.unshift "object ir_cmp_#{var} = local(\"#{var}\");" unless var[0] == var[0].upcase
+      code.unshift "object #{variable_name(var)} = NULL;" unless var[0] == var[0].upcase
     end
     new_variables.uniq.each do |var|
-      code.unshift "object ir_cmp_#{var} = NULL;" unless var[0] == var[0].upcase
+      code.unshift "object #{variable_name(var)} = NULL;" unless var[0] == var[0].upcase
     end
     literals.each do |name, value|
       code.unshift "object #{name} = #{value};"
@@ -209,6 +209,16 @@ class Generator
     code
   end
 
+  def variable_name(var)
+    if var.to_s.include? "?"
+      "ir_qcmp_#{var[0...-1]}"
+    elsif var.to_s.include? "!"
+      "ir_bcmp_#{var[0...-1]}"
+    else
+      "ir_cmp_#{var}"
+    end
+  end
+
   def generate_statement(code, statement, modified_variables:, active_variables:, new_variables:, literals:, in_begin:, exception_handlers:)
     case statement.first
       when :"="
@@ -216,7 +226,7 @@ class Generator
         var = statement[1]
         code.concat save_vars(modified_variables) if contains_lambda? statement[2]
         val = generate_expression statement[2], active_variables: active_variables, literals: literals
-        code << "ir_cmp_#{var} = #{val};"
+        code << "#{variable_name(var)} = #{val};"
         unless active_variables.include? var
           active_variables << var
           new_variables << var
@@ -349,7 +359,7 @@ class Generator
           else
             # Variable
             active_variables << expr unless active_variables.include? expr
-            "(ir_cmp_#{expr} ? ir_cmp_#{expr} : local(\"#{expr}\"))"
+            "(ir_cmp_#{expr} ? ir_cmp_#{expr} : (ir_cmp_#{expr} = local(\"#{expr}\")))"
           end
       end
     elsif expr.is_a? Fixnum
@@ -460,7 +470,7 @@ class Generator
 
   def save_vars(active_variables)
     active_variables.map do |var|
-      "set_local(\"#{var}\", ir_cmp_#{var});"
+      "set_local(\"#{var}\", #{variable_name(var)});"
     end
   end
 end
