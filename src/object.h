@@ -130,7 +130,7 @@ object CLASS(Class);
 object CLASS(Object);
 object CLASS(Function);
 object CLASS(Atom);
-object CLASS(Tuple);
+object CLASS(Array);
 object CLASS(NilClass);
 object CLASS(Fixnum);
 object CLASS(String);
@@ -563,10 +563,10 @@ char * str(object string) {
   return internal_get_attribute(string, ATOM("string"), char *);
 }
 
-// Destructures tuples into struct array *
-struct array * destructure(struct array * args, object argument_tuple) {
-  struct array * tuple_args = internal_get_attribute(argument_tuple, ATOM("array"), struct array *);
-  return array_merge(args, tuple_args);
+// Destructures arrays into struct array *
+struct array * destructure(struct array * args, object argument_array) {
+  struct array * array_args = internal_get_attribute(argument_array, ATOM("array"), struct array *);
+  return array_merge(args, array_args);
 }
 
 // Create a binding dictionary by processing function arguments (retrieve closed values and arguments)
@@ -692,7 +692,7 @@ iridium_method(Class, new) {
   // Value of the receiver
   object self = local("self");
   // Value of the args
-  object args = local("args"); // tuple
+  object args = local("args"); // array
   
   // Container for the object under construction
   object obj = construct(self);
@@ -910,7 +910,7 @@ iridium_method(Function, __call__) {
   // Value of the receiver
   object self = local("self");
   // Get args to be passed to function
-  object args = local("args"); // tuple
+  object args = local("args"); // array
   
   // Get the corresponding C function
   object ( * func )(struct dict *) = internal_get_attribute(self, ATOM("function"), object (*)(struct dict *));
@@ -1083,24 +1083,24 @@ iridium_method(Atom, to_s) {
   return IR_STRING(str);
 }
 
-// class Tuple
+// class Array
 
 object TUPLE(struct array * values) {
-  object tuple = construct(CLASS(Tuple));
-  internal_set_attribute(tuple, ATOM("array"), values);
-  return tuple;
+  object array = construct(CLASS(Array));
+  internal_set_attribute(array, ATOM("array"), values);
+  return array;
 }
 
-iridium_classmethod(Tuple, new) {
+iridium_classmethod(Array, new) {
   object args = local("args");
-  object tuple = TUPLE(destructure(array_new(), args));
+  object array = TUPLE(destructure(array_new(), args));
   // Call initialize (which should do nothing unless overidden)
-  invoke(tuple, "initialize", destructure(array_new(), args));
-  return tuple;
+  invoke(array, "initialize", destructure(array_new(), args));
+  return array;
 }
 
 // method reduce(accumulator, fn)
-iridium_method(Tuple, reduce) {
+iridium_method(Array, reduce) {
   object self = local("self");
   object accumulator = local("accumulator");
   object fn = local("fn");
@@ -1118,14 +1118,14 @@ iridium_method(Tuple, reduce) {
   return accumulator;
 }
 
-iridium_method(Tuple, __get_index__) {
+iridium_method(Array, __get_index__) {
   object self = local("self");
   object index = local("index"); // Iridium Fixnum
   struct array * ary = internal_get_attribute(self, ATOM("array"), struct array *);
   return array_get(ary, INT(index));
 }
 
-iridium_method(Tuple, __set_index__) {
+iridium_method(Array, __set_index__) {
   object self = local("self");
   object index = local("index"); // Iridium Fixnum
   object value = local("value");
@@ -1134,14 +1134,14 @@ iridium_method(Tuple, __set_index__) {
   return value;
 }
 
-iridium_method(Tuple, inspect) {
+iridium_method(Array, inspect) {
   object self = local("self");
   struct array * ary = internal_get_attribute(self, ATOM("array"), struct array *);
   int idx, sidx;
   unsigned int strsize = 0;
   unsigned ary_len = (ary->length - ary->start);
   if (ary_len == 0) {
-    return IR_STRING("{}");
+    return IR_STRING("[]");
   }
   char ** strs = malloc(ary_len*sizeof(char *));
   char * str;
@@ -1158,14 +1158,14 @@ iridium_method(Tuple, inspect) {
   strsize++; // Account for the terminating NULL
   str = GC_MALLOC(strsize*sizeof(char));
   assert(str);
-  str[0] = '{';
+  str[0] = '[';
   str[1] = 0;
   for (idx = 0; idx < ary_len-1; idx++) {
     strcat(str, strs[idx]);
     strcat(str, ", ");
   }
   strcat(str, strs[ary_len-1]);
-  strcat(str, "}");
+  strcat(str, "]");
   free(strs);
   return IR_STRING(str);
 }
@@ -1626,16 +1626,16 @@ void IR_init_Object() {
   set_attribute(CLASS(Function), ATOM("name"), PUBLIC, IR_STRING("Function"));
   set_attribute(CLASS(String), ATOM("name"), PUBLIC, IR_STRING("String"));
 
-  CLASS(Tuple) = construct(CLASS(Class));
+  CLASS(Array) = construct(CLASS(Class));
   CLASS(NilClass) = construct(CLASS(Class));
   CLASS(Fixnum) = construct(CLASS(Class));
   
-  set_attribute(CLASS(Tuple), ATOM("superclass"), PUBLIC, CLASS(Object));
+  set_attribute(CLASS(Array), ATOM("superclass"), PUBLIC, CLASS(Object));
   // NilClass Inherits from itself -- that way stuff defined on object doesn't affect it.
   set_attribute(CLASS(NilClass), ATOM("superclass"), PUBLIC, CLASS(NilClass));
   set_instance_attribute(CLASS(NilClass), ATOM("__get__"), PUBLIC, get);
   set_attribute(CLASS(Fixnum), ATOM("superclass"), PUBLIC, CLASS(Object));
-  set_attribute(CLASS(Tuple), ATOM("name"), PUBLIC, IR_STRING("Tuple"));
+  set_attribute(CLASS(Array), ATOM("name"), PUBLIC, IR_STRING("Array"));
   set_attribute(CLASS(NilClass), ATOM("name"), PUBLIC, IR_STRING("NilClass"));
   set_attribute(CLASS(Fixnum), ATOM("name"), PUBLIC, IR_STRING("Fixnum"));
 
@@ -1670,12 +1670,12 @@ void IR_init_Object() {
   set_instance_attribute(CLASS(String), ATOM("inspect"), PUBLIC, str_inspect);
   DEF_METHOD(CLASS(String), "to_s", ARGLIST(), iridium_method_name(String, to_s));
 
-  // Init Tuple
-  DEF_METHOD(CLASS(Tuple), "inspect", ARGLIST(), iridium_method_name(Tuple, inspect));
-  DEF_METHOD(CLASS(Tuple), "reduce", ARGLIST(argument_new(ATOM("accumulator"), NULL, 0), argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(Tuple, reduce));
-  DEF_METHOD(CLASS(Tuple), "__get_index__", ARGLIST(argument_new(ATOM("index"), NULL, 0)), iridium_method_name(Tuple, __get_index__));
-  DEF_METHOD(CLASS(Tuple), "__set_index__", ARGLIST(argument_new(ATOM("index"), NULL, 0), argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Tuple, __set_index__));
-  DEF_FUNCTION(CLASS(Tuple), "new", ARGLIST(argument_new(ATOM("args"), NULL, 1)), iridium_classmethod_name(Tuple, new));
+  // Init Array
+  DEF_METHOD(CLASS(Array), "inspect", ARGLIST(), iridium_method_name(Array, inspect));
+  DEF_METHOD(CLASS(Array), "reduce", ARGLIST(argument_new(ATOM("accumulator"), NULL, 0), argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(Array, reduce));
+  DEF_METHOD(CLASS(Array), "__get_index__", ARGLIST(argument_new(ATOM("index"), NULL, 0)), iridium_method_name(Array, __get_index__));
+  DEF_METHOD(CLASS(Array), "__set_index__", ARGLIST(argument_new(ATOM("index"), NULL, 0), argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Array, __set_index__));
+  DEF_FUNCTION(CLASS(Array), "new", ARGLIST(argument_new(ATOM("args"), NULL, 1)), iridium_classmethod_name(Array, new));
 
   // Init Boolean
   CLASS(Boolean) = send(CLASS(Class), "new", IR_STRING("Boolean"));

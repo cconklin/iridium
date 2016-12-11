@@ -11,7 +11,7 @@ function assert(expr, reason="No reason given")
 end
 
 begin
-  a = %{}
+  a = {}
   a[5] = 7
   
   # One addition

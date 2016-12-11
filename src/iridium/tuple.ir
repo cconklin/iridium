@@ -1,5 +1,5 @@
 require "enumerable"
 
-class Tuple
+class Array
   include(Enumerable)
 end

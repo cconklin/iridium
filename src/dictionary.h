@@ -155,7 +155,7 @@ iridium_method(Dictionary, initialize) {
 iridium_method(Dictionary, inspect) {
   object self = local("self");
   struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
-  object str = IR_STRING("%{");
+  object str = IR_STRING("{");
   struct IR_DICTIONARY_ENTRY * entry = dict -> first;
   while (entry) {      
     if (entry != dict -> first) {        

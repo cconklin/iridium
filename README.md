@@ -57,27 +57,27 @@ Optional arguments must appear after required arguments.
   end
 ```
 
-Tuples can also be converted into arguments using the `*` operator. This is allowed once per function definition, but can be used multiple times during function invocations. This allows for functions with arbitrary artiy.
+Arrays can also be converted into arguments using the `*` operator. This is allowed once per function definition, but can be used multiple times during function invocations. This allows for functions with arbitrary artiy.
 
 ```
   function x(a, * args, b = 2, c = 4)
-    return {a, args, b, c}
+    return [a, args, b, c]
   end
 
   x(1)
-    # => {1, {}, 2, 4}
+    # => [1, [], 2, 4]
   x(1, 3)
-    # => {1, {}, 3, 4}
+    # => [1, [], 3, 4]
   x(1, 1, 3)
-    # => {1, {}, 1, 3}
+    # => [1, [], 1, 3]
   x(1, 1, 3, 5)
-    # => {1, {1}, 3, 5}
-  x(*{1, 1, 3, 5}) # <=> x(1, 1, 3, 5)
-    # => {1, {1}, 3, 5}
-  x(*{1}, 1, *{3, 5}) # <=> x(1, 1, 3, 5)
-    # => {1, {1}, 3, 5}
+    # => [1, [1], 3, 5]
+  x(*[1, 1, 3, 5]) # <=> x(1, 1, 3, 5)
+    # => [1, [1], 3, 5]
+  x(*[1], 1, *[3, 5]) # <=> x(1, 1, 3, 5)
+    # => [1, [1], 3, 5]
   x(1, 1, 2, 3, 5, 8)
-    # => {1, {1, 2, 3}, 5, 8}
+    # => [1, [1, 2, 3], 5, 8]
 ```
 
 #### Annonymous Functions
@@ -295,8 +295,7 @@ The primary types in Iridium are:
     * Complex
   * String
   * Collection
-    * List (a linked list structure)
-    * Tuple (an array structure)
+    * Array
     * Dictionary (a dictionary key, value structure)
   * Atom
   
@@ -310,85 +309,40 @@ Other (more technical) types are:
 
 ## Collections
 
-### Lists
-
-Lists are defined as a literal with square brackets. As a linked list structure, they know about their head and tail, and can be composed into other lists.
-
-```
-  my_list = [1, 2, 3]
-  puts(my_list)
-  puts(my_list.head())
-  puts(my_list.tail())
-  a = my_list.cons(5)
-  puts(a)
-  puts(my_list)
-```
-
-Running the above code would result in:
-
-```
-  [1, 2, 3]
-  1
-  [2, 3]
-  [5, 1, 2, 3]
-  [1, 2, 3]
-```
-
-Note how the `cons` method does not mutate the receiver, it returns a new list.
-
-Lists can be indexed using `fetch` and `put`, or using square brackets
-.
-```
-  [1, 2, 3].fetch(0) # => 1
-  [1, 2, 4].put(2, 3) # => [1, 2, 3] (and mutates the receiver)
-  [1, 2, 3][0] # => 1 (same as first example)
-  [1, 2, 3][3] # => nil
-  [1, 2, 3].fetch(3) => Error!
-```
-
-Typically, tuples are used for data where the index is of concern (it is also much more efficient with tuples).
-
-Since Iridium does not contain a for loop, the `each` method is used to iterate over lists
-
-```
-  [1, 2, 3].each -> (element)
-    print(element)
-  end
-```
 
 ### Dictionaries
 
-Dictionaries are defined using `%{}` syntax. They act as key-value pairs, and values can be accessed using the `fetch` and `put` methods, or using square brackets.
+Dictionaries are defined using `{}` syntax. They act as key-value pairs, and values can be accessed using the `fetch` and `put` methods, or using square brackets.
 
 ```
-  %{ :a => 5, "boo" => bar, MyClass => -> return 17 end }
+  { :a => 5, "boo" => bar, MyClass => -> return 17 end }
 ```
 
 If the keys are atoms (highly recommended!), a shorthand can be used when defining:
 
 ```
-  %{ a: 5, b: 6 }
+  { a: 5, b: 6 }
 ```
 
 Dictionaries can also be iterated over with `each`
 
 ```
-  %{ :a => 5, :b => 7 }.each -> (key, value)
+  { :a => 5, :b => 7 }.each -> (key, value)
     # ...
   end
 ```
 
-### Tuples
+### Arrays
 
-Tuples are an array-type structure defined with curly braces `{}`
+Arrays are a collection structure defined with square braces `[]`
 
-Since they are an array type, indexing is O(1), which is not true for list structures. Indexing is done the same as with lists.
+Since they are an array type, indexing is O(1), which is not true for list structures. Indexing is done with the indexing operator.
 
 ```
-  my_tuple = {1, "a", :c}
-  my_tuple[0] # => 1
-  my_tuple[1] = "b" # => "b"
-  my_tuple # => {1, "b", :c}
+  my_array = [1, "a", :c]
+  my_array[0] # => 1
+  my_array[1] = "b" # => "b"
+  my_array # => [1, "b", :c]
 ```
 
 ## Atoms

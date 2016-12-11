@@ -11,14 +11,14 @@ function assert(expr, reason="No reason given")
 end
 
 begin
-  a = %{:a => 5, "b" => :foo}
+  a = {:a => 5, "b" => :foo}
   a.remove(:a)
   assert(a[:a] == nil, "(Dictionary#remove()) expected nil, got " + a[:a].inspect())
   # Doesn't mess with displaying/iteration
-  assert(a.inspect() == "%{\"b\" => :foo}", "(Dictionary#remove()) expected %{\"b\" => :foo}, got " + a.inspect())
+  assert(a.inspect() == "{\"b\" => :foo}", "(Dictionary#remove()) expected {\"b\" => :foo}, got " + a.inspect())
 
   # can remove from an empty dictionary
-  a = %{}
+  a = {}
   a.remove(:foo)
   assert(a[:foo] == nil, "(Dictionary#remove()) expected nil, got " + a[:foo].inspect())
 rescue AssertionError => e

@@ -41,22 +41,12 @@ module Iridium
     end
   end
   
-  class ListLiteral < Treetop::Runtime::SyntaxNode
+  class ArrayLiteral < Treetop::Runtime::SyntaxNode
     def content
       if elements.length == 0 # empty list
-        [:list, []]
+        [:array, []]
       else
-        [:list, elements[0].content]
-      end
-    end
-  end
-  
-  class TupleLiteral < Treetop::Runtime::SyntaxNode
-    def content
-      if elements.length == 0 # empty list
-        [:tuple, []]
-      else
-        [:tuple, elements[0].content]
+        [:array, elements[0].content]
       end
     end
   end

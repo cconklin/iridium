@@ -39,8 +39,8 @@ class Generator
     modified_variables = []
     literals = {}
     exception_handlers = []
-    builtin_constants = %i[Object Class Atom Function List Tuple Dictionary Fixnum Float String Module NilClass]
-    open_constants = %i[Object Class Atom Function List Tuple Dictionary Fixnum Float String Module NilClass]
+    builtin_constants = %i[Object Class Atom Function List Array Dictionary Fixnum Float String Module NilClass]
+    open_constants = %i[Object Class Atom Function List Array Dictionary Fixnum Float String Module NilClass]
     
     # Ensure that self is put in any closures
     modified_variables << "self"
@@ -396,15 +396,12 @@ class Generator
           # Annonymous Function
           # [:lambda, [:x, {y: 10}, [:destructure, :z]], "code_name"]
           "FUNCTION(ATOM(\"lambda\"), #{generate_arglist(expr[1], active_variables: active_variables, literals: literals)}, locals, #{expr[2]})"
-        when :list
+        when :array
           arg_ary = generate_argarray(expr[1], active_variables: active_variables, literals: literals)
-          "invoke(ir_cmp_List, \"new\", #{arg_ary})"
-        when :tuple
-          arg_ary = generate_argarray(expr[1], active_variables: active_variables, literals: literals)
-          "invoke(ir_cmp_Tuple, \"new\", #{arg_ary})"
+          "invoke(ir_cmp_Array, \"new\", #{arg_ary})"
         when :dictionary
           # [:dictionary, {:":foo" => [:+, 2, 3], "baz" => :X, :v => 3}]
-          dict_lst = generate_expression([:list, expr[1].map {|k, v| [:tuple, [k, v]]}], active_variables: active_variables, literals: literals)
+          dict_lst = generate_expression([:array, expr[1].map {|k, v| [:array, [k, v]]}], active_variables: active_variables, literals: literals)
           "invoke(ir_cmp_Dictionary, \"new\", array_push(array_new(), #{dict_lst}))"
         when :===
           "(#{generate_expression(expr[1], active_variables: active_variables, literals: literals)} == #{generate_expression(expr[2], active_variables: active_variables, literals: literals)} ? ir_cmp_true : ir_cmp_false)"

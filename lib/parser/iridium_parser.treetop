@@ -77,17 +77,13 @@ grammar Iridium
   rule atom
     ':' (identifier / string) <AtomLiteral>
   end
-  
-  rule list
-    '[' space? list_content? space? ']' <ListLiteral>
-  end
-  
-  rule tuple
-    '{' space? list_content? space? '}' <TupleLiteral>
+    
+  rule array
+    '[' space? list_content? space? ']' <ArrayLiteral>
   end
   
   rule dictionary
-    '%{' space? dict_content? space? '}' <DictionaryLiteral>
+    '{' space? dict_content? space? '}' <DictionaryLiteral>
   end
 
   rule list_content
@@ -107,7 +103,7 @@ grammar Iridium
   end
 
   rule literal
-    integer / float / string / list / tuple / dictionary / atom
+    integer / float / string / array / dictionary / atom
   end
 
   ##################
@@ -342,7 +338,7 @@ grammar Iridium
   end
 
   rule primary
-    function_invocation / identifier / float / integer / string / lambda / atom / list / tuple / dictionary
+    function_invocation / identifier / float / integer / string / lambda / atom / array / dictionary
     /
     '(' space? expression space? ')' <Expression>
   end

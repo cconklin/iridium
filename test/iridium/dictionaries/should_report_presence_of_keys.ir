@@ -12,21 +12,21 @@ end
 
 begin
   # Empty dictionary
-  assert(%{}.has_key?(5) == false, "(%{}.has_key?(5)) expected false, got " + %{}.has_key?(5).inspect())
+  assert({}.has_key?(5) == false, "({}.has_key?(5)) expected false, got " + {}.has_key?(5).inspect())
 
   # Dictionary with one element
   expected = true
-  actual = %{:a => 1}.has_key?(:a)
-  assert(expected == actual, "(%{:a => 1}.has_key?(:a)) expected " + expected.inspect() + ", got " + actual.inspect())
+  actual = {:a => 1}.has_key?(:a)
+  assert(expected == actual, "({:a => 1}.has_key?(:a)) expected " + expected.inspect() + ", got " + actual.inspect())
 
   # Dictionary with multiple elements
-  d = %{:a => 1, "bc" => "bar"}
+  d = {:a => 1, "bc" => "bar"}
   expected = false
   actual = d.has_key?(11)
-  assert(expected == actual, "(%{:a => 1, \"bc\" => \"bar\"}.has_key?(11)) expected " + expected.inspect() + ", got " + actual.inspect())
+  assert(expected == actual, "({:a => 1, \"bc\" => \"bar\"}.has_key?(11)) expected " + expected.inspect() + ", got " + actual.inspect())
   expected = true
   actual = d.has_key?(:a)
-  assert(expected == actual, "(%{:a => 1, \"bc\" => \"bar\"}.has_key?(:a)) expected " + expected.inspect() + ", got " + actual.inspect())
+  assert(expected == actual, "({:a => 1, \"bc\" => \"bar\"}.has_key?(:a)) expected " + expected.inspect() + ", got " + actual.inspect())
 rescue AssertionError => e
   puts(e.reason())
   exit(1)

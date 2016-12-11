@@ -16,40 +16,32 @@ describe Parser do
       expect(parser.parse("x = :foo")).to eq([[:"=", :x, :":foo"]])
     end
     
-    it "should parse with empty list literals" do
-      expect(parser.parse("x = []")).to eq([[:"=", :x, [:list, []]]])
+    it "should parse with empty array literals" do
+      expect(parser.parse("x = []")).to eq([[:"=", :x, [:array, []]]])
     end
     
-    it "should parse with list literals with one element" do
-      expect(parser.parse("x = [2 + 4]")).to eq([[:"=", :x, [:list, [[:+, 2, 4]]]]])      
+    it "should parse with array literals with one element" do
+      expect(parser.parse("x = [2 + 4]")).to eq([[:"=", :x, [:array, [[:+, 2, 4]]]]])      
     end
     
-    it "should parse with list literals" do
-      expect(parser.parse("x = [1, :foo, 2 + 3, \"bar\"]")).to eq([[:"=", :x, [:list, [1, :":foo", [:+, 2, 3], "bar"]]]])
+    it "should parse with array literals" do
+      expect(parser.parse("x = [1, :foo, 2 + 3, \"bar\"]")).to eq([[:"=", :x, [:array, [1, :":foo", [:+, 2, 3], "bar"]]]])
     end
     
-    it "should parse with empty tuple literals" do
-      expect(parser.parse("x = {}")).to eq([[:"=", :x, [:tuple, []]]])      
-    end
-    
-    it "should parse with tuple literals" do
-      expect(parser.parse("x = {1, :foo, 2 + 3, \"bar\"}")).to eq([[:"=", :x, [:tuple, [1, :":foo", [:+, 2, 3], "bar"]]]])      
-    end
-
     it "should parse with empty dictionary literals" do
-      expect(parser.parse("x = %{}")).to eq([[:"=", :x, [:dictionary, {}]]])
+      expect(parser.parse("x = {}")).to eq([[:"=", :x, [:dictionary, {}]]])
     end
 
     it "should parse with dictionary literals" do
-      expect(parser.parse("x = %{:foo => 2 + 3, \"baz\" => X, v => 3}")).to eq([[:"=", :x, [:dictionary, {:":foo" => [:+, 2, 3], "baz" => :X, :v => 3}]]])                  
+      expect(parser.parse("x = {:foo => 2 + 3, \"baz\" => X, v => 3}")).to eq([[:"=", :x, [:dictionary, {:":foo" => [:+, 2, 3], "baz" => :X, :v => 3}]]])                  
     end
     
     it "should parse with dictionary literals using alternate syntax" do
-      expect(parser.parse("x = %{ foo: 5, bar: 6 }")).to eq([[:"=", :x, [:dictionary, {:":foo" => 5, :":bar" => 6}]]])
+      expect(parser.parse("x = { foo: 5, bar: 6 }")).to eq([[:"=", :x, [:dictionary, {:":foo" => 5, :":bar" => 6}]]])
     end
 
     it "should parse with dictionary literals using both syntaxes" do
-      expect(parser.parse("x = %{ foo: 5, :bar => 6 }")).to eq([[:"=", :x, [:dictionary, {:":foo" => 5, :":bar" => 6}]]])     
+      expect(parser.parse("x = { foo: 5, :bar => 6 }")).to eq([[:"=", :x, [:dictionary, {:":foo" => 5, :":bar" => 6}]]])     
     end
 
     it "should parse with addition" do
@@ -535,7 +527,7 @@ describe Parser do
     end
 
     it "should allow destructuring of literal tuples" do
-      expect(parser.parse("foo(* { :bar, :baz })")).to eq([[:"()", :foo, [[:destructure, [:tuple, [:":bar", :":baz"]]]]]])      
+      expect(parser.parse("foo(* [ :bar, :baz ])")).to eq([[:"()", :foo, [[:destructure, [:array, [:":bar", :":baz"]]]]]])      
     end
 
     it "should allow destructuring without a space" do
@@ -543,7 +535,7 @@ describe Parser do
     end
 
     it "should allow destructuring of literal tuples without spaces" do
-      expect(parser.parse("foo(*{ :bar, :baz })")).to eq([[:"()", :foo, [[:destructure, [:tuple, [:":bar", :":baz"]]]]]])      
+      expect(parser.parse("foo(*[ :bar, :baz ])")).to eq([[:"()", :foo, [[:destructure, [:array, [:":bar", :":baz"]]]]]])      
     end
 
   end

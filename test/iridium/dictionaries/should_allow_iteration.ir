@@ -12,7 +12,7 @@ end
 
 begin
   expected = "(:a : 1)(\"bc\" : \"bar\")"
-  actual = %{:a => 1, "bc" => "bar"}.reduce("") -> (key, value, acc)
+  actual = {:a => 1, "bc" => "bar"}.reduce("") -> (key, value, acc)
     return acc + "(" + key.inspect() + " : " + value.inspect() + ")"
   end
   assert(expected == actual, "(Dictionary#reduce()) expected " + expected.inspect() + ", got " + actual.inspect())

@@ -1,6 +1,6 @@
-class Tuple
+class Array
   method join(joiner)
-    return reduce("") -> (element, accumulator)
+    return reduce("hello!") -> (element, accumulator)
       if accumulator == ""
         return element.to_s()
       else
@@ -10,5 +10,5 @@ class Tuple
   end
 end
 
-puts({"foo", "bar", "baz"}.join("-").inspect())
-puts({}.join("-").inspect())
+puts(["foo", "bar", "baz"].join("-").inspect())
+puts([].join("-").inspect())

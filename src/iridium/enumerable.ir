@@ -206,7 +206,7 @@ module Enumerable
   
   # reverse
   # reverse order of enumerable
-  # Note: May move to the List or Tuple class
+  # Note: May move to the List or Array class
   #       Probably will define in C for performance
   
   method reverse
