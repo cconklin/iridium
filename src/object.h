@@ -132,7 +132,7 @@ object CLASS(Function);
 object CLASS(Atom);
 object CLASS(Array);
 object CLASS(NilClass);
-object CLASS(Fixnum);
+object CLASS(Integer);
 object CLASS(String);
 object CLASS(Boolean);
 
@@ -166,7 +166,7 @@ object create_self_atom();
 object create_nil();
 object construct(object class);
 object FUNCTION(object name, struct list * args, struct dict * bindings, object (* func)(struct dict *));
-object TUPLE(struct array * values);
+object ARRAY(struct array * values);
 int INT(object);
 object FIXNUM(int);
 object IR_STRING(char *);
@@ -566,6 +566,15 @@ char * str(object string) {
 // Destructures arrays into struct array *
 struct array * destructure(struct array * args, object argument_array) {
   struct array * array_args = internal_get_attribute(argument_array, ATOM("array"), struct array *);
+  object reason;
+  if (array_args == NULL) {
+    // Not actually an array...
+    reason = IR_STRING("Cannot destructure ");
+    reason = send(reason, "__add__", _send(argument_array, "to_s", 0));
+    reason = send(reason, "__add__", IR_STRING(":"));
+    reason = send(reason, "__add__", _send(argument_array -> class, "to_s", 0));
+    handleException(send(CLASS(TypeError), "new", reason));
+  }
   return array_merge(args, array_args);
 }
 
@@ -645,7 +654,7 @@ struct dict * process_args(object function, struct array * _args) {
         index ++;
       }
       // Splatted argument
-      dict_set(argument_values, this_arg -> name, TUPLE(partial_args));
+      dict_set(argument_values, this_arg -> name, ARRAY(partial_args));
     }
     iter_arg_list = list_tail(iter_arg_list);
   } 
@@ -1085,7 +1094,7 @@ iridium_method(Atom, to_s) {
 
 // class Array
 
-object TUPLE(struct array * values) {
+object ARRAY(struct array * values) {
   object array = construct(CLASS(Array));
   internal_set_attribute(array, ATOM("array"), values);
   return array;
@@ -1093,7 +1102,7 @@ object TUPLE(struct array * values) {
 
 iridium_classmethod(Array, new) {
   object args = local("args");
-  object array = TUPLE(destructure(array_new(), args));
+  object array = ARRAY(destructure(array_new(), args));
   // Call initialize (which should do nothing unless overidden)
   invoke(array, "initialize", destructure(array_new(), args));
   return array;
@@ -1120,14 +1129,14 @@ iridium_method(Array, reduce) {
 
 iridium_method(Array, __get_index__) {
   object self = local("self");
-  object index = local("index"); // Iridium Fixnum
+  object index = local("index"); // Iridium Integer
   struct array * ary = internal_get_attribute(self, ATOM("array"), struct array *);
   return array_get(ary, INT(index));
 }
 
 iridium_method(Array, __set_index__) {
   object self = local("self");
-  object index = local("index"); // Iridium Fixnum
+  object index = local("index"); // Iridium Integer
   object value = local("value");
   struct array * ary = internal_get_attribute(self, ATOM("array"), struct array *);
   array_set(ary, INT(index), value);
@@ -1170,6 +1179,23 @@ iridium_method(Array, inspect) {
   return IR_STRING(str);
 }
 
+iridium_method(Array, push) {
+  object self = local("self");
+  object value = local("value");
+  struct array * ary = internal_get_attribute(self, ATOM("array"), struct array *);
+  array_push(ary, value);
+  return self;
+}
+
+iridium_method(Array, unshift) {
+  object self = local("self");
+  object value = local("value");
+  struct array * ary = internal_get_attribute(self, ATOM("array"), struct array *);
+  ary = array_unshift(ary, value);
+  internal_set_attribute(self, ATOM("array"), ary);
+  return self;
+}
+
 // class Boolean
 
 iridium_classmethod(true, inspect) {
@@ -1195,20 +1221,20 @@ iridium_method(AttributeError, reason) {
     return message;
 }
 
-// class Fixnum
+// class Integer
 
-iridium_classmethod(Fixnum, new) {
+iridium_classmethod(Integer, new) {
   object fixnum = local("fixnum");
   return fixnum;
 }
 
-iridium_method(Fixnum, __add__) {
+iridium_method(Integer, __add__) {
   object self = local("self");
   object other = local("other");
   return FIXNUM(INT(self) + INT(other));
 }
 
-iridium_method(Fixnum, __eq__) {
+iridium_method(Integer, __eq__) {
   object self = local("self");
   object other = local("other");
   if (self -> class != other -> class) {
@@ -1220,7 +1246,7 @@ iridium_method(Fixnum, __eq__) {
   }
 }
 
-iridium_method(Fixnum, __neq__) {
+iridium_method(Integer, __neq__) {
   object self = local("self");
   object other = local("other");
   if (send(self, "__eq__", other) == ir_cmp_false) {
@@ -1232,7 +1258,7 @@ iridium_method(Fixnum, __neq__) {
 
 
 object FIXNUM(int val) {
-  object fixnum = construct(CLASS(Fixnum));
+  object fixnum = construct(CLASS(Integer));
   
   internal_set_integral(fixnum, ATOM("value"), val);
   return fixnum;
@@ -1242,7 +1268,7 @@ int INT(object fixnum) {
   return internal_get_integral(fixnum, ATOM("value"), int);
 }
 
-iridium_method(Fixnum, inspect) {
+iridium_method(Integer, inspect) {
   object self = local("self");
   int val = INT(self);
   char buffer[30];
@@ -1541,8 +1567,8 @@ iridium_method(Object, hash) {
   return FIXNUM((long long int) local("self"));
 }
 
-// Hash method for Fixnums
-iridium_method(Fixnum, hash) {
+// Hash method for Integers
+iridium_method(Integer, hash) {
   object self = local("self");
   long long int val = INT(self);
   return FIXNUM((val << 19) + (val >> 3));
@@ -1628,26 +1654,26 @@ void IR_init_Object() {
 
   CLASS(Array) = construct(CLASS(Class));
   CLASS(NilClass) = construct(CLASS(Class));
-  CLASS(Fixnum) = construct(CLASS(Class));
+  CLASS(Integer) = construct(CLASS(Class));
   
   set_attribute(CLASS(Array), ATOM("superclass"), PUBLIC, CLASS(Object));
   // NilClass Inherits from itself -- that way stuff defined on object doesn't affect it.
   set_attribute(CLASS(NilClass), ATOM("superclass"), PUBLIC, CLASS(NilClass));
   set_instance_attribute(CLASS(NilClass), ATOM("__get__"), PUBLIC, get);
-  set_attribute(CLASS(Fixnum), ATOM("superclass"), PUBLIC, CLASS(Object));
+  set_attribute(CLASS(Integer), ATOM("superclass"), PUBLIC, CLASS(Object));
   set_attribute(CLASS(Array), ATOM("name"), PUBLIC, IR_STRING("Array"));
   set_attribute(CLASS(NilClass), ATOM("name"), PUBLIC, IR_STRING("NilClass"));
-  set_attribute(CLASS(Fixnum), ATOM("name"), PUBLIC, IR_STRING("Fixnum"));
+  set_attribute(CLASS(Integer), ATOM("name"), PUBLIC, IR_STRING("Integer"));
 
-  // Init Fixnum
+  // Init Integer
   other = argument_new(ATOM("other"), NULL, 0);
-  fix_plus = FUNCTION(ATOM("__add__"), list_new(other), dict_new(ObjectHashsize), iridium_method_name(Fixnum, __add__));
-  set_instance_attribute(CLASS(Fixnum), ATOM("__add__"), PUBLIC, fix_plus);
-  fix_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Fixnum, inspect));
-  set_instance_attribute(CLASS(Fixnum), ATOM("inspect"), PUBLIC, fix_inspect);
-  DEF_METHOD(CLASS(Fixnum), "__eq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Fixnum, __eq__));
-  DEF_METHOD(CLASS(Fixnum), "__neq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Fixnum, __neq__));
-  DEF_METHOD(CLASS(Fixnum), "hash", ARGLIST(), iridium_method_name(Fixnum, hash));
+  fix_plus = FUNCTION(ATOM("__add__"), list_new(other), dict_new(ObjectHashsize), iridium_method_name(Integer, __add__));
+  set_instance_attribute(CLASS(Integer), ATOM("__add__"), PUBLIC, fix_plus);
+  fix_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Integer, inspect));
+  set_instance_attribute(CLASS(Integer), ATOM("inspect"), PUBLIC, fix_inspect);
+  DEF_METHOD(CLASS(Integer), "__eq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __eq__));
+  DEF_METHOD(CLASS(Integer), "__neq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __neq__));
+  DEF_METHOD(CLASS(Integer), "hash", ARGLIST(), iridium_method_name(Integer, hash));
 
   // Init nil
   nil_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(NilClass, inspect));
@@ -1676,6 +1702,8 @@ void IR_init_Object() {
   DEF_METHOD(CLASS(Array), "__get_index__", ARGLIST(argument_new(ATOM("index"), NULL, 0)), iridium_method_name(Array, __get_index__));
   DEF_METHOD(CLASS(Array), "__set_index__", ARGLIST(argument_new(ATOM("index"), NULL, 0), argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Array, __set_index__));
   DEF_FUNCTION(CLASS(Array), "new", ARGLIST(argument_new(ATOM("args"), NULL, 1)), iridium_classmethod_name(Array, new));
+  DEF_METHOD(CLASS(Array), "push", ARGLIST(argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Array, push));
+  DEF_METHOD(CLASS(Array), "unshift", ARGLIST(argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Array, unshift));
 
   // Init Boolean
   CLASS(Boolean) = send(CLASS(Class), "new", IR_STRING("Boolean"));

@@ -39,8 +39,8 @@ class Generator
     modified_variables = []
     literals = {}
     exception_handlers = []
-    builtin_constants = %i[Object Class Atom Function List Array Dictionary Fixnum Float String Module NilClass]
-    open_constants = %i[Object Class Atom Function List Array Dictionary Fixnum Float String Module NilClass]
+    builtin_constants = %i[Object Class Atom Function Array Dictionary Integer Float String Module NilClass]
+    open_constants = %i[Object Class Atom Function Array Dictionary Integer Float String Module NilClass]
     
     # Ensure that self is put in any closures
     modified_variables << "self"
@@ -362,7 +362,7 @@ class Generator
             "(ir_cmp_#{expr} ? ir_cmp_#{expr} : (ir_cmp_#{expr} = local(\"#{expr}\")))"
           end
       end
-    elsif expr.is_a? Fixnum
+    elsif expr.is_a? Integer
       # Number literal
       value = "FIXNUM(#{expr})"
       name = "ir_lit_#{Translator.name(value)}"

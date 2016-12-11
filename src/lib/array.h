@@ -146,6 +146,16 @@ struct array * array_copy(struct array * ary) {
   return new_array;
 }
 
+struct array * array_unshift(struct array * ary, void * value) {
+  struct array * new_array = array_new();
+  int index;
+  for (index = 1; index < ary -> length + 1; index ++) {
+    array_set(new_array, index, array_get(ary, index));
+  }
+  array_set(new_array, 0, value);
+  return new_array;  
+}
+
 struct array * array_merge(struct array * array_1, struct array * array_2) {
   struct array * result = array_copy(array_1);
   int index;

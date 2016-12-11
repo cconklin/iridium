@@ -68,43 +68,26 @@ module Enumerable
     end
   end
   
-  # chunk
-  # Splits enumerable on every element for which `fn` returns a new value
-  
-  method chunk(fn)
-    result = reduce([[], nil]) -> (element, accumulator)
-      if ( fn(element) == accumulator.last() ) and ( accumulator.first() != [] )
-        # Accumulator: [..., [...]] => [..., [..., element]]
-        # Same return value as previous, add to the group
-        return accumulator.first().last().cons(element)
-      else
-        # New return value, make new group
-        return accumulator.first().cons([element])
-      end
-    end
-    return result.first().reverse()
-  end
-  
   # select
   # returns a list for each element in enumerable that `fn` returns true
   
   method select(fn)
-    return reduce([], -> (element, accumulator)
+    return reduce([]) -> (element, accumulator)
       if fn(element)
-        return accumulator.cons(element)
+        return accumulator.push(element)
       end
-    end).reverse()
+    end
   end
   
   # reject
   # returns a list for each element in enumerable that `fn` returns false
   
   method reject(fn)
-    return reduce([], -> (element, accumulator)
+    return reduce([]) -> (element, accumulator)
       unless fn(element)
-        return accumulator.cons(element)
+        return accumulator.push(element)
       end
-    end).reverse()
+    end
   end
   
   # empty?
@@ -120,9 +103,9 @@ module Enumerable
   # invokes `fn` on each element in enumerable, returning the resultant list
   
   method map(fn)
-    return reduce([], -> (element, accumulator)
-      return accumulator.cons(fn(*element))
-    end).reverse()
+    return reduce([]) -> (element, accumulator)
+      return accumulator.push(fn(element))
+    end
   end
   
   # find
@@ -176,12 +159,12 @@ module Enumerable
   # returns a list of the unique elements in enumerable
   
   method uniq
-    return reduce([], -> (element, accumulator)
+    return reduce([]) -> (element, accumulator)
       unless accumulator.contains?(element)
-        return accumulator.cons(element)
+        return accumulator.push(element)
       end
       return accumulator
-    end).reverse()
+    end
   end
   
   # flatten
@@ -191,27 +174,27 @@ module Enumerable
   #   [2, 3, 2, 3]
   
   method flatten
-    return reduce([], -> (element, accumulator)
+    return reduce([]) -> (element, accumulator)
       if element.responds_to?(:flatten)
         flattened = element.flatten()
         flattened.each -> (elem)
-          accumulator = accumulator.cons(elem)
+          accumulator = accumulator.push(elem)
         end
         return accumulator
       else
-        return accumulator.cons(element)
+        return accumulator.push(element)
       end
-    end).reverse()
+    end
   end
   
   # reverse
   # reverse order of enumerable
-  # Note: May move to the List or Array class
+  # Note: May move to the Array class
   #       Probably will define in C for performance
   
   method reverse
     return reduce([]) -> (element, accumulator)
-      return accumulator.cons(element)
+      return accumulator.unshift(element)
     end
   end
   
