@@ -149,8 +149,8 @@ struct array * array_copy(struct array * ary) {
 struct array * array_unshift(struct array * ary, void * value) {
   struct array * new_array = array_new();
   int index;
-  for (index = 1; index < ary -> length + 1; index ++) {
-    array_set(new_array, index, array_get(ary, index));
+  for (index = 0; index < ary -> length; index ++) {
+    array_set(new_array, index+1, array_get(ary, index));
   }
   array_set(new_array, 0, value);
   return new_array;  

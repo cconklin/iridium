@@ -16,3 +16,5 @@ puts(y.sum())
 puts(y.map -> (elem)
   return elem + 1
 end)
+
+puts(y.reverse())
