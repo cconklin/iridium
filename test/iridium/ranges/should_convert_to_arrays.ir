@@ -1,0 +1,36 @@
+class AssertionError < AttributeError
+  method reason
+    return "Assertion Failed: " + message
+  end
+end
+
+function assert(expr, reason="No reason given")
+  unless expr
+    raise(AssertionError.new(reason))
+  end
+end
+
+begin
+  # Without a start
+  expected = "[0, 1, 2, 3, 4]"
+  actual = Range.new(4).map(-> (elem) return elem end).to_s()
+  assert(expected == actual, "(Range#map()) expected " + expected + ", got " + actual)
+
+  # With a start
+  expected = "[1, 2, 3, 4]"
+  actual = Range.new(1, 4).map(-> (elem) return elem end).to_s()
+  assert(expected == actual, "(Range#map()) expected " + expected + ", got " + actual)
+
+  # With a step
+  expected = "[1, 3, 5]"
+  actual = Range.new(1, 6, 2).map(-> (elem) return elem end).to_s()
+  assert(expected == actual, "(Range#map()) expected " + expected + ", got " + actual)
+
+rescue AssertionError => e
+  puts(e.reason())
+  exit(1)
+rescue Object => e
+  # Some non-AssertionError exception
+  puts(e.class().inspect() + ": " + e.reason())  
+  exit(3)
+end

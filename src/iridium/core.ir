@@ -1,3 +1,4 @@
 require "dictionary"
 require "enumerable"
 require "array"
+require "range"

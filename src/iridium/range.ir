@@ -1,0 +1,27 @@
+class Range
+
+  include(Enumerable)
+
+  method initialize(a, b=nil, step=1)
+    self.step = step
+    # Determine first and last
+    if b == nil
+      self.first = 0
+      self.last = a
+    else
+      self.first = a
+      self.last = b
+    end
+  end
+
+  method reduce(acc, fn)
+    counter = self.first
+    result = []
+    while counter <= self.last
+      acc = fn(counter, acc)
+      counter = counter + self.step
+    end
+    return acc
+  end
+
+end

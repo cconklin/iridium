@@ -87,9 +87,9 @@ class Generator
   end
 
   def push_self(code, new_self)
+    code << "array_push(self_stack, ir_cmp_self);"
     code << "ir_cmp_self = #{new_self};"
     code << "dict_set(locals, ATOM(\"self\"), ir_cmp_self);"
-    code << "array_push(self_stack, ir_cmp_self);"
   end
 
   def pop_self(code, method: :<<)
@@ -359,7 +359,7 @@ class Generator
           else
             # Variable
             active_variables << expr unless active_variables.include? expr
-            "(ir_cmp_#{expr} ? ir_cmp_#{expr} : (ir_cmp_#{expr} = local(\"#{expr}\")))"
+            "(ir_cmp_#{expr} ? ir_cmp_#{expr} : local(\"#{expr}\"))"
           end
       end
     elsif expr.is_a? Integer

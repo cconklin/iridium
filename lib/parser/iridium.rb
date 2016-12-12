@@ -210,6 +210,18 @@ module Iridium
       :<
     end
   end
+
+  class GreaterThanEqOperator < Treetop::Runtime::SyntaxNode
+    def content
+      :>=
+    end
+  end
+  
+  class LessThanEqOperator < Treetop::Runtime::SyntaxNode
+    def content
+      :<=
+    end
+  end
   
   class IdenticalityOperator < Treetop::Runtime::SyntaxNode
     def content

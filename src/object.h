@@ -1246,6 +1246,54 @@ iridium_method(Integer, __eq__) {
   }
 }
 
+iridium_method(Integer, __lt__) {
+  object self = local("self");
+  object other = local("other");
+  if (self -> class != other -> class) {
+    return ir_cmp_false;
+  } else if (INT(self) < INT(other)) {
+    return ir_cmp_true;
+  } else {
+    return ir_cmp_false;
+  }
+}
+
+iridium_method(Integer, __gt__) {
+  object self = local("self");
+  object other = local("other");
+  if (self -> class != other -> class) {
+    return ir_cmp_false;
+  } else if (INT(self) > INT(other)) {
+    return ir_cmp_true;
+  } else {
+    return ir_cmp_false;
+  }
+}
+
+iridium_method(Integer, __leq__) {
+  object self = local("self");
+  object other = local("other");
+  if (self -> class != other -> class) {
+    return ir_cmp_false;
+  } else if (INT(self) <= INT(other)) {
+    return ir_cmp_true;
+  } else {
+    return ir_cmp_false;
+  }
+}
+
+iridium_method(Integer, __geq__) {
+  object self = local("self");
+  object other = local("other");
+  if (self -> class != other -> class) {
+    return ir_cmp_false;
+  } else if (INT(self) >= INT(other)) {
+    return ir_cmp_true;
+  } else {
+    return ir_cmp_false;
+  }
+}
+
 iridium_method(Integer, __neq__) {
   object self = local("self");
   object other = local("other");
@@ -1673,6 +1721,10 @@ void IR_init_Object() {
   set_instance_attribute(CLASS(Integer), ATOM("inspect"), PUBLIC, fix_inspect);
   DEF_METHOD(CLASS(Integer), "__eq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __eq__));
   DEF_METHOD(CLASS(Integer), "__neq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __neq__));
+  DEF_METHOD(CLASS(Integer), "__lt__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __lt__));
+  DEF_METHOD(CLASS(Integer), "__gt__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __gt__));
+  DEF_METHOD(CLASS(Integer), "__leq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __leq__));
+  DEF_METHOD(CLASS(Integer), "__geq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __geq__));
   DEF_METHOD(CLASS(Integer), "hash", ARGLIST(), iridium_method_name(Integer, hash));
 
   // Init nil

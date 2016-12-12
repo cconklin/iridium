@@ -192,7 +192,7 @@ grammar Iridium
   end
 
   rule argument
-    identifier space? '=' space? literal <Argument> / identifier / '*' space? identifier <Splat>
+    identifier space? '=' space? (identifier / literal) <Argument> / identifier / '*' space? identifier <Splat>
   end
 
   rule argumentlist
@@ -347,7 +347,7 @@ grammar Iridium
   # Operator sets
 
   rule comparative_operator
-    identicality_operator / equality_operator / inequality_operator / greater_than_operator / less_than_operator
+    identicality_operator / equality_operator / inequality_operator / greater_than_eq_operator / less_than_eq_operator / greater_than_operator / less_than_operator
   end
 
   rule additive_operator
@@ -399,6 +399,14 @@ grammar Iridium
 
   rule less_than_operator
     '<' <LessThanOperator>
+  end
+
+  rule greater_than_eq_operator
+    '>=' <GreaterThanEqOperator>
+  end
+
+  rule less_than_eq_operator
+    '<=' <LessThanEqOperator>
   end
   
   rule identicality_operator
