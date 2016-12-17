@@ -1,0 +1,2 @@
+# This should print itself
+puts(File.read(__FILE__))

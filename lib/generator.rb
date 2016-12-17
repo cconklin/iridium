@@ -39,9 +39,10 @@ class Generator
     modified_variables = []
     literals = {}
     exception_handlers = []
-    builtin_constants = %i[Object Class Atom Function Array Dictionary Integer Float String Module NilClass]
-    open_constants = %i[Object Class Atom Function Array Dictionary Integer Float String Module NilClass]
-    
+    builtin_constants = %i[Object Class Atom Function Array Dictionary Integer Float String Module NilClass
+                           File FileNotFoundError Exception IOError AttributeError TypeError]
+    open_constants = %i[Object Class Atom Function Array Dictionary Integer Float String Module NilClass
+                        File FileNotFoundError Exception IOError AttributeError TypeError]
     # Ensure that self is put in any closures
     modified_variables << "self"
 
@@ -53,10 +54,10 @@ class Generator
                                      exception_handlers: exception_handlers
     
     (active_variables - new_variables - [:self]).uniq.each do |var|
-      code.unshift "object #{variable_name(var)} = NULL;" unless var[0] == var[0].upcase
+      code.unshift "object #{variable_name(var)} = NULL;" unless open_constants.include? var
     end
     (new_variables - [:self]).uniq.each do |var|
-      code.unshift "object #{variable_name(var)} = NULL;" unless var[0] == var[0].upcase
+      code.unshift "object #{variable_name(var)} = NULL;" unless open_constants.include? var
     end
 
     literals.each do |name, value|

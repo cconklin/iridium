@@ -136,6 +136,7 @@ object CLASS(Integer);
 object CLASS(String);
 object CLASS(Boolean);
 
+object CLASS(Exception);
 object CLASS(AttributeError);
 object CLASS(NameError);
 object CLASS(TypeError);
@@ -1335,6 +1336,12 @@ object IR_STRING(char * c_str) {
 }
 
 char * C_STRING(object str) {
+  object reason;
+  if (str -> class != CLASS(String)) {
+    reason = send(str, "inspect");
+    reason = send(reason, "__add__", IR_STRING(" is not a string object"));
+    handleException(send(CLASS(TypeError), "new", reason));
+  }
   return internal_get_attribute(str, ATOM("str"), char *);
 }
 
@@ -1765,18 +1772,16 @@ void IR_init_Object() {
   DEF_FUNCTION(ir_cmp_false, "inspect", ARGLIST(), iridium_classmethod_name(false, inspect));
 
   // TODO: Add full exception support
+  CLASS(Exception) = send(CLASS(Class), "new", IR_STRING("Exception"));
+  DEF_METHOD(CLASS(Exception), "initialize", ARGLIST(argument_new(ATOM("message"), NIL, 0)), iridium_method_name(AttributeError, initialize));
+  DEF_METHOD(CLASS(Exception), "reason", ARGLIST(), iridium_method_name(AttributeError, reason));
+
   // Init AttributeError
-  CLASS(AttributeError) = send(CLASS(Class), "new", IR_STRING("AttributeError"));
-  DEF_METHOD(CLASS(AttributeError), "initialize", ARGLIST(argument_new(ATOM("message"), NIL, 0)), iridium_method_name(AttributeError, initialize));
-  DEF_METHOD(CLASS(AttributeError), "reason", ARGLIST(), iridium_method_name(AttributeError, reason));
+  CLASS(AttributeError) = send(CLASS(Class), "new", IR_STRING("AttributeError"), CLASS(Exception));
 
-  CLASS(NameError) = send(CLASS(Class), "new", IR_STRING("NameError"));
-  DEF_METHOD(CLASS(NameError), "initialize", ARGLIST(argument_new(ATOM("message"), NIL, 0)), iridium_method_name(AttributeError, initialize));
-  DEF_METHOD(CLASS(NameError), "reason", ARGLIST(), iridium_method_name(AttributeError, reason));
+  CLASS(NameError) = send(CLASS(Class), "new", IR_STRING("NameError"), CLASS(Exception));
 
-  CLASS(TypeError) = send(CLASS(Class), "new", IR_STRING("TypeError"));
-  DEF_METHOD(CLASS(TypeError), "initialize", ARGLIST(argument_new(ATOM("message"), NIL, 0)), iridium_method_name(AttributeError, initialize));
-  DEF_METHOD(CLASS(TypeError), "reason", ARGLIST(), iridium_method_name(AttributeError, reason));
+  CLASS(TypeError) = send(CLASS(Class), "new", IR_STRING("TypeError"), CLASS(Exception));
 
   DEF_METHOD(CLASS(Module), "include", ARGLIST(argument_new(ATOM("module"), NULL, 0)), iridium_method_name(Module, include));
   no_instance_attribute(CLASS(Module), ATOM("new"));

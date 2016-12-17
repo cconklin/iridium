@@ -2,6 +2,7 @@
 #include "float.h"
 #include "string.h"
 #include "dictionary.h"
+#include "file.h"
 
 object ir_user_main();
 
@@ -10,6 +11,7 @@ void IR_INIT(void) {
     IR_init_Float();
     IR_init_String();
     IR_init_Dictionary();
+    IR_init_File();
     _exception_frames = stack_new(); // Initialize the exception stack
 }
 
