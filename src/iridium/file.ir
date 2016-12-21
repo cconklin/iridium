@@ -1,0 +1,9 @@
+class File
+  method lines
+    lns = []
+    each_line -> (line)
+      lns << line
+    end
+    return lns
+  end
+end

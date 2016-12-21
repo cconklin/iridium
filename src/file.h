@@ -93,13 +93,17 @@ iridium_method(File, each_line) {
   char * buffer = GC_MALLOC((file_size+1)*sizeof(char));
   assert(buffer);
   int nchars;
+  char * line;
 
   while ((nchars = getline(&buffer, &file_size, f)) != -1) {
     // Remove the newline, if present
     if (buffer[nchars-1] == '\n') {
       buffer[nchars-1] = 0;
     }
-    str = IR_STRING(buffer);
+    line = GC_MALLOC((nchars + 1) * sizeof(char));
+    assert(line);
+    strncpy(line, buffer, nchars);
+    str = IR_STRING(line);
     calls(fn, array_push(array_new(), str));
   }
   return NIL;

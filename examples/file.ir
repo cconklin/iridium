@@ -6,3 +6,9 @@ f = File.new(__FILE__)
 f.each_line -> (line)
   puts(line)
 end
+f.close()
+
+# This should print each line in an array
+f = File.new(__FILE__)
+puts(f.lines())
+f.close()

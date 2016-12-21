@@ -32,7 +32,7 @@ grammar Iridium
   end
   
   rule statement
-    space? (index_assignment / attribute_assignment / assignment / if / unless / while / return / invocation / function_invocation / begin ) ';'? space? linebreak? <Statement>
+    space? (index_assignment / attribute_assignment / assignment / if / unless / while / return / invocation / function_invocation / begin / shovel) ';'? space? linebreak? <Statement>
   end
 
   ##################
@@ -355,7 +355,15 @@ grammar Iridium
   end
 
   rule multitive_operator
-    multiplication_operator / division_operator
+    shovel_operator / multiplication_operator / division_operator
+  end
+
+  rule shovel_operator
+    left_shovel_operator / right_shovel_operator
+  end
+
+  rule shovel
+    primary space? shovel_operator space? expression <ShovelExpression>
   end
 
   ##################
@@ -411,6 +419,14 @@ grammar Iridium
   
   rule identicality_operator
     '===' <IdenticalityOperator>
+  end
+
+  rule left_shovel_operator
+    '<<' <LeftShovelOperator>
+  end
+
+  rule right_shovel_operator
+    '>>' <RightShovelOperator>
   end
 
   ##################

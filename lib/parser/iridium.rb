@@ -229,6 +229,18 @@ module Iridium
     end
   end
   
+  class LeftShovelOperator < Treetop::Runtime::SyntaxNode
+    def content
+      :<<
+    end
+  end
+
+  class RightShovelOperator < Treetop::Runtime::SyntaxNode
+    def content
+      :>>
+    end
+  end
+  
   class PrivateFunction < Treetop::Runtime::SyntaxNode
     def content
       [:private_function, *self.elements[0].content[1..-1]]
@@ -367,6 +379,14 @@ module Iridium
       elements.last.content
     end
     
+  end
+  
+  class ShovelExpression < Treetop::Runtime::SyntaxNode
+
+    def content
+      return [elements[1].content, elements[0].content, elements[2].content]
+    end
+  
   end
   
   class FunctionInvocation < Treetop::Runtime::SyntaxNode

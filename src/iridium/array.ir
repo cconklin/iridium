@@ -2,4 +2,8 @@ require "enumerable"
 
 class Array
   include(Enumerable)
+
+  method __lsh__(other)
+    return push(other)
+  end
 end
