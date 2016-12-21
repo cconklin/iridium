@@ -2,10 +2,35 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <string.h>
 
 object CLASS(File);
 object CLASS(FileNotFoundError);
 object CLASS(IOError);
+
+FILE * get_file(object self) {
+  object reason;
+  FILE * f = internal_get_attribute(self, ATOM("FILE"), FILE *);
+  if (f == NULL) {
+    reason = send(self, "to_s");
+    reason = send(reason, "__add__", IR_STRING(" is not open"));
+    handleException(send(CLASS(IOError), "new", reason));  
+  }
+  return f;
+}
+
+size_t file_length(FILE * f, object filename) {
+  struct stat st;
+  size_t nbytes_read;
+  object reason;
+  if (-1 == fstat(fileno(f), &st)) {
+    reason = filename;
+    reason = send(reason, "__add__", IR_STRING(" -- "));
+    reason = send(reason, "__add__", IR_STRING(strerror(errno)));
+    handleException(send(CLASS(IOError), "new", reason));
+  }
+  return st.st_size;
+}
 
 // Instantiate a File with a filename
 iridium_method(File, initialize) {
@@ -24,30 +49,25 @@ iridium_method(File, initialize) {
 
 char * read_file(FILE * f, object filename) {
   char * buffer;
-  struct stat st;
+  size_t file_size;
   size_t nbytes_read;
   object reason;
-  if (-1 == fstat(fileno(f), &st)) {
-    reason = filename;
-    reason = send(reason, "__add__", IR_STRING(" -- "));
-    reason = send(reason, "__add__", IR_STRING(strerror(errno)));
-    handleException(send(CLASS(IOError), "new", reason));
-  }
+  file_size = file_length(f, filename);
   // Is +1 needed for a terminating null?
-  buffer = GC_MALLOC((st.st_size+1)*sizeof(char));
-  nbytes_read = fread(buffer, sizeof(char), st.st_size, f);
-  if (nbytes_read != st.st_size) {
+  buffer = GC_MALLOC((file_size+1)*sizeof(char));
+  nbytes_read = fread(buffer, sizeof(char), file_size, f);
+  if (nbytes_read != file_size) {
     // DEBUG
-    printf("%lu != %lld\n", nbytes_read, st.st_size);
+    printf("%lu != %zu\n", nbytes_read, file_size);
     handleException(send(CLASS(IOError), "new", IR_STRING("Reading Error")));    
   }
-  buffer[st.st_size] = 0; // Add terminating NULL
+  buffer[file_size] = 0; // Add terminating NULL
   return buffer;
 }
 
 iridium_method(File, read) {
   object self = local("self");
-  FILE * f = internal_get_attribute(self, ATOM("FILE"), FILE *);
+  FILE * f = get_file(self);
   char * buffer = read_file(f, local("filename"));
   return IR_STRING(buffer);
 }
@@ -56,13 +76,32 @@ iridium_method(File, close) {
   object self = local("self");
   object reason;
   
-  FILE * f = internal_get_attribute(self, ATOM("FILE"), FILE *);
-  if (f == NULL) {
-    reason = send(self, "to_s");
-    reason = send(reason, "__add__", IR_STRING(" is not open"));
-    handleException(send(CLASS(IOError), "new", reason));  
-  }
+  FILE * f = get_file(self);
   fclose(f);
+  // Now that the file has been closed, set it to NULL
+  internal_set_attribute(self, ATOM("FILE"), NULL);
+  return NIL;
+}
+
+iridium_method(File, each_line) {
+  object self = local("self");
+  object filename = local("filename"); // From self
+  object fn = local("fn");
+  object str;
+  FILE * f = get_file(self);
+  size_t file_size = file_length(f, filename);
+  char * buffer = GC_MALLOC((file_size+1)*sizeof(char));
+  assert(buffer);
+  int nchars;
+
+  while ((nchars = getline(&buffer, &file_size, f)) != -1) {
+    // Remove the newline, if present
+    if (buffer[nchars-1] == '\n') {
+      buffer[nchars-1] = 0;
+    }
+    str = IR_STRING(buffer);
+    calls(fn, array_push(array_new(), str));
+  }
   return NIL;
 }
 
@@ -90,5 +129,6 @@ void IR_init_File(void)
   DEF_METHOD(CLASS(File), "read", ARGLIST(), iridium_method_name(File, read));
   DEF_METHOD(CLASS(File), "close", ARGLIST(), iridium_method_name(File, close));
   DEF_FUNCTION(CLASS(File), "read", ARGLIST(argument_new(ATOM("filename"), NULL, 0)), iridium_classmethod_name(File, read));
+  DEF_METHOD(CLASS(File), "each_line", ARGLIST(argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(File, each_line));
 }
 

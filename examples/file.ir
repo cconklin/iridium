@@ -1,2 +1,8 @@
 # This should print itself
 puts(File.read(__FILE__))
+
+# This should print itself, line by line
+f = File.new(__FILE__)
+f.each_line -> (line)
+  puts(line)
+end
