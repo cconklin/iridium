@@ -87,13 +87,14 @@ class Generator
     code.join("\n") 
   end
 
-  def push_self(code, new_self)
+  def push_self(code, name)
+    new_self = "ir_cmp_#{name}"
     code << "array_push(self_stack, ir_cmp_self);"
     code << "ir_cmp_self = #{new_self};"
     code << "dict_set(locals, ATOM(\"self\"), ir_cmp_self);"
   end
 
-  def pop_self(code, method: :<<)
+  def pop_self(code)
     code << "ir_cmp_self = array_pop(self_stack);"
     code << "dict_set(locals, ATOM(\"self\"), ir_cmp_self);"
   end
@@ -108,7 +109,7 @@ class Generator
             open_constants << name
             code << "ir_cmp_#{name} = invoke(ir_cmp_Module, \"new\", array_push(array_new(), IR_STRING(\"#{name}\")));"
           end
-          push_self code, "ir_cmp_#{name}"
+          push_self code, name
           generate_main_block code, node[2], new_variables: new_variables,
                                              active_variables: active_variables,
                                              modified_variables: modified_variables,
@@ -123,7 +124,7 @@ class Generator
             open_constants << name
             code << "ir_cmp_#{name} = invoke(ir_cmp_Class, \"new\", array_push(array_push(array_new(), IR_STRING(\"#{name}\")), ir_cmp_#{superclass}));"
           end
-          push_self code, "ir_cmp_#{name}"
+          push_self code, name
           generate_main_block code, node[3], new_variables: new_variables,
                                              active_variables: active_variables,
                                              modified_variables: modified_variables,
