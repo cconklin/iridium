@@ -246,6 +246,8 @@ void IR_init_Dictionary() {
   DEF_METHOD(CLASS(Dictionary), "reduce", ARGLIST(argument_new(ATOM("accumulator"), NULL, 0), argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(Dictionary, reduce));
   DEF_METHOD(CLASS(Dictionary), "remove", ARGLIST(argument_new(ATOM("key"), NULL, 0)), iridium_method_name(Dictionary, remove));
   DEF_METHOD(CLASS(Dictionary), "has_key?", ARGLIST(argument_new(ATOM("key"), NULL, 0)), iridium_method_name(Dictionary, has_key));
+
+  define_constant(ATOM("Dictionary"), CLASS(Dictionary));
 }
 
 #endif

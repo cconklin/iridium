@@ -5,6 +5,7 @@ class Generator
     @callables = callables
     @tree = tree
     @constants = []
+    @self_stack = []
   end
 
   def generate
@@ -39,8 +40,6 @@ class Generator
     modified_variables = []
     literals = {}
     exception_handlers = []
-    builtin_constants = %i[Object Class Atom Function Array Dictionary Integer Float String Module NilClass
-                           File FileNotFoundError Exception IOError AttributeError TypeError]
     open_constants = %i[Object Class Atom Function Array Dictionary Integer Float String Module NilClass
                         File FileNotFoundError Exception IOError AttributeError TypeError]
     # Ensure that self is put in any closures
@@ -68,10 +67,6 @@ class Generator
       code.unshift "exception_frame #{handler};"
     end
 
-    (open_constants - builtin_constants).each do |constant|
-      @constants.unshift "object ir_cmp_#{constant} = NULL;"
-    end
-
     # Set up the initial context
     code.unshift "array_push(self_stack, ir_cmp_self);"
     code.unshift "dict_set(locals, ATOM(\"self\"), ir_cmp_self);"
@@ -87,14 +82,30 @@ class Generator
     code.join("\n") 
   end
 
+  def last_constant
+    @self_stack[1..-1].reduce "lookup_constant(ATOM(\"#{@self_stack[0]}\"))" do |acc, n|
+      "get_attribute(#{acc}, ATOM(\"#{n}\"), PUBLIC)"
+    end
+  end
+
+  def get_constant(name)
+    if @self_stack.empty?
+      "lookup_constant(ATOM(\"#{name}\"))"
+    else
+      "get_attribute(#{last_constant}, ATOM(\"#{name}\"), PUBLIC)"
+    end
+  end
+
   def push_self(code, name)
-    new_self = "ir_cmp_#{name}"
+    new_self = get_constant(name)
+    @self_stack << name
     code << "array_push(self_stack, ir_cmp_self);"
     code << "ir_cmp_self = #{new_self};"
     code << "dict_set(locals, ATOM(\"self\"), ir_cmp_self);"
   end
 
   def pop_self(code)
+    @self_stack.pop
     code << "ir_cmp_self = array_pop(self_stack);"
     code << "dict_set(locals, ATOM(\"self\"), ir_cmp_self);"
   end
@@ -105,9 +116,17 @@ class Generator
         case node.first
         when :module
           name = node[1]
-          unless open_constants.include? name
-            open_constants << name
-            code << "ir_cmp_#{name} = invoke(ir_cmp_Module, \"new\", array_push(array_new(), IR_STRING(\"#{name}\")));"
+          full_name = (@self_stack + [name]).map(&:to_s).join(".")
+          unless open_constants.include? full_name.to_sym
+            open_constants << full_name.to_sym
+            constant = "invoke(ir_cmp_Module, \"new\", array_push(array_new(), IR_STRING(\"#{name}\")))"
+            if @self_stack.empty?
+              # Top level module
+              code << "define_constant(ATOM(\"#{name}\"), #{constant});"
+            else
+              # Child of parent
+              code << "set_attribute(#{last_constant}, ATOM(\"#{name}\"), PUBLIC, #{constant});"
+            end
           end
           push_self code, name
           generate_main_block code, node[2], new_variables: new_variables,
@@ -120,9 +139,17 @@ class Generator
         when :class
           name = node[1]
           superclass = node[2] || :Object
-          unless open_constants.include? name
-            open_constants << name
-            code << "ir_cmp_#{name} = invoke(ir_cmp_Class, \"new\", array_push(array_push(array_new(), IR_STRING(\"#{name}\")), ir_cmp_#{superclass}));"
+          full_name = (@self_stack + [name]).map(&:to_s).join(".")
+          unless open_constants.include? full_name.to_sym
+            open_constants << full_name.to_sym
+            constant = "invoke(ir_cmp_Class, \"new\", array_push(array_push(array_new(), IR_STRING(\"#{name}\")), #{generate_expression(superclass)}))"
+            if @self_stack.empty?
+              # Top level module
+              code << "define_constant(ATOM(\"#{name}\"), #{constant});"
+            else
+              # Child of parent
+              code << "set_attribute(#{last_constant}, ATOM(\"#{name}\"), PUBLIC, #{constant});"
+            end
           end
           push_self code, name
           generate_main_block code, node[3], new_variables: new_variables,
@@ -280,7 +307,7 @@ class Generator
         # No else block allowed yet
         exception_list = rescue_sections.keys.map.with_index do |exc, idx|
           idx += 1 # start @ 1 (begin is 0)
-          "EXCEPTION(CLASS(#{exc}), #{idx})"
+          "EXCEPTION(#{generate_expression(exc)}, #{idx})"
         end
         exception_list = "ARGLIST(#{exception_list.join(',')})"
         exception_handlers << handler_var
@@ -358,6 +385,9 @@ class Generator
           if expr.to_s.include? ":"
             # Atom Literal
             "ATOM(\"#{expr.to_s[1..-1]}\")"
+          elsif expr.to_s[0].match /[[:upper:]]/
+            # First letter is uppercase -> constant
+            "lookup_constant(ATOM(\"#{expr}\"))"
           else
             # Variable
             active_variables << expr unless active_variables.include? expr

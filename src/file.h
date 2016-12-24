@@ -134,5 +134,7 @@ void IR_init_File(void)
   DEF_METHOD(CLASS(File), "close", ARGLIST(), iridium_method_name(File, close));
   DEF_FUNCTION(CLASS(File), "read", ARGLIST(argument_new(ATOM("filename"), NULL, 0)), iridium_classmethod_name(File, read));
   DEF_METHOD(CLASS(File), "each_line", ARGLIST(argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(File, each_line));
+
+  define_constant(ATOM("File"), CLASS(File));
 }
 

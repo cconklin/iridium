@@ -116,6 +116,8 @@ void IR_init_Float() {
   set_instance_attribute(CLASS(Float), ATOM("to_s"), PUBLIC, to_s_func);
 
   DEF_METHOD(CLASS(Float), "hash", ARGLIST(), iridium_method_name(Float, hash));
+
+  define_constant(ATOM("Float"), CLASS(Float));
 }
 
 #endif

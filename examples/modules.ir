@@ -1,0 +1,16 @@
+class Foo
+  method bar
+    puts("Foo#bar")
+  end
+end
+
+module Baz
+  class Foo
+    method bar
+      puts("Baz.Foo#bar")
+    end
+  end
+end
+
+Foo.new().bar()
+Baz.Foo.new().bar()

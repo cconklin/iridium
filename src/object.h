@@ -181,6 +181,8 @@ char * str(object);
 struct array * destructure(struct array *, object);
 struct dict * process_args(object, struct array *);
 
+struct dict * constants = NULL;
+
 struct IridiumArgument * argument_new(object name, object default_value, char splat) {
   struct IridiumArgument * arg = (struct IridiumArgument *) GC_MALLOC(sizeof(struct IridiumArgument));
   assert(arg);
@@ -1629,6 +1631,26 @@ iridium_method(Integer, hash) {
   return FIXNUM((val << 19) + (val >> 3));
 }
 
+// Define a constant with name (atom)
+void define_constant(object name, object constant) {
+  if (constants == NULL) {
+    constants = dict_new(ObjectHashsize);
+  }
+  dict_set(constants, name, constant);
+}
+
+// Lookup a constant with name (atom)
+object lookup_constant(object name) {
+  object constant = (object) dict_get(constants, name);
+  object reason;
+  if (constant == NULL) {
+    reason = send(name, "to_s");
+    reason = send(reason, "__add__", IR_STRING(" is not a valid constant"));
+    handleException(send(CLASS(NameError), "new", reason));
+  }
+  return constant;
+}
+
 // Creates the objects defined here
 void IR_init_Object() {
   
@@ -1785,6 +1807,21 @@ void IR_init_Object() {
 
   DEF_METHOD(CLASS(Module), "include", ARGLIST(argument_new(ATOM("module"), NULL, 0)), iridium_method_name(Module, include));
   no_instance_attribute(CLASS(Module), ATOM("new"));
+
+  define_constant(ATOM("Class"), CLASS(Class));
+  define_constant(ATOM("Object"), CLASS(Object));
+  define_constant(ATOM("Module"), CLASS(Module));
+  define_constant(ATOM("Array"), CLASS(Array));
+  define_constant(ATOM("Integer"), CLASS(Integer));
+  define_constant(ATOM("String"), CLASS(String));
+  define_constant(ATOM("Atom"), CLASS(Atom));
+  define_constant(ATOM("Function"), CLASS(Function));
+  define_constant(ATOM("Exception"), CLASS(Exception));
+  define_constant(ATOM("AttributeError"), CLASS(AttributeError));
+  define_constant(ATOM("NameError"), CLASS(NameError));
+  define_constant(ATOM("TypeError"), CLASS(TypeError));
+  define_constant(ATOM("Boolean"), CLASS(Boolean));
+  define_constant(ATOM("NilClass"), CLASS(NilClass));
 }
 
 #endif
