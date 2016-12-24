@@ -8,10 +8,17 @@ root=`dirname $(dirname $(pwd)/$0)`
 pushd $root >& /dev/null
   root=$(pwd)
 popd >& /dev/null
+
+# Ensure up-to-date iridium
+pushd ${root}/src >& /dev/null
+  rm -f iridium.a
+  make iridium.a >& /dev/null
+popd >& /dev/null
+
 for test_file in $(find $root/test -name "*.c")
 do
   test_name="${test_file%.*}"
-  clang ${test_file} -o ${test_name} >& /dev/null
+  clang ${test_file} ${root}/src/iridium.a -o ${test_name} >& /dev/null
   if [[ ! -e ${test_name} ]]; then
     echo '#!/bin/bash' > ${test_name}
     echo "echo 'Compile Error: $test_file'" >> ${test_name}
