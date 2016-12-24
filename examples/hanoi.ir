@@ -1,0 +1,11 @@
+function hanoi(n, from, to, through)
+  if n == 1
+    puts("Move " + n.to_s() + " from " + from.to_s() + " to " + to.to_s())
+  else
+    hanoi(n-1, from, through, to)
+    puts("Move " + n.to_s() + " from " + from.to_s() + " to " + to.to_s())
+    hanoi(n-1, through, to, from)
+  end
+end
+
+hanoi(3, 0, 2, 1)

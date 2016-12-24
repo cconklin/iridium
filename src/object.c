@@ -1038,6 +1038,12 @@ iridium_method(Integer, __add__) {
   return FIXNUM(INT(self) + INT(other));
 }
 
+iridium_method(Integer, __sub__) {
+  object self = local("self");
+  object other = local("other");
+  return FIXNUM(INT(self) - INT(other));
+}
+
 iridium_method(Integer, __eq__) {
   object self = local("self");
   object other = local("other");
@@ -1450,6 +1456,7 @@ void IR_init_Object() {
   set_instance_attribute(CLASS(Integer), ATOM("__add__"), PUBLIC, fix_plus);
   fix_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Integer, inspect));
   set_instance_attribute(CLASS(Integer), ATOM("inspect"), PUBLIC, fix_inspect);
+  DEF_METHOD(CLASS(Integer), "__sub__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __sub__));
   DEF_METHOD(CLASS(Integer), "__eq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __eq__));
   DEF_METHOD(CLASS(Integer), "__neq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __neq__));
   DEF_METHOD(CLASS(Integer), "__lt__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __lt__));
