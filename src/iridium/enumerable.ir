@@ -47,6 +47,7 @@ module Enumerable
       if fn(element)
         return accumulator + 1
       end
+      return accumulator
     end
   end
   
@@ -75,6 +76,8 @@ module Enumerable
     return reduce([]) -> (element, accumulator)
       if fn(element)
         return accumulator.push(element)
+      else
+        return accumulator
       end
     end
   end
@@ -86,6 +89,8 @@ module Enumerable
     return reduce([]) -> (element, accumulator)
       unless fn(element)
         return accumulator.push(element)
+      else
+        return accumulator
       end
     end
   end
@@ -137,9 +142,11 @@ module Enumerable
   # Returns true if enumerable contains `value`
 
   method contains?(value)
-    return not select(-> (element)
-      return element == value
-    end).empty?()
+    if select(-> (element) return element == value end).empty?()
+      return false
+    else
+      return true
+    end
   end
   
   # sum
@@ -175,7 +182,7 @@ module Enumerable
   
   method flatten
     return reduce([]) -> (element, accumulator)
-      if element.responds_to?(:flatten)
+      if element.has_attribute?(:flatten)
         flattened = element.flatten()
         flattened.each -> (elem)
           accumulator = accumulator.push(elem)

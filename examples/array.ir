@@ -18,3 +18,5 @@ puts(y.map -> (elem)
 end)
 
 puts(y.reverse())
+
+puts([[2], 3, [[2], 3]].flatten().uniq())

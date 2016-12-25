@@ -670,6 +670,17 @@ iridium_method(Object, __get__) {
   return attribute;
 }
 
+// Object#has_attribute?
+// Returns true if object has the named attribute, false otherwise
+// Inputs:  self, attr (atom)
+// Outputs: Boolean
+iridium_method(Object, has_attribute) {
+  object self = local("self");
+  object attr = local("attr");
+  object attribute = get_attribute(self, attr, PUBLIC);
+  return (attribute == NULL) ? ir_cmp_false : ir_cmp_true;
+}
+
 // Object#__set__
 // Sets attributes of objects. Always sets the attribute on the receiver,
 // not anywhere else in the object hierarchy.
@@ -1446,6 +1457,7 @@ void IR_init_Object() {
   DEF_METHOD(CLASS(Object), "__neq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Object, __neq__));
   DEF_METHOD(CLASS(Object), "hash", ARGLIST(), iridium_method_name(Object, hash));
   DEF_METHOD(CLASS(Object), "gets", ARGLIST(argument_new(ATOM("prompt"), IR_STRING(""), 0)), iridium_method_name(Object, gets));
+  DEF_METHOD(CLASS(Object), "has_attribute?", ARGLIST(argument_new(ATOM("attr"), NULL, 0)), iridium_method_name(Object, has_attribute));
 
   // Bootstrap everything
   set_attribute(CLASS(Class), ATOM("name"), PUBLIC, IR_STRING("Class"));
