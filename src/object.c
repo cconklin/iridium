@@ -557,6 +557,23 @@ iridium_method(Object, puts) {
   return NIL;
 }
 
+// Object#gets
+iridium_method(Object, gets) {
+  int idx = 0;
+  char * gets_buffer;
+  char * str_buffer;
+  size_t gets_len;
+  object prompt = local("prompt");
+  printf("%s", C_STRING(prompt));
+  getline(&gets_buffer, &gets_len, stdin);
+  str_buffer = GC_MALLOC((strlen(gets_buffer))*sizeof(char));
+  gets_buffer[strlen(gets_buffer)-1] = 0; // Remove the newline
+  assert(str_buffer);
+  strcpy(str_buffer, gets_buffer);
+  free(gets_buffer); // Not allocated by the GC -- need to free it manually
+  return IR_STRING(str_buffer);
+}
+
 // Object#raise
 // Raise an exception
 // Locals used: exc
@@ -1428,6 +1445,7 @@ void IR_init_Object() {
   DEF_METHOD(CLASS(Object), "__eq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Object, __eq__));
   DEF_METHOD(CLASS(Object), "__neq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Object, __neq__));
   DEF_METHOD(CLASS(Object), "hash", ARGLIST(), iridium_method_name(Object, hash));
+  DEF_METHOD(CLASS(Object), "gets", ARGLIST(argument_new(ATOM("prompt"), IR_STRING(""), 0)), iridium_method_name(Object, gets));
 
   // Bootstrap everything
   set_attribute(CLASS(Class), ATOM("name"), PUBLIC, IR_STRING("Class"));
