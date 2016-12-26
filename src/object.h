@@ -108,6 +108,9 @@ struct list * _ARGLIST(int unused, ...);
   set_attribute(receiver, ATOM(name), PUBLIC, \
       FUNCTION(ATOM(name), arglist, dict_new(ObjectHashsize), func))
 
+// Current Class/Module
+object ir_context;
+
 // Declarations
 
 object CLASS(Module);

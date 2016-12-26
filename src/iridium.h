@@ -5,6 +5,8 @@
 #include "file.h"
 #pragma once
 
+struct array * ir_context_stack;
+
 object IR_MAIN_OBJECT(void);
 object ir_user_main(void);
 int main(int argc, char ** argv);

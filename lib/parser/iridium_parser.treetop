@@ -20,7 +20,7 @@ grammar Iridium
   end
   
   rule class_statement
-    space? (private_method / private_function / method / function / attribute_assignment / index_assignment / invocation / function_invocation / nofunction / nomethod) ';'? space? linebreak? <Statement>
+    space? (private_method / private_function / method / function / attribute_assignment / index_assignment / assignment / invocation / function_invocation / nofunction / nomethod) ';'? space? linebreak? <Statement>
   end
 
   rule require

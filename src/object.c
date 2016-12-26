@@ -741,6 +741,24 @@ iridium_method(Module, include) {
   return NIL;
 }
 
+iridium_method(Module, define_method) {
+  object self = local("self");
+  object name = local("name");
+  object method = local("fn");
+  object name_reason = send(name, "inspect");
+  name_reason = send(name_reason, "__add__", IR_STRING(" is not an atom"));
+  object fn_reason = send(method, "inspect");
+  fn_reason = send(fn_reason, "__add__", IR_STRING(" is not a function"));
+  if (method -> class != CLASS(Function)) {
+    handleException(send(CLASS(TypeError), "new", fn_reason));
+  }
+  if (name -> class != CLASS(Atom)) {
+    handleException(send(CLASS(TypeError), "new", name_reason));
+  }
+  set_instance_attribute(self, name, PUBLIC, method);
+  return name;
+}
+
 // class Function
 
 // Function#__call__
@@ -1380,9 +1398,13 @@ object lookup_constant(object name) {
   object constant = (object) dict_get(constants, name);
   object reason;
   if (constant == NULL) {
-    reason = send(name, "to_s");
-    reason = send(reason, "__add__", IR_STRING(" is not a valid constant"));
-    handleException(send(CLASS(NameError), "new", reason));
+    // Not a base constant, look under the current context
+    constant = get_attribute(ir_context, name, PUBLIC);
+    if (constant == NULL) {
+      reason = send(name, "to_s");
+      reason = send(reason, "__add__", IR_STRING(" is not a valid constant"));
+      handleException(send(CLASS(NameError), "new", reason));
+    }
   }
   return constant;
 }
@@ -1458,6 +1480,7 @@ void IR_init_Object() {
   DEF_METHOD(CLASS(Object), "hash", ARGLIST(), iridium_method_name(Object, hash));
   DEF_METHOD(CLASS(Object), "gets", ARGLIST(argument_new(ATOM("prompt"), IR_STRING(""), 0)), iridium_method_name(Object, gets));
   DEF_METHOD(CLASS(Object), "has_attribute?", ARGLIST(argument_new(ATOM("attr"), NULL, 0)), iridium_method_name(Object, has_attribute));
+  DEF_METHOD(CLASS(Module), "define_method", ARGLIST(argument_new(ATOM("name"), NULL, 0), argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(Module, define_method));
 
   // Bootstrap everything
   set_attribute(CLASS(Class), ATOM("name"), PUBLIC, IR_STRING("Class"));

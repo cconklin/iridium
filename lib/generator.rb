@@ -72,6 +72,8 @@ class Generator
     code.unshift "dict_set(locals, ATOM(\"self\"), ir_cmp_self);"
     code.unshift "object ir_cmp_self = ir_main;"
     code.unshift "struct array * self_stack = array_new();"
+    code.unshift "ir_context_stack = array_new();"
+    code.unshift "ir_context = ir_main;"
     code.unshift "object ir_main = IR_MAIN_OBJECT();"
     code.unshift "struct dict * locals = dict_new(ObjectHashsize);"
     code.unshift "int _handler_count = 0;"
@@ -100,12 +102,15 @@ class Generator
     new_self = get_constant(name)
     @self_stack << name
     code << "array_push(self_stack, ir_cmp_self);"
+    code << "array_push(ir_context_stack, ir_context);"
+    code << "ir_context = #{new_self};"
     code << "ir_cmp_self = #{new_self};"
     code << "dict_set(locals, ATOM(\"self\"), ir_cmp_self);"
   end
 
   def pop_self(code)
     @self_stack.pop
+    code << "ir_context = array_pop(ir_context_stack);"
     code << "ir_cmp_self = array_pop(self_stack);"
     code << "dict_set(locals, ATOM(\"self\"), ir_cmp_self);"
   end
@@ -255,13 +260,25 @@ class Generator
         var = statement[1]
         code.concat save_vars(modified_variables) if contains_lambda? statement[2]
         val = generate_expression statement[2], active_variables: active_variables, literals: literals
-        code << "#{variable_name(var)} = #{val};"
-        unless active_variables.include? var
-          active_variables << var
-          new_variables << var
-        end
-        unless modified_variables.include? var
-          modified_variables << var
+        if var.to_s[0].match /[[:lower:]]/
+          # Lowercase (e.g. foo): just a variable
+          code << "#{variable_name(var)} = #{val};"
+          unless active_variables.include? var
+            active_variables << var
+            new_variables << var
+          end
+          unless modified_variables.include? var
+            modified_variables << var
+          end
+        else
+          # Uppercase (e.g. Foo): constant
+          if @self_stack.empty?
+            # Top level module
+            code << "define_constant(ATOM(\"#{var}\"), #{val});"
+          else
+            # Child of parent
+            code << "set_attribute(#{last_constant}, ATOM(\"#{var}\"), PUBLIC, #{val});"
+          end
         end
       when :if
         clauses = statement[1]

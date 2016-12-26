@@ -10,7 +10,12 @@ module Baz
       puts("Baz.Foo#bar")
     end
   end
+  Bux = Class.new("Bux")
+  Bux.define_method(:bar) ->
+    puts("Baz.Bux#bar")
+  end
 end
 
 Foo.new().bar()
 Baz.Foo.new().bar()
+Baz.Bux.new().bar()
