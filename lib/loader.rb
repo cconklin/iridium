@@ -2,7 +2,7 @@ require_relative 'parser'
 
 class Loader
 
-  CORE_FILES = [File.join(File.dirname(File.dirname(__FILE__)), "src", "iridium", "core")]
+  CORE_FILES = []
   LOAD_PATH = [
     # Iridium files to bootstrap the language
     File.join(File.dirname(File.dirname(__FILE__)), "src", "iridium")

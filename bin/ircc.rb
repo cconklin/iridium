@@ -7,7 +7,7 @@ require_relative "../lib/generator"
 require_relative "../lib/compiler"
 require_relative "../lib/loader"
 
-options = {output: "a.out", debug: false}
+options = {output: "a.out", debug: false, link: true}
 
 parser = OptionParser.new do |opts|
   opts.banner = "Usage: ircc [options] file"
@@ -16,6 +16,12 @@ parser = OptionParser.new do |opts|
   end
   opts.on "-g", "Emit Debug Symbols" do |g|
     options[:debug] = g
+  end
+  opts.on "-c", "Only run compile and assemble steps" do
+    options[:link] = false
+  end
+  opts.on "--main=MAIN", "top-level name" do |mn|
+    options[:main_name] = mn
   end
 end
 
@@ -30,7 +36,12 @@ loader = Loader.new
 tree = loader.load_from_file ARGV[0], Dir.pwd
 
 processed_tree = Translator.translate! tree
-generator = Generator.new(processed_tree[:callables], processed_tree[:tree])
+generator = Generator.new processed_tree[:callables],
+                          processed_tree[:tree],
+                          options[:link] ? "ir_user_main" : options[:main_name]
 
-Compiler.compile(generator.generate, output: options[:output], debug: options[:debug])
+Compiler.compile generator.generate,
+                 output: options[:output],
+                 debug: options[:debug],
+                 link: options[:link]
 

@@ -7,6 +7,7 @@ void IR_INIT(void) {
     IR_init_Dictionary();
     IR_init_File();
     _exception_frames = stack_new(); // Initialize the exception stack
+    IR_CORE_INIT();
 }
 
 iridium_classmethod(ir_main, to_s) {

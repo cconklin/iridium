@@ -1,11 +1,12 @@
 require_relative 'translator'
 
 class Generator
-  def initialize(callables, tree)
+  def initialize(callables, tree, main_name)
     @callables = callables
     @tree = tree
     @constants = []
     @self_stack = []
+    @main_fn_name = main_name
   end
 
   def generate
@@ -77,7 +78,7 @@ class Generator
     code.unshift "object ir_main = IR_MAIN_OBJECT();"
     code.unshift "struct dict * locals = dict_new(ObjectHashsize);"
     code.unshift "int _handler_count = 0;"
-    code.unshift "object ir_user_main() {"
+    code.unshift "object #{@main_fn_name}() {"
 
     code << "return NIL;"
     code << "}"
