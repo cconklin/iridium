@@ -125,7 +125,7 @@ class Generator
           full_name = (@self_stack + [name]).map(&:to_s).join(".")
           unless open_constants.include? full_name.to_sym
             open_constants << full_name.to_sym
-            constant = "invoke(ir_cmp_Module, \"new\", array_push(array_new(), IR_STRING(\"#{name}\")))"
+            constant = "invoke(ir_cmp_Module, \"new\", array_push(array_new(), IR_STRING(\"#{full_name}\")))"
             if @self_stack.empty?
               # Top level module
               code << "define_constant(ATOM(\"#{name}\"), #{constant});"
@@ -148,7 +148,7 @@ class Generator
           full_name = (@self_stack + [name]).map(&:to_s).join(".")
           unless open_constants.include? full_name.to_sym
             open_constants << full_name.to_sym
-            constant = "invoke(ir_cmp_Class, \"new\", array_push(array_push(array_new(), IR_STRING(\"#{name}\")), #{generate_expression(superclass)}))"
+            constant = "invoke(ir_cmp_Class, \"new\", array_push(array_push(array_new(), IR_STRING(\"#{full_name}\")), #{generate_expression(superclass)}))"
             if @self_stack.empty?
               # Top level module
               code << "define_constant(ATOM(\"#{name}\"), #{constant});"
