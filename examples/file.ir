@@ -9,6 +9,7 @@ end
 f.close()
 
 # This should print each line in an array
-f = File.new(__FILE__)
-puts(f.lines())
-f.close()
+File.open(__FILE__) -> (f)
+  puts(f.lines())
+end
+

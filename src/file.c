@@ -64,6 +64,19 @@ iridium_method(File, read) {
   return IR_STRING(buffer);
 }
 
+iridium_method(File, write) {
+  // The string to write
+  char * str = C_STRING(local("str"));
+  size_t len = strlen(str);
+  char * mode = C_STRING(local("mode"));
+  FILE * f = internal_get_attribute(local("self"), ATOM("FILE"), FILE *);
+  size_t written = fwrite(str, sizeof str[0], len, f);
+  if (written != len) {
+    handleException(send(CLASS(IOError), "new", IR_STRING("File not in write mode")));
+  }
+  return NIL;
+}
+
 iridium_method(File, close) {
   object self = local("self");
   object reason;
@@ -123,6 +136,7 @@ void IR_init_File(void)
 
   DEF_METHOD(CLASS(File), "initialize", ARGLIST(argument_new(ATOM("filename"), NULL, 0), argument_new(ATOM("mode"), IR_STRING("r"), 0)), iridium_method_name(File, initialize));
   DEF_METHOD(CLASS(File), "read", ARGLIST(), iridium_method_name(File, read));
+  DEF_METHOD(CLASS(File), "write", ARGLIST(argument_new(ATOM("str"), NULL, 0)), iridium_method_name(File, write));
   DEF_METHOD(CLASS(File), "close", ARGLIST(), iridium_method_name(File, close));
   DEF_FUNCTION(CLASS(File), "read", ARGLIST(argument_new(ATOM("filename"), NULL, 0)), iridium_classmethod_name(File, read));
   DEF_METHOD(CLASS(File), "each_line", ARGLIST(argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(File, each_line));

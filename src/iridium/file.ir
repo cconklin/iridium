@@ -6,4 +6,23 @@ class File
     end
     return lns
   end
+
+  function open(filename, *args)
+    if args.length() == 1
+      mode = "r"
+      fn = args[0]
+    elseif args.length() == 2
+      mode = args[0]
+      fn = args[1]
+    else
+      raise(Exception.new("Too many arguments"))
+    end
+    f = new(filename, mode)
+    begin
+      fn(f)
+    ensure
+      f.close()
+    end
+  end
+
 end
