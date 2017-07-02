@@ -1,6 +1,6 @@
 OBJS := object.o string.o dictionary.o file.o float.o iridium.o \
 		lib/array.o lib/dict.o lib/linked_list.o lib/stack.o \
-		lib/str_dict.o
+		lib/str_dict.o queue.o
 
 iridium.a: $(OBJS) core.o
 	ar rvs $@ $^

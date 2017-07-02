@@ -22,6 +22,7 @@ struct list {
   struct list * tail;
 };
 
+void list_extend(struct list *, void *);
 struct list * list_cons(struct list * tail, void * head);
 void list_destroy(struct list * l);
 unsigned int list_length(struct list * l);

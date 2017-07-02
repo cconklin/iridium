@@ -1,0 +1,7 @@
+q = Queue.new()
+q.enqueue(5)
+q.enqueue("foo")
+puts(q.dequeue())
+puts(q.dequeue())
+# Since the queue is empty, calling this will raise Queue.Empty
+# puts(q.dequeue())

@@ -42,7 +42,7 @@ class Generator
     literals = {}
     exception_handlers = []
     open_constants = %i[Object Class Atom Function Array Dictionary Integer Float String Module NilClass
-                        File FileNotFoundError Exception IOError AttributeError TypeError]
+                        File FileNotFoundError Exception IOError AttributeError TypeError Queue Queue.Empty]
     # Ensure that self is put in any closures
     modified_variables << "self"
 

@@ -1,0 +1,6 @@
+class Queue
+  method empty?
+    return length() == 0
+  end
+end
+

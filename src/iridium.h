@@ -3,6 +3,7 @@
 #include "string.h"
 #include "dictionary.h"
 #include "file.h"
+#include "queue.h"
 #pragma once
 
 struct array * ir_context_stack;
