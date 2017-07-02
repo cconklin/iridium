@@ -402,7 +402,7 @@ class Generator
           if expr.to_s.include? ":"
             # Atom Literal
             "ATOM(\"#{expr.to_s[1..-1]}\")"
-          elsif expr.to_s[0].match /[[:upper:]]/
+          elsif expr.to_s.match /^[^a-zA-Z]*[A-Z].*$/
             # First letter is uppercase -> constant
             "lookup_constant(ATOM(\"#{expr}\"))"
           else
