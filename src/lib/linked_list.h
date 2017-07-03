@@ -6,16 +6,10 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <gc.h>
 
 #ifndef LINKED_LIST_H
 #define LINKED_LIST_H
-
-// HACK around GC not linking
-#ifndef GC
-#define GC
-#define GC_MALLOC(n) calloc(1, n)
-#define GC_REALLOC(p, n) realloc(p, n)
-#endif
 
 struct list {
   void * head;

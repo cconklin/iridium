@@ -1,7 +1,7 @@
 #include "../../src/lib/linked_list.h"
 #include "../test_helper.h"
 
-int main (int argc, char const *argv[]) {
+int test() {
   struct list * l = list_new(5);
 
   // It should have a head

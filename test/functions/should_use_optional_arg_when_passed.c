@@ -8,7 +8,7 @@ iridium_method(Test, func_required_and_optional) {
   return NIL;
 }
 
-int main(int argc, char * argv[]) {
+int test() {
   object func, obj;
   struct IridiumArgument * a, * b;
   struct array * args;

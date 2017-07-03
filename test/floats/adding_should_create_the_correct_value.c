@@ -2,7 +2,7 @@
 #include "../../src/float.h"
 #include "setup.h"
 
-int main(int argc, char * argv []) {
+int test() {
   object flt, flt_2;
   object result;
   double val;

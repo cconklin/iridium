@@ -104,7 +104,7 @@ int returns_in_nested_begin_without_returning_ensure() {
   }
 }
 
-int main(int argc, char * argv[]) {
+int test() {
   setup();
   
   // it binds the raised exception

@@ -38,7 +38,8 @@ tree = loader.load_from_file ARGV[0], Dir.pwd
 processed_tree = Translator.translate! tree
 generator = Generator.new processed_tree[:callables],
                           processed_tree[:tree],
-                          options[:link] ? "ir_user_main" : options[:main_name]
+                          options[:link] ? "ir_user_main" : options[:main_name],
+                          options[:link]
 
 Compiler.compile generator.generate,
                  output: options[:output],

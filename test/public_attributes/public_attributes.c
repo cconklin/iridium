@@ -2,7 +2,7 @@
 #include "../test_helper.h"
 #include "setup.h"
 
-int main(int argc, char * argv[]) {
+int test() {
   setup();
   object b = ATOM("b");
   object instance_val = ATOM("instance_val");

@@ -1,8 +1,7 @@
 #include "../test_helper.h"
 #include "setup.h"
 
-int main(void)
-{
+int test() {
     setup();
 
     // Using the default approach

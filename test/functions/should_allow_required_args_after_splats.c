@@ -11,7 +11,7 @@ iridium_method(Test, func_splat_and_required) {
   return NIL;
 }
 
-int main(int argc, char * argv[]) {
+int test() {
   object func, obj;
   struct IridiumArgument * a, * b;
   struct array * args;

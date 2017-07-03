@@ -11,16 +11,8 @@
 
 #include <stdlib.h>
 #include <assert.h>
-// #include <gc.h>
 #include <string.h>
 #include "dict.h"
-
-// HACK around GC not linking
-#ifndef GC
-#define GC
-#define GC_MALLOC(n) calloc(1, n)
-#define GC_REALLOC(p, n) realloc(p, n)
-#endif
 
 struct dict * str_dict_new(unsigned int hashsize);
 struct dict_entry * str_lookup(struct dict * h, char * key);

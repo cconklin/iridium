@@ -6,7 +6,7 @@ iridium_method(Test, func) {
   return NIL;
 }
 
-int main(int argc, char * argv[]) {
+int test() {
   object func, obj;
   setup();
 

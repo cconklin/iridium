@@ -1,7 +1,7 @@
 #include "../../src/lib/array.h"
 #include "../test_helper.h"
 
-int main(int argc, char * argv[]) {
+int test() {
   struct array * ary = array_new();
 
   array_set(ary, 0, 1);

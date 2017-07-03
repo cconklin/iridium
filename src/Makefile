@@ -1,17 +1,24 @@
-OBJS := object.o string.o dictionary.o file.o float.o iridium.o \
-		lib/array.o lib/dict.o lib/linked_list.o lib/stack.o \
-		lib/str_dict.o queue.o
+SRCS 	:= $(shell find . -name "*.c")
+OBJS 	:= $(SRCS:%.c=%.o)
+IR   	:= $(wildcard iridium/*.ir)
+CC   	:= clang
+CFLAGS 	:= $(shell pkg-config --cflags bdw-gc)
+LDFLAGS := $(shell pkg-config --libs bdw-gc)
 
-iridium.a: $(OBJS) core.o
-	ar rvs $@ $^
+ir.o: $(OBJS) core.o
+	@echo LD $@
+	ld -r -o $@ $^
 
 $(OBJS): %.o: %.c
-	clang -o $@ -c $^
+	@echo CC $@
+	$(CC) $(CFLAGS) -o $@ -c $^
 
-core.o: $(wildcard iridium/*.ir)
+core.o: $(IR)
+	@echo IR $@
 	ircc -o $@ -c iridium/core.ir --main=IR_CORE_INIT
 
 clean:
-	rm -f $(OBJS) core.o
-	rm -f iridium.a
+	rm -f $(OBJS) core.o ir.o
+
+.SILENT: $(OBJS) ir.o core.o
 

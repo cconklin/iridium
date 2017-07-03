@@ -1,12 +1,13 @@
 require_relative 'translator'
 
 class Generator
-  def initialize(callables, tree, main_name)
+  def initialize(callables, tree, main_name, link)
     @callables = callables
     @tree = tree
     @constants = []
     @self_stack = []
     @main_fn_name = main_name
+    @link = link
   end
 
   def generate
@@ -82,6 +83,25 @@ class Generator
 
     code << "return NIL;"
     code << "}"
+    if @link
+      code << "int main(int argc, const char ** argv) {"
+      code << "GC_INIT();"
+      # TODO ARGV
+      code << "IR_INIT();"
+      # FIXME only catch children of exception / string?
+      code << "struct list * main_exceptions = list_new(EXCEPTION(CLASS(Object), 1));"
+      code << "exception_frame e = ExceptionHandler(main_exceptions, 0, 0, 0);"
+      code << "switch (setjmp(e->env)) {"
+      code << "case 0:"
+      code << "#{@main_fn_name}();"
+      code << "return 0;"
+      code << "case 1:"
+      code << "// any uncaught exception"
+      code << 'printf("%s: %s\n", C_STRING(send(_raised->class, "to_s")), C_STRING(send(send(_raised, "reason"), "to_s")));'
+      code << "return 1;"
+      code << "}"
+      code << "}"
+    end
     code.join("\n") 
   end
 

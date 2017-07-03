@@ -906,6 +906,7 @@ object _ATOM(char * name) {
   // Container for the new atom
   object atom;
 
+
   // Table of atoms
   // Note: The key for the table is the only dict key that is not an atom.
   struct dict * atom_table = ATOM_TABLE();
@@ -914,11 +915,13 @@ object _ATOM(char * name) {
     // The atom does not exist
     // Create the new object
     atom = construct(CLASS(Atom));
-    // Set atom name
-    internal_set_attribute(atom, ATOM("string"), name);
 
     // Add it to the Atom table
     add_atom(name, atom);
+
+    // Set atom name
+    internal_set_attribute(atom, ATOM("string"), name);
+
   }
   return atom;
 }

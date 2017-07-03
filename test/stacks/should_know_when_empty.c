@@ -1,7 +1,7 @@
 #include "../../src/lib/stack.h"
 #include "../test_helper.h"
 
-int main(int argc, char * argv[]) {
+int test() {
   struct stack * st = stack_new();
 
   assertEqual(stack_empty(st), 1);

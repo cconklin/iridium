@@ -1,17 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-// #include <gc.h>
+#include <gc.h>
 #include <string.h>
 #include <setjmp.h>
 #include <stdarg.h>
 
 #ifndef OBJECT_H
 #define OBJECT_H
-
-// HACK around GC not linking
-#define GC_MALLOC(n) calloc(1, n)
-#define GC_REALLOC(p, n) realloc(p, n)
 
 // Use the array library to get args
 #include "lib/array.h"

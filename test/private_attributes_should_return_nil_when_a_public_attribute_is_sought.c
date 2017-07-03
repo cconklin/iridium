@@ -5,7 +5,7 @@ void setup() {
   IR_init_Object();
 }
 
-int main(int argc, char * argv[]) {
+int test() {
   setup();
   object a = ATOM("a");
   object attr = ATOM("attr");

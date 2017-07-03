@@ -2,7 +2,7 @@
 #include "../../src/object.h"
 #include "setup.h"
 
-int main(int argc, char * argv []) {
+int test() {
 
   object integer;
   char * c_integer;

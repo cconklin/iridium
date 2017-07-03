@@ -11,14 +11,14 @@ popd >& /dev/null
 
 # Ensure up-to-date iridium
 pushd ${root}/src >& /dev/null
-  rm -f iridium.a
-  make iridium.a >& /dev/null
+  rm -f ir.o
+  make ir.o >& /dev/null
 popd >& /dev/null
 
 for test_file in $(find $root/test -name "*.c")
 do
   test_name="${test_file%.*}"
-  clang ${test_file} ${root}/src/iridium.a -o ${test_name} >& /dev/null
+  clang ${test_file} ${root}/src/ir.o `pkg-config --libs bdw-gc` -o ${test_name} >& /dev/null
   if [[ ! -e ${test_name} ]]; then
     echo '#!/bin/bash' > ${test_name}
     echo "echo 'Compile Error: $test_file'" >> ${test_name}

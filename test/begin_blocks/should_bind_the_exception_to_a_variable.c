@@ -2,7 +2,7 @@
 #include "../../src/object.h"
 #include "setup.h"
 
-int main(int argc, char * argv[]) {
+int test() {
   setup();
   
   // x is a flag to indicate whether a jump occurred

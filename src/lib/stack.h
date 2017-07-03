@@ -7,14 +7,7 @@
 #include <assert.h>
 #pragma once
 
-// #include <gc.h>
-
-// HACK around GC not linking
-#ifndef GC
-#define GC
-#define GC_MALLOC(n) calloc(1, n)
-#define GC_REALLOC(p, n) realloc(p, n)
-#endif
+#include <gc.h>
 
 struct stack {
   int length;
