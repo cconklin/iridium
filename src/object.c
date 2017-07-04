@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-// #include <gc.h>
 #include <string.h>
 #include <setjmp.h>
 #include <stdarg.h>
@@ -282,7 +281,11 @@ function_bind(object func, struct dict * locals) {
   assert(c_func);
 
   // Return the new bound function
-  return FUNCTION(name, args, locals, c_func);
+  object new_func = FUNCTION(name, args, locals, c_func);
+  // retain ownership info
+  internal_set_attribute(new_func, ATOM("owner"), internal_get_attribute(func, ATOM("owner"), object));
+  internal_set_integral(new_func, ATOM("owner_type"), internal_get_integral(func, ATOM("owner_type"), int));
+  return new_func;
 }
 
 // Unified construction sequence of objects (used in ALL constructors)
@@ -347,16 +350,20 @@ object calls(object callable, struct array * args) {
   object call_function;
   struct dict * bindings;
   object ( * func )(struct dict *) = internal_get_attribute(get_function, ATOM("function"), object (*)(struct dict *));
-  // get_function IS an Iridium Function
-  // TODO raise exception if not
+
+  // get_function MUST BE an Iridium Function => func != NULL
+  if (func == NULL) {
+    handleException(send(CLASS(TypeError), "new", IR_STRING("__get__ must be a Function")));
+  }
+
   // invoke the get_function to get the call_function
   call_function = func(dict_with(bind_self(callable), ATOM("name"), ATOM("__call__")));
 
-  // FIXME Remove once the NoMethodError exception is set up
-  assert(call_function != NIL);
+  if (!isA(call_function, CLASS(Function))) {
+    handleException(send(CLASS(TypeError), "new", IR_STRING("__call__ must be a Function")));
+  }
 
   // call_function IS an Iridium Function
-  // TODO raise exception if not
   bindings = process_args(call_function, args);
   func = internal_get_attribute(call_function, ATOM("function"), object (*)(struct dict *));
   assert(func);
@@ -399,6 +406,7 @@ struct dict * process_args(object function, struct array * _args) {
   int arg_length = args -> length;
   unsigned int required = 0;
   struct IridiumArgument * this_arg;
+  object reason;
   while (iter_arg_list) {
     this_arg = (struct IridiumArgument *) list_head(iter_arg_list);
     if (this_arg -> splat) {
@@ -414,19 +422,37 @@ struct dict * process_args(object function, struct array * _args) {
     }
     // There is a required argument after an optional one
     if ((first_optional >= 0) && (this_arg -> default_value == NULL) && (this_arg -> splat == 0)) {
-      assert(/* There is a required argument after an optional one */ 0);
+      reason = IR_STRING("Cannot have a required argument after an optional one (");
+      reason = send(reason, "__add__", _send(function, "to_s", 0));
+      reason = send(reason, "__add__", IR_STRING(")"));
+      handleException(send(CLASS(ArgumentError), "new", reason));
     }
     iter_arg_list = list_tail(iter_arg_list);
     index ++;
   }
   length = index;
   // ensure that the argument list does not have multiple splatted args
-  assert(splat < 2);
+  if (splat >= 2) {
+    reason = IR_STRING("Cannot have multiple splatted args (ex. *args) (");
+    reason = send(reason, "__add__", _send(function, "to_s", 0));
+    reason = send(reason, "__add__", IR_STRING(")"));
+    handleException(send(CLASS(ArgumentError), "new", reason));
+  }
   // ensure that the arity is sufficient
-  assert(arg_length >= required);
   // if there is no splat, ensure that the arity is not too large
-  if (splat == 0) {
-    assert(arg_length <= length);
+  if ((arg_length < required) || ((splat == 0) && (arg_length > length))) {
+    reason = IR_STRING("Wrong number of arguments: ");
+    reason = send(reason, "__add__", _send(FIXNUM(arg_length), "to_s", 0));
+    reason = send(reason, "__add__", IR_STRING(" for "));
+    reason = send(reason, "__add__", _send(FIXNUM(required), "to_s", 0));
+    if (required != length) {
+      reason = send(reason, "__add__", IR_STRING(".."));
+      reason = send(reason, "__add__", _send(FIXNUM(length), "to_s", 0));
+    }
+    reason = send(reason, "__add__", IR_STRING(" ("));
+    reason = send(reason, "__add__", _send(function, "to_s", 0));
+    reason = send(reason, "__add__", IR_STRING(")"));
+    handleException(send(CLASS(ArgumentError), "new", reason));
   }
   
   // function x(a, * args, b = 2, c = 4) ...
@@ -1570,6 +1596,8 @@ void IR_init_Object() {
 
   CLASS(TypeError) = send(CLASS(Class), "new", IR_STRING("TypeError"), CLASS(Exception));
 
+  CLASS(ArgumentError) = send(CLASS(Class), "new", IR_STRING("ArgumentError"), CLASS(Exception));
+
   DEF_METHOD(CLASS(Module), "include", ARGLIST(argument_new(ATOM("module"), NULL, 0)), iridium_method_name(Module, include));
   no_instance_attribute(CLASS(Module), ATOM("new"));
 
@@ -1587,4 +1615,5 @@ void IR_init_Object() {
   define_constant(ATOM("TypeError"), CLASS(TypeError));
   define_constant(ATOM("Boolean"), CLASS(Boolean));
   define_constant(ATOM("NilClass"), CLASS(NilClass));
+  define_constant(ATOM("ArgumentError"), CLASS(ArgumentError));
 }

@@ -124,6 +124,7 @@ object CLASS(Exception);
 object CLASS(AttributeError);
 object CLASS(NameError);
 object CLASS(TypeError);
+object CLASS(ArgumentError);
 
 object ir_cmp_true;
 object ir_cmp_false;

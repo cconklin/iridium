@@ -18,10 +18,12 @@ popd >& /dev/null
 for test_file in $(find $root/test -name "*.c")
 do
   test_name="${test_file%.*}"
-  clang ${test_file} ${root}/src/ir.o `pkg-config --libs bdw-gc` -o ${test_name} >& /dev/null
+  temp=`mktemp`
+  clang ${test_file} ${root}/src/ir.o `pkg-config --libs bdw-gc` -o ${test_name} >& $temp
   if [[ ! -e ${test_name} ]]; then
     echo '#!/bin/bash' > ${test_name}
     echo "echo 'Compile Error: $test_file'" >> ${test_name}
+    echo "cat $temp" >> ${test_name}
     echo "exit 3" >> ${test_name}
     chmod 777 ${test_name}
   fi
