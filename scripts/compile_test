@@ -1,0 +1,27 @@
+#!/bin/bash
+root=`dirname $(dirname $(pwd)/$0)`
+pushd $root >& /dev/null
+  root=$(pwd)
+popd >& /dev/null
+
+test_file="$1"
+
+test_name="${test_file%.*}"
+extension="${test_file##*.}"
+temp=`mktemp`
+
+rm -f "${test_name}"
+
+if [[ "$extension" == "ir" ]]; then
+  ircc ${test_file} -o ${test_name} >& $temp
+elif [[ "$extension" == "c" ]]; then
+  clang ${test_file} ${root}/src/ir.o `pkg-config --libs bdw-gc` -o ${test_name} >& $temp
+fi
+if [[ ! -e ${test_name} ]]; then
+  echo '#!/bin/bash' > ${test_name}
+  echo "echo 'Compile Error: $test_file'" >> ${test_name}
+  echo "cat $temp" >> ${test_name}
+  echo "exit 3" >> ${test_name}
+  chmod 777 ${test_name}
+fi
+

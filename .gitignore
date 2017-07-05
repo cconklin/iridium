@@ -38,5 +38,10 @@ examples/*
 !examples/*.ir
 src/*.o
 src/lib/*.o
-src/*.a
+
+test/*
+!test/*.*
+!test/**/*.*
+!test/Makefile
+!test/.testerignore
 
