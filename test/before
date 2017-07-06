@@ -1,0 +1,8 @@
+#!/bin/bash
+
+cd "$(dirname $(pwd)/$0)"
+pushd ../src >& /dev/null
+make -j16
+popd >& /dev/null
+make -j16
+
