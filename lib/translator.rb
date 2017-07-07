@@ -3,7 +3,7 @@ require 'digest'
 module Translator extend self
 
   def name(code)
-    "i" + ((Digest::SHA1.base64digest code.to_s)[1..8].gsub /(\+|\/)/, "_")
+    "i" + ((Digest::SHA1.base64digest(code.to_s + Random.rand.to_s))[1..8].gsub /(\+|\/)/, "_")
   end
 
   def sub_callables!(tree)

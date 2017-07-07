@@ -369,7 +369,7 @@ class Generator
             unless modified_variables.include? exc_variable
               modified_variables << exc_variable
             end
-            code << "ir_cmp_#{exc_variable} = _raised;"
+            code << "#{variable_name(exc_variable)} = _raised;"
           end
           code.concat(generate_block(exc_block, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: true, exception_handlers: exception_handlers))
           code << "END_RESCUE(#{handler_var});"
@@ -430,7 +430,7 @@ class Generator
           else
             # Variable
             active_variables << expr unless active_variables.include? expr
-            "(ir_cmp_#{expr} ? ir_cmp_#{expr} : local(\"#{expr}\"))"
+            "(#{variable_name(expr)} ? #{variable_name(expr)} : local(\"#{expr}\"))"
           end
       end
     elsif expr.is_a? Integer

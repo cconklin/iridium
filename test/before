@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 cd "$(dirname $(pwd)/$0)"
 pushd ../src >& /dev/null
 make -j16
