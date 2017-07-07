@@ -13,7 +13,6 @@ FILE * get_file(object self) {
 
 size_t file_length(FILE * f, object filename) {
   struct stat st;
-  size_t nbytes_read;
   object reason;
   if (-1 == fstat(fileno(f), &st)) {
     reason = filename;
@@ -43,7 +42,6 @@ char * read_file(FILE * f, object filename) {
   char * buffer;
   size_t file_size;
   size_t nbytes_read;
-  object reason;
   file_size = file_length(f, filename);
   // Is +1 needed for a terminating null?
   buffer = GC_MALLOC((file_size+1)*sizeof(char));
@@ -68,7 +66,6 @@ iridium_method(File, write) {
   // The string to write
   char * str = C_STRING(local("str"));
   size_t len = strlen(str);
-  char * mode = C_STRING(local("mode"));
   FILE * f = internal_get_attribute(local("self"), ATOM("FILE"), FILE *);
   size_t written = fwrite(str, sizeof str[0], len, f);
   if (written != len) {
@@ -79,7 +76,6 @@ iridium_method(File, write) {
 
 iridium_method(File, close) {
   object self = local("self");
-  object reason;
   
   FILE * f = get_file(self);
   fclose(f);

@@ -93,7 +93,7 @@ double dict_get_flt(struct dict * h, void * key) {
 void dict_delete(struct dict * h, void * key) {
   if (lookup(h, key)) {
     // Key has to exist to be deleted
-    struct dict_entry * entry , * temp;
+    struct dict_entry * entry;
     if ((entry = h -> hashtab[hash(h, key)]) && (h -> hashtab[hash(h, key)]) -> key == key) {
       // First element in the hashtab
       h -> hashtab[hash(h, key)] = entry -> next;
@@ -102,7 +102,7 @@ void dict_delete(struct dict * h, void * key) {
     for (entry = (h -> hashtab[hash(h, key)]); entry -> next != NULL; entry = entry -> next) {
       if (entry -> next -> key == key) {
         // Found the entry: delete it
-        entry -> next = temp -> next ;
+        entry -> next = entry -> next -> next;
       }
     }
   }

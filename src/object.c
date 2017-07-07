@@ -585,7 +585,6 @@ iridium_method(Object, puts) {
 
 // Object#gets
 iridium_method(Object, gets) {
-  int idx = 0;
   char * gets_buffer;
   char * str_buffer;
   size_t gets_len;

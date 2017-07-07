@@ -11,7 +11,7 @@ ir.o: $(OBJS) core.o
 
 $(OBJS): %.o: %.c
 	@echo CC $@
-	$(CC) $(CFLAGS) -o $@ -c $^
+	$(CC) $(CFLAGS) -o $@ -c $^ -Wall
 
 core.o: $(IR)
 	@echo IR $@

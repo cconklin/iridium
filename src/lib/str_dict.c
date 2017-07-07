@@ -78,7 +78,7 @@ void * str_dict_get(struct dict * h, char * key) {
 void str_dict_delete(struct dict * h, char * key) {
   if (str_lookup(h, key)) {
     // Key has to exist to be deleted
-    struct dict_entry * entry , * temp;
+    struct dict_entry * entry, * temp;
     if ((entry = h -> hashtab[str_hash(h, key)]) && (h -> hashtab[str_hash(h, key)]) -> key == key) {
       // First element in the hashtab
       h -> hashtab[str_hash(h, key)] = entry -> next;
@@ -86,8 +86,10 @@ void str_dict_delete(struct dict * h, char * key) {
     }
     for (entry = (h -> hashtab[str_hash(h, key)]); entry -> next != NULL; entry = entry -> next) {
       if (entry -> next -> key == key) {
+        temp = entry -> next;
         // Found the entry: delete it
-        entry -> next = temp -> next ;
+        entry -> next = temp -> next;
+        free(temp);
       }
     }
   }
