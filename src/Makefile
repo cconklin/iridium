@@ -5,6 +5,8 @@ CC   	:= clang
 CFLAGS 	:= $(shell pkg-config --cflags bdw-gc)
 LDFLAGS := $(shell pkg-config --libs bdw-gc)
 
+# Can add -g flag to .c and .ir rules to get debug symbols
+
 ir.o: $(OBJS) core.o
 	@echo LD $@
 	ld -r -o $@ $^
