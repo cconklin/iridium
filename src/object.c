@@ -583,6 +583,26 @@ iridium_method(Object, puts) {
   return NIL;
 }
 
+// Object#write
+// Displays to stdout without ending newline
+// Locals used: args
+// Output: nil
+iridium_method(Object, write) {
+  int idx = 0;
+  struct array * obj_ary = internal_get_attribute(local("args"), ATOM("array"), struct array *);
+  object * objs = (object *) obj_ary -> elements;
+  int end = obj_ary -> length;
+  for (idx = 0; idx < end-1; idx ++) {
+    printf("%s ", C_STRING(send(objs[idx], "to_s")));
+  }
+  if (end-1>=0) {
+    printf("%s", C_STRING(send(objs[end-1], "to_s")));
+  }
+  return NIL;
+}
+
+
+
 // Object#gets
 iridium_method(Object, gets) {
   char * gets_buffer;
@@ -1445,7 +1465,7 @@ void IR_init_Object() {
   struct IridiumArgument * class_superclass;
   struct IridiumArgument * class_name;
   struct IridiumArgument * other;
-  object call, get, class_new, class_inst_new, obj_init, class_inspect, object_inspect, fix_plus, nil_inspect, fix_inspect, atom_inspect, func_inspect, obj_puts, str_inspect;
+  object call, get, class_new, class_inst_new, obj_init, class_inspect, object_inspect, fix_plus, nil_inspect, fix_inspect, atom_inspect, func_inspect, obj_puts, str_inspect, obj_write;
   
   // Create class
   CLASS(Class) = construct(CLASS(Class));
@@ -1493,7 +1513,9 @@ void IR_init_Object() {
   set_instance_attribute(CLASS(Module), ATOM("inspect"), PUBLIC, class_inspect);
   // Bootstrap Object
   obj_puts = FUNCTION(ATOM("puts"), ARGLIST(argument_new(ATOM("args"), NULL, 1)), dict_new(ObjectHashsize), iridium_method_name(Object, puts));
+  obj_write = FUNCTION(ATOM("write"), ARGLIST(argument_new(ATOM("args"), NULL, 1)), dict_new(ObjectHashsize), iridium_method_name(Object, write));
   set_instance_attribute(CLASS(Object), ATOM("puts"), PUBLIC, obj_puts);
+  set_instance_attribute(CLASS(Object), ATOM("write"), PUBLIC, obj_write);
   obj_init = FUNCTION(ATOM("initialize"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Object, initialize));
   set_instance_attribute(CLASS(Object), ATOM("initialize"), PUBLIC, obj_init);
   object_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Object, inspect));

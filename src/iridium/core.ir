@@ -4,3 +4,5 @@ require "array"
 require "range"
 require "file"
 require "queue"
+require "iris"
+

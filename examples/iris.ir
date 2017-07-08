@@ -1,0 +1,14 @@
+Iris.describe(Dictionary) ->
+  it("should allow merging") ->
+    expect({a: :b, c: :d}.merge({a: :f, e: :g})).to(eq({a: :f, c: :d, e: :h}))
+  end
+  it("should allow merging again") ->
+    expect({a: :b, c: :d}.merge({a: :f, e: :g})).to(eq({a: :f, c: :d, e: :g}))
+  end
+  it("should not allow conversion to an integer") ->
+    expect({a: :b}.to_i).to(eq(11))
+  end
+end
+
+Iris.run()
+

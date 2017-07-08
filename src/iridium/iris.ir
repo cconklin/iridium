@@ -1,0 +1,114 @@
+module Iris
+
+  class TestGroup
+    method initialize(object, fn)
+      self.object = object
+      self.tests = []
+      self.fn = fn
+    end
+    method it(description, fn)
+      tests << Iris.Test.new(description, fn)
+    end
+    method run
+      return tests.map -> (test)
+        return test.run()
+      end
+    end
+  end
+
+  class Test
+    method initialize(name, fn)
+      self.name = name
+      self.fn = fn
+    end
+    method expect(object)
+      return Iris.Expectation.new(object)
+    end
+    method eq(object)
+      return Iris.EqualMatcher.new(object)
+    end
+    method run
+      begin
+        self.fn()
+        return [self, :pass]
+      rescue Exception => e
+        return [self, e]
+      end
+    end
+  end
+
+  class Expectation
+    method initialize(object)
+      self.object = object
+    end
+    method to(matcher)
+      unless matcher.test(self.object)
+        raise(AssertionError.new("Expected " + matcher.object.inspect() + " to equal " + object.inspect()))
+      end
+    end
+  end
+
+  class EqualMatcher
+    method initialize(object)
+      self.object = object
+    end
+    method test(subject)
+      return subject == object
+    end
+  end
+
+  function describe(subject, fn)
+    group = Iris.TestGroup.new(subject, fn)
+    group.fn()
+    begin
+      tests_groups << group
+    rescue NameError
+      self.test_groups = [group]
+    end
+  end
+
+  function run
+    examples = 0
+    failures = {}
+    errors = {}
+    test_groups.each -> (group)
+      group.run().each -> (result)
+        test = result[0]
+        status = result[1]
+        name = (group.object.inspect()) + " " + test.name
+        if status == :pass
+          write(".")
+        elseif status.class() == AssertionError
+          failures[name] = status.reason()
+          write("F")
+        else
+          errors[name] = (status.class().inspect()) + ": " + status.reason()
+          write("E")
+        end
+        examples = examples + 1
+      end
+    end
+    puts("\n")
+    puts(examples, "examples,", failures.length(), "failures,", errors.length(), "errors")
+    puts("")
+    count = 1
+    failures.merge(errors).each -> (name, reason)
+      puts(count.inspect() + ")", name)
+      puts("   ", reason)
+      puts("")
+    end
+  end
+end
+
+class AssertionError < Exception
+  method reason
+    return "Assertion Failed: " + message
+  end
+end
+
+function assert(expr, reason="No reason given")
+  unless expr
+    raise(AssertionError.new(reason))
+  end
+end
+
