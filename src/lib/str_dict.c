@@ -23,10 +23,10 @@ unsigned int str_hash(struct dict * h, char * key) {
 
 struct dict * str_dict_new(unsigned int hashsize) {
   struct dict * h;
-  h = malloc(sizeof(struct dict));
+  h = GC_MALLOC(sizeof(struct dict));
   assert(h);
   h -> hashsize = hashsize;
-  h -> hashtab = (struct dict_entry **) malloc(hashsize * sizeof(struct dict_entry *));
+  h -> hashtab = (struct dict_entry **) GC_MALLOC(hashsize * sizeof(struct dict_entry *));
   assert(h -> hashtab);
   return h;
 }
@@ -38,13 +38,13 @@ void str_dict_set(struct dict * h, char * key, void * value) {
   // associate key with value in hash
   if (!(entry = str_lookup(h, key))) {
     // not in the hash
-    entry = (struct dict_entry *) malloc(sizeof(struct dict_entry));
+    entry = (struct dict_entry *) GC_MALLOC(sizeof(struct dict_entry));
     assert(entry); // Ensure that entry has been allocated.
     entry -> next = (h -> hashtab)[hashval]; // Make the head of the entry linked list
     (h -> hashtab)[hashval] = entry; // Make this the first element seen when looked up in the hashtab array.
   }
   (entry -> value).ptr = value;
-  entry -> key = malloc(strlen(key) + 1);
+  entry -> key = GC_MALLOC(strlen(key) + 1);
   assert(entry -> key);
   strcpy(entry -> key, key);
 }
@@ -89,7 +89,6 @@ void str_dict_delete(struct dict * h, char * key) {
         temp = entry -> next;
         // Found the entry: delete it
         entry -> next = temp -> next;
-        free(temp);
       }
     }
   }
