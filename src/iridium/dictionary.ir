@@ -6,4 +6,89 @@ class Dictionary
     end
   end
 
+  method keys
+    result = []
+    each -> (key, _value)
+      result << key
+    end
+    return result
+  end
+
+  method values
+    result = []
+    each -> (_key, value)
+      result << value
+    end
+    return result
+  end
+
+  method has_value?(value)
+    return values().contains?(value)
+  end
+
+  method any?(fn)
+    return reduce(false) -> (key, value, acc)
+      if acc == true
+        return true
+      else
+        return fn(key, value)
+      end
+    end
+  end
+
+  method all?(fn)
+    return reduce(true) -> (key, value, acc)
+      if acc == false
+        return false
+      else
+        return fn(key, value)
+      end
+    end
+  end
+
+  method empty?
+    return keys().empty?()
+  end
+
+  method invert
+    result = {}
+    each -> (key, value)
+      result[value] = key
+    end
+    return result
+  end
+
+  method length
+    return keys().length()
+  end
+
+  method merge(other)
+    result = {}
+    each -> (key, value)
+      result[key] = value
+    end
+    other.each -> (key, value)
+      result[key] = value
+    end
+    return result
+  end
+
+  method __eq__(other)
+    if length() != other.length()
+      return false
+    else
+      return all? -> (key, value)
+        return self[key] == other[key]
+      end
+    end
+  end
+
+  method __ne__(other)
+    if self == other
+      return false
+    else
+      return true
+    end
+  end
+
 end
