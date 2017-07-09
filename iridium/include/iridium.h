@@ -1,9 +1,9 @@
-#include "object.h"
-#include "float.h"
-#include "string.h"
-#include "dictionary.h"
-#include "file.h"
-#include "queue.h"
+#include "ir_object.h"
+#include "ir_float.h"
+#include "ir_string.h"
+#include "ir_dictionary.h"
+#include "ir_file.h"
+#include "ir_queue.h"
 #pragma once
 
 struct array * ir_context_stack;

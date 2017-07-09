@@ -1,5 +1,5 @@
 #include "../test_helper.h"
-#include "../../src/float.h"
+#include "../../iridium/include/ir_float.h"
 #include "setup.h"
 
 int test() {

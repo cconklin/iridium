@@ -1,4 +1,4 @@
-#include "../../src/lib/linked_list.h"
+#include "../../iridium/include/shared/linked_list.h"
 #include "../test_helper.h"
 
 int test() {

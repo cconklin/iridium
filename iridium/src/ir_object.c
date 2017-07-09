@@ -5,7 +5,7 @@
 #include <setjmp.h>
 #include <stdarg.h>
 
-#include "object.h"
+#include "ir_object.h"
 
 struct list * _ARGLIST(int unused, ...) {
   va_list args;

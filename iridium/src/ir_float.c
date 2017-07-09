@@ -1,4 +1,4 @@
-#include "float.h"
+#include "ir_float.h"
 
 /* Float.new
  *

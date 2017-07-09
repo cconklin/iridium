@@ -1,4 +1,4 @@
-#include "object.h"
+#include "ir_object.h"
 #include <stdio.h>
 #include <sys/stat.h>
 #include <errno.h>

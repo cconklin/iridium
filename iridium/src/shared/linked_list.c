@@ -4,7 +4,7 @@
   Linked list library.
 */
 
-#include "linked_list.h"
+#include "shared/linked_list.h"
 
 // list_extend
 // inputs: lst (struct list *), val (void *)

@@ -1,4 +1,4 @@
-#include "queue.h"
+#include "ir_queue.h"
 
 iridium_method(Queue, initialize) {
   object self = local("self");

@@ -3,7 +3,7 @@ require 'securerandom'
 module Compiler
   extend self
 
-  IRIDIUM = File.expand_path File.join(File.dirname(__FILE__), "..", "src", "ir.o")
+  IRIDIUM = File.expand_path File.join(File.dirname(__FILE__), "..", "iridium", "objects", "ir.o")
   LDFLAGS = `pkg-config --libs bdw-gc`.strip
 
   def compile(code, output: "a.out", debug: false, link: true)

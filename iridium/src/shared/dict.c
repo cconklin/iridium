@@ -6,7 +6,7 @@
     Values: void * (pointer to any Iridium Object)
 */
 
-#include "dict.h"
+#include "shared/dict.h"
 
 struct dict * dict_new(unsigned int hashsize) {
   struct dict * h;

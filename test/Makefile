@@ -5,8 +5,8 @@ C_TESTS := $(C_TESTS_SRC:%.c=%)
 IR_TESTS := $(IR_TESTS_SRC:%.ir=%)
 
 ROOT := ..
-IRIDIUM := $(ROOT)/src/ir.o
-COMPILER_SRC := $(shell find $(ROOT)/lib -name "*.rb" -type f)
+IRIDIUM := $(ROOT)/iridium/objects/ir.o
+COMPILER_SRC := $(shell find $(ROOT)/ircc -name "*.rb" -type f)
 COMPILE := $(ROOT)/scripts/compile_test
 
 all: $(C_TESTS) $(IR_TESTS)

@@ -3,7 +3,7 @@
 set -e
 
 cd "$(dirname $(pwd)/$0)"
-pushd ../src >& /dev/null
+pushd ../iridium >& /dev/null
 make -j16
 popd >& /dev/null
 make -j16

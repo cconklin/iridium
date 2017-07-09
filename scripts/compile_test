@@ -15,7 +15,7 @@ rm -f "${test_name}"
 if [[ "$extension" == "ir" ]]; then
   ircc ${test_file} -o ${test_name} >& $temp
 elif [[ "$extension" == "c" ]]; then
-  clang ${test_file} ${root}/src/ir.o `pkg-config --libs bdw-gc` -o ${test_name} >& $temp
+  clang ${test_file} ${root}/iridium/objects/ir.o `pkg-config --libs bdw-gc` -o ${test_name} >& $temp
 fi
 if [[ ! -e ${test_name} ]]; then
   echo '#!/bin/bash' > ${test_name}

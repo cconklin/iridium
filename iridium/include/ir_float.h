@@ -1,4 +1,4 @@
-#include "object.h"
+#include "ir_object.h"
 
 #ifndef IRIDIUM_FLOAT
 #define IRIDIUM_FLOAT

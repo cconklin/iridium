@@ -10,15 +10,15 @@
 #define OBJECT_H
 
 // Use the array library to get args
-#include "lib/array.h"
+#include "shared/array.h"
 // Use the list library for module lookup
-#include "lib/linked_list.h"
+#include "shared/linked_list.h"
 // Use the dict library for attributes
-#include "lib/dict.h"
+#include "shared/dict.h"
 // Use the str_dict library for atoms
-#include "lib/str_dict.h"
+#include "shared/str_dict.h"
 // Use the stack library for exceptions
-#include "lib/stack.h"
+#include "shared/stack.h"
 
 // Magic number to identify objects
 #define MAGIC 0x0EFFACED

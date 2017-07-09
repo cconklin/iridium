@@ -1,4 +1,4 @@
-#include "object.h"
+#include "ir_object.h"
 #pragma once
 
 object CLASS(Queue);

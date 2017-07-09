@@ -3,7 +3,7 @@
   Interface to a stack implementation.
 */
 
-#include "stack.h"
+#include "shared/stack.h"
 
 // stack_new
 // returns: struct stack *

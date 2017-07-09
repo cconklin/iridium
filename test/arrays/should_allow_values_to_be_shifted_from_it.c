@@ -1,4 +1,4 @@
-#include "../../src/lib/array.h"
+#include "../../iridium/include/shared/array.h"
 #include "../test_helper.h"
 
 int test() {

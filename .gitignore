@@ -36,8 +36,7 @@ build/
 
 examples/*
 !examples/*.ir
-src/*.o
-src/lib/*.o
+iridium/objects
 
 test/*
 !test/*.*

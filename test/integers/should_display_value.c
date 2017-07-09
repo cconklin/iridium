@@ -1,5 +1,5 @@
 #include "../test_helper.h"
-#include "../../src/object.h"
+#include "../../iridium/include/ir_object.h"
 #include "setup.h"
 
 int test() {

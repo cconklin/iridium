@@ -3,7 +3,7 @@
   Implements the array structure used in function argument lists and tuples
 */
 
-#include "array.h"
+#include "shared/array.h"
 
 // array_new
 // Create a new, empty array

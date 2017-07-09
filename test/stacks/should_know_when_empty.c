@@ -1,4 +1,4 @@
-#include "../../src/lib/stack.h"
+#include "../../iridium/include/shared/stack.h"
 #include "../test_helper.h"
 
 int test() {

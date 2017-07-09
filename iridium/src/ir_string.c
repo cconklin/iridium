@@ -1,4 +1,4 @@
-#include "string.h"
+#include "ir_string.h"
 
 iridium_method(String, __add__)
 {

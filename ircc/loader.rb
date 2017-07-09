@@ -5,7 +5,7 @@ class Loader
   CORE_FILES = []
   LOAD_PATH = [
     # Iridium files to bootstrap the language
-    File.join(File.dirname(File.dirname(__FILE__)), "src", "iridium")
+    File.join(File.dirname(File.dirname(__FILE__)), "iridium", "iridium")
   ]
 
   def initialize

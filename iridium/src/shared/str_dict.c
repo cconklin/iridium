@@ -6,7 +6,7 @@
     Values: void * (pointer to any Iridium Object)
 */
 
-#include "str_dict.h"
+#include "shared/str_dict.h"
 
 unsigned int str_hash(struct dict * h, char * key) {
   unsigned int hashval = 0;

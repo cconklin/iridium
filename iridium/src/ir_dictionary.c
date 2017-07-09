@@ -1,4 +1,4 @@
-#include "dictionary.h"
+#include "ir_dictionary.h"
 
 struct IR_DICTIONARY * new_IR_DICTIONARY(void) {
   struct IR_DICTIONARY * dict = GC_MALLOC(sizeof(struct IR_DICTIONARY));

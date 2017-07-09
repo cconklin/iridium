@@ -1,4 +1,4 @@
-#include "../../src/object.h"
+#include "../../iridium/include/ir_object.h"
 
 void setup(void)
 {
