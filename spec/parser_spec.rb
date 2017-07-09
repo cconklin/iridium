@@ -1,4 +1,4 @@
-require_relative "../lib/parser"
+require_relative "../ircc/parser"
 
 describe Parser do
   let (:parser) { Parser.new }

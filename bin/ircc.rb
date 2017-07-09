@@ -1,11 +1,11 @@
 #!/usr/bin/env ruby
 
 require 'optparse'
-require_relative "../lib/parser"
-require_relative "../lib/translator"
-require_relative "../lib/generator"
-require_relative "../lib/compiler"
-require_relative "../lib/loader"
+require_relative "../ircc/parser"
+require_relative "../ircc/translator"
+require_relative "../ircc/generator"
+require_relative "../ircc/compiler"
+require_relative "../ircc/loader"
 
 options = {output: "a.out", debug: false, link: true}
 
