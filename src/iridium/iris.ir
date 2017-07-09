@@ -27,6 +27,9 @@ module Iris
     method eq(object)
       return Iris.EqualMatcher.new(object)
     end
+    method raise_exception(object)
+      return Iris.RaisesMatcher.new(object)
+    end
     method run
       begin
         self.fn()
@@ -42,8 +45,8 @@ module Iris
       self.object = object
     end
     method to(matcher)
-      unless matcher.test(self.object)
-        raise(AssertionError.new("Expected " + matcher.object.inspect() + " to equal " + object.inspect()))
+      unless matcher.test(object)
+        raise(AssertionError.new(matcher.message(object)))
       end
     end
   end
@@ -54,6 +57,29 @@ module Iris
     end
     method test(subject)
       return subject == object
+    end
+    method message(subject)
+      return "Expected " + object.inspect() + " to equal " + subject.inspect()
+    end
+  end
+
+  class RaisesMatcher
+    method initialize(exception)
+      self.exception = exception
+    end
+
+    # subject is a fn
+    method test(subject)
+      begin
+        subject()
+        return false
+      rescue exception
+        return true
+      end
+    end
+
+    method message(subject)
+      return exception.inspect() + " was not raised"
     end
   end
 
@@ -91,11 +117,11 @@ module Iris
     puts("\n")
     puts(examples, "examples,", failures.length(), "failures,", errors.length(), "errors")
     puts("")
-    count = 1
-    failures.merge(errors).each -> (name, reason)
+    failures.merge(errors).reduce(1) -> (name, reason, count)
       puts(count.inspect() + ")", name)
       puts("   ", reason)
       puts("")
+      return count + 1
     end
   end
 end

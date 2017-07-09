@@ -346,7 +346,7 @@ class Generator
         # No else block allowed yet
         exception_list = rescue_sections.keys.map.with_index do |exc, idx|
           idx += 1 # start @ 1 (begin is 0)
-          "EXCEPTION(#{generate_expression(exc)}, #{idx})"
+          "EXCEPTION(#{generate_expression(exc, active_variables: active_variables, literals: literals)}, #{idx})"
         end
         exception_list = "ARGLIST(#{exception_list.join(',')})"
         exception_handlers << handler_var

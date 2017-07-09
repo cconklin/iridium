@@ -6,7 +6,12 @@ Iris.describe(Dictionary) ->
     expect({a: :b, c: :d}.merge({a: :f, e: :g})).to(eq({a: :f, c: :d, e: :g}))
   end
   it("should not allow conversion to an integer") ->
-    expect({a: :b}.to_i).to(eq(11))
+    expect({a: :b}.to_i()).to(eq(11))
+  end
+  it("should not allow conversion to an array") ->
+    (expect ->
+      return {a: :b}
+    end).to(raise_exception(AttributeError))
   end
 end
 
