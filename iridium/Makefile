@@ -1,6 +1,6 @@
 SRCS 	:= $(shell find src -name "*.c")
 OBJS 	:= $(SRCS:src/%.c=objects/%.o)
-IR   	:= $(wildcard iridium/*.ir)
+IR   	:= $(wildcard src/*.ir)
 CC   	:= clang
 CFLAGS 	:= $(shell pkg-config --cflags bdw-gc) -I./include/
 LDFLAGS := $(shell pkg-config --libs bdw-gc)
@@ -23,7 +23,7 @@ $(OBJECTS):
 
 $(OBJECTS)/core.o: $(IR)
 	@echo IR $@
-	ircc -o $@ -c iridium/core.ir --main=IR_CORE_INIT
+	ircc -o $@ -c src/core.ir --main=IR_CORE_INIT
 
 clean:
 	rm -rf $(OBJECTS)
