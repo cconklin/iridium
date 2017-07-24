@@ -5,7 +5,7 @@ C_TESTS := $(C_TESTS_SRC:%.c=%)
 IR_TESTS := $(IR_TESTS_SRC:%.ir=%)
 
 ROOT := ..
-IRIDIUM := $(ROOT)/iridium/objects/ir.o
+IRIDIUM := $(ROOT)/iridium/objects/iridium.o
 COMPILER_SRC := $(shell find $(ROOT)/ircc -name "*.rb" -type f)
 COMPILE := $(ROOT)/scripts/compile_test
 
@@ -20,6 +20,9 @@ $(C_TESTS): %: %.c $(IRIDIUM)
 
 $(IR_TESTS): %: %.ir $(IRIDIUM) $(COMPILER_SRC)
 	$(COMPILE) $@.ir
+
+$(IRIDIUM):
+	cd ../iridium && $(MAKE)
 
 .SILENT:
 

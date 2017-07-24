@@ -1,4 +1,4 @@
-#include "iridium.h"
+#include "ir_init.h"
 
 void IR_INIT(void) {
     IR_init_Object();

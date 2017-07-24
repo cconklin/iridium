@@ -9,13 +9,14 @@ test_file="$1"
 test_name="${test_file%.*}"
 extension="${test_file##*.}"
 temp=`mktemp`
+CC=gcc
 
 rm -f "${test_name}"
 
 if [[ "$extension" == "ir" ]]; then
   ircc ${test_file} -o ${test_name} >& $temp
 elif [[ "$extension" == "c" ]]; then
-  clang ${test_file} ${root}/iridium/objects/ir.o `pkg-config --libs bdw-gc` -o ${test_name} >& $temp
+  $CC ${test_file} ${root}/iridium/objects/iridium.o `pkg-config --libs bdw-gc` -o ${test_name} >& $temp
 fi
 if [[ ! -e ${test_name} ]]; then
   echo '#!/bin/bash' > ${test_name}

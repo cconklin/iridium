@@ -23,7 +23,7 @@ class Generator
   end
 
   def generate_includes
-    %w[iridium/include/iridium].map do |header|
+    %w[iridium/include/ir_init].map do |header|
       header_path = File.absolute_path File.join(File.dirname(__FILE__), "..", header)
       "#include \"#{header_path}.h\""
     end.join("\n")

@@ -94,7 +94,7 @@ struct list * _ARGLIST(int unused, ...);
 
 // Macro for ATOMS
 #define ATOM(name) ((! strcmp(name, "self")) ? SELF_ATOM : _ATOM(name))
-#define SELF_ATOM (_SELF_ATOM ? _SELF_ATOM : (_SELF_ATOM = create_self_atom()))
+#define SELF_ATOM (_SELF_ATOM ? _SELF_ATOM : (create_self_atom()))
 
 // Macro for defining methods
 #define DEF_METHOD(receiver, name, arglist, func) \

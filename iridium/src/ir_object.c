@@ -942,6 +942,9 @@ object create_self_atom() {
   // Add it to the Atom table
   add_atom("self", self_atom);
 
+  // Set _SELF_ATOM
+  _SELF_ATOM = self_atom;
+
   // Return the atom
   return self_atom;
 }

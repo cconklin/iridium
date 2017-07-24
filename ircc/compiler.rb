@@ -3,15 +3,16 @@ require 'securerandom'
 module Compiler
   extend self
 
-  IRIDIUM = File.expand_path File.join(File.dirname(__FILE__), "..", "iridium", "objects", "ir.o")
+  IRIDIUM = File.expand_path File.join(File.dirname(__FILE__), "..", "iridium", "objects", "iridium.o")
   LDFLAGS = `pkg-config --libs bdw-gc`.strip
+  CC = `which gcc`.strip
 
   def compile(code, output: "a.out", debug: false, link: true)
     fname = SecureRandom.hex + ".c"
     command = if link
-      "/usr/bin/clang #{LDFLAGS} -o #{output} #{debug ? '-g' : ''} #{IRIDIUM} -xc #{debug ? fname : '-'}"
+      "#{CC} #{LDFLAGS} -o #{output} #{debug ? '-g' : ''} #{IRIDIUM} -xc #{debug ? fname : '-'}"
     else
-      "/usr/bin/clang -o #{output} -c #{debug ? '-g' : '' } -xc #{debug ? fname : '-'}"
+      "#{CC} -o #{output} -c #{debug ? '-g' : '' } -xc #{debug ? fname : '-'}"
     end
     if debug
       puts command

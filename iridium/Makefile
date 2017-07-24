@@ -1,15 +1,15 @@
 SRCS 	:= $(shell find src -name "*.c")
 OBJS 	:= $(SRCS:src/%.c=objects/%.o)
 IR   	:= $(wildcard src/*.ir)
-CC   	:= clang
+CC   	:= gcc
 CFLAGS 	:= $(shell pkg-config --cflags bdw-gc) -I./include/
 LDFLAGS := $(shell pkg-config --libs bdw-gc)
 OBJECTS := objects
 # Can add -g flag to .c and .ir rules to get debug symbols
 
-all: $(OBJECTS) $(OBJECTS)/ir.o
+all: $(OBJECTS) $(OBJECTS)/iridium.o
 
-$(OBJECTS)/ir.o: $(OBJS) $(OBJECTS)/core.o
+$(OBJECTS)/iridium.o: $(OBJS) $(OBJECTS)/core.o
 	@echo LD $@
 	ld -r -o $@ $(OBJS) $(OBJECTS)/core.o
 
@@ -28,5 +28,5 @@ $(OBJECTS)/core.o: $(IR)
 clean:
 	rm -rf $(OBJECTS)
 
-.SILENT: $(OBJS) $(OBJECTS)/ir.o $(OBJECTS)/core.o
+.SILENT: $(OBJS) $(OBJECTS)/iridium.o $(OBJECTS)/core.o
 
