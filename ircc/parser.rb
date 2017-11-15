@@ -20,12 +20,13 @@ class Parser
 
   def tree(data)
     tree = @parser.parse(data)
+    p tree
     if tree.nil?
       @parser.failure_reason =~ /^(Expected .+) after/m
       raise ParseError, "#{$1.gsub("\n", '$NEWLINE')}:\n#{data.lines.to_a[@parser.failure_line - 1]}\n#{'~' * (@parser.failure_column - 1)}^"
     else
       clean_tree(tree)
-      tree
+      p tree
     end
   end
   
