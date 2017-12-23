@@ -9,9 +9,9 @@ Iris.describe(Dictionary) ->
     expect({a: :b}.to_i()).to(eq(11))
   end
   it("should not allow conversion to an array") ->
-    (expect ->
+    expect ->
       return {a: :b}
-    end).to(raise_exception(AttributeError))
+    end.to(raise_exception(AttributeError))
   end
 end
 
