@@ -2,6 +2,11 @@ require_relative "../ircc/parser"
 
 describe Parser do
   let (:parser) { Parser.new }
+  describe "expressions" do
+    it "should parse escaped strings" do
+      expect(parser.parse("\"fo\\\"\"")).to eq(["fo\\\""])
+    end
+  end
   describe "assignments" do
 
     it "should not allow destructuring" do
@@ -45,7 +50,7 @@ describe Parser do
     end
 
     it "should parse with addition" do
-      expect(parser.parse("x = 2 + 3")).to eq([[:"=", :x, [:+, 2, 3]]])
+      expect(parser.parse("x = 2 + -3")).to eq([[:"=", :x, [:+, 2, -3]]])
     end
   
     it "should parse with multiplication" do
@@ -131,6 +136,10 @@ describe Parser do
       expect(parser.parse("x = y[4 + 5]")).to eq([[:"=", :x, [:[], :y, [[:+, 4, 5]]]]])
     end
 
+    it "should parse with basic indexed assignment" do
+      expect(parser.parse("x[5] = 6")).to eq([[:insert, :x, [5], 6]])
+    end
+
     it "should parse with indexed assignment" do
       expect(parser.parse("x[5] = y[4 + 5]")).to eq([[:insert, :x, [5], [:[], :y, [[:+, 4, 5]]]]])
     end
@@ -143,10 +152,9 @@ describe Parser do
       expect(parser.parse("x.b[5] = y[4 + 5]")).to eq([[:insert, [:".", :x, :b], [5], [:[], :y, [[:+, 4, 5]]]]])
     end
 
-    # TODO implement this
-#    it "should parse with indexed attribute assignment" do
-#      expect(parser.parse("x[5].b = y[4 + 5]")).to eq([[:set, [:[], :x, [5]], :b, [:[], :y, [[:+, 4, 5]]]]])
-#    end
+   it "should parse with indexed attribute assignment" do
+     expect(parser.parse("x[5].b = y[4 + 5]")).to eq([[:set, [:[], :x, [5]], :b, [:[], :y, [[:+, 4, 5]]]]])
+   end
 
     it "should parse with deep indexed assignment" do
       expect(parser.parse("x[5][6] = y[4 + 5]")).to eq([[:insert, [:[], :x, [5]], [6], [:[], :y, [[:+, 4, 5]]]]])
@@ -161,7 +169,7 @@ describe Parser do
     
     describe "returning values" do
       it "should allow for complex return statements" do
-        expect(parser.parse("return self.foo.bar().baz()")).to eq([[:return, [:"()", [:".", [:"()", [:".", [:".", :self, :foo], :bar], []], :baz], []]]])
+        expect(parser.parse("function x return self.foo.bar().baz() end")).to eq([[:function, :x, [], [[:return, [:"()", [:".", [:"()", [:".", [:".", :self, :foo], :bar], []], :baz], []]]]]])
       end
     end
     
@@ -174,11 +182,13 @@ describe Parser do
     describe "private functions" do
       it "should allow private declarations of functions" do
         func = <<-END
-        private function x
-          y = 5
+        module X
+          private function x
+            y = 5
+          end
         end
         END
-        expect(parser.parse(func)).to eq([[:private_function, :x, [], [[:"=", :y, 5]]]])
+        expect(parser.parse(func)).to eq([[:module, :X, [[:private_function, :x, [], [[:"=", :y, 5]]]]]])
       end
       it "should allow private declarations of methods" do
         func = <<-END
@@ -219,13 +229,13 @@ describe Parser do
       expect(parser.parse(func)).to eq([[:function, :x, [], [[:"=", :y, 5]]]])
     end
     
-    it "should not parse with arguments and no parenthesis" do
+    it "should not interpret arguments with no parenthesis" do
       func = <<-END
       function x z
         y = 5
       end
       END
-      expect { parser.parse(func) }.to raise_error(ParseError)
+      expect(parser.parse(func)).to eq([[:function, :x, [], [:z, [:"=", :y, 5]]]])
     end
     
     it "should parse with arguments with whitespace" do
@@ -373,9 +383,6 @@ describe Parser do
     it "should let them have multiple expressions" do
       expect(parser.parse("x = -> y = 2\ny = 3 end")).to eq([[:"=", :x, [:lambda, [], [[:"=", :y, 2], [:"=", :y, 3]]]]])            
     end
-    it "should not parse when arguments are not in parenthesis" do
-      expect{ parser.parse("x = -> y y = 2 end") }.to raise_error(ParseError)      
-    end
     it "should allow them to return values" do
       expect(parser.parse("x = -> return 2 end")).to eq([[:"=", :x, [:lambda, [], [[:return, 2]]]]])
     end
@@ -487,7 +494,7 @@ describe Parser do
     end
     
     it "should not parse with annonymous function and no parentheses" do
-      expect { parser.parse("foo 5 -> return 5 end") }.to raise_error(ParseError)          
+      expect(parser.parse("foo 5 -> return 5 end")).to eq([:foo, [:"()", 5, [[:lambda, [], [[:return, 5]]]]]])
     end
     
     it "should parse with arguments and attributes" do
@@ -518,8 +525,8 @@ describe Parser do
       expect(parser.parse("self.foo(-> return 5 end).bar.x()")).to eq([[:"()", [:".", [:".", [:"()", [:".", :self, :foo], [[:lambda, [], [[:return, 5]]]]], :bar], :x], []]])
     end
     
-    it "should not allow special function passing in the middle of call chains" do
-      expect { parser.parse "self.foo -> return 5 end.bar" }.to raise_error ParseError
+    it "should allow special function passing in the middle of call chains" do
+      expect(parser.parse "self.foo -> return 5 end.bar").to eq([[:".", [:"()", [:".", :self, :foo], [[:lambda, [], [[:return, 5]]]]], :bar]])
     end
     
     it "should allow destructuring of arguments" do
@@ -740,6 +747,28 @@ describe Parser do
     end
     it "should allow an ensure when rescuing" do
       expect( parser.parse "begin x = 5 rescue MyException x = 6 ensure x = 7 end" ).to eq [[:begin, [[:"=", :x, 5]], {MyException: [nil, [[:"=", :x, 6]]]}, [[:"=", :x, 7]]]]
+    end
+  end
+
+  it "should allow class as a method" do
+    expect(parser.parse("x.class")).to eq([[:".", :x, :class]])
+  end
+
+  it "should allow module as a method" do
+    expect(parser.parse("x.module")).to eq([[:".", :x, :module]])
+  end
+
+  it "should allow punctuation in identifiers" do
+    expect(parser.parse("x? = 11")).to eq([[:"=", :"x?", 11]])
+    expect(parser.parse("x! = 11")).to eq([[:"=", :"x!", 11]])
+  end
+
+  describe "simple programs" do
+    it "should parse a class, function, begin" do
+      expect(parser.parse("class X end function y end begin end")).to eq([[:class, :X, nil, []], [:function, :y, [], []], [:begin, [], {}, []]])
+    end
+    it "should parse a class, function, begin with comments" do
+      expect(parser.parse("begin\n# foo\nend")).to eq([[:begin, [], {}, []]])
     end
   end
 end
