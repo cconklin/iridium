@@ -11,6 +11,8 @@ class Parser < Whittle::Parser
   rule("/") % :left ^ 4
   rule("=") % :left ^ 1
   rule(".") % :right ^ 5
+  rule("<<") ^ 3
+  rule(">>") ^ 3
   rule("(") ^ 6
   rule(")") ^ 6
   rule("[") ^ 6
@@ -97,6 +99,8 @@ class Parser < Whittle::Parser
     r[:expr, :lambda].as { |a, b| [:"()", a, [b]] }
     r[:expr, "(", :args, ")", :lambda].as { |a, _1, b, _2, c| [:"()", a, b + [c]] }
     r[:expr, "(", :args, ")"].as { |a, _1, b, _2| [:"()", a, b] }
+    r[:expr, ">>", :expr].as { |a, _, b| [:>>, a, b] }
+    r[:expr, "<<", :expr].as { |a, _, b| [:<<, a, b] }
     r[:expr, "+", :expr].as { |a, _, b| [:+, a, b] }
     r[:expr, "-", :expr].as { |a, _, b| [:-, a, b] }
     r[:expr, "/", :expr].as { |a, _, b| [:/, a, b] }
