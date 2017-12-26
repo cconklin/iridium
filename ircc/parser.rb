@@ -133,6 +133,7 @@ class Parser < Whittle::Parser
 
   rule(:attr_expr) do |r|
     r[:expr, ".", :identifier].as { |a, _, b| [:".", a, b] }
+    r[:expr, ".", :constant].as { |a, _, b| [:".", a, b] }
     r[:expr, ".", "class"].as { |a, _, b| [:".", a, :class] }
     r[:expr, ".", "module"].as { |a, _, b| [:".", a, :module] }
   end
@@ -305,6 +306,8 @@ class Parser < Whittle::Parser
   rule(:rescue_stmt) do |r|
     r["rescue", :constant, :block].as { |_, a, b| { a => [nil, b] } }
     r["rescue", :constant, "=>", :identifier, :block].as { |_1, a, _2, b, c| { a => [b, c] } }
+    r["rescue", :identifier, :block].as { |_, a, b| { a => [nil, b] } }
+    r["rescue", :identifier, "=>", :identifier, :block].as { |_1, a, _2, b, c| { a => [b, c] } }
   end
 
   rule(:ensure_stmt) do |r|
