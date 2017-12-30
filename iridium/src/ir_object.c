@@ -1032,7 +1032,12 @@ iridium_method(Array, __get_index__) {
   object self = local("self");
   object index = local("index"); // Iridium Integer
   struct array * ary = internal_get_attribute(self, ATOM("array"), struct array *);
-  return array_get(ary, INT(index));
+  object result = array_get(ary, INT(index));
+  if (result) {
+    return result;
+  } else {
+    return NIL;
+  }
 }
 
 iridium_method(Array, __set_index__) {
