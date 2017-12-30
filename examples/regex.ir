@@ -1,0 +1,10 @@
+a = /(f[ob])(?<var>.)/
+# m = a.match("foo")
+# puts(m[1])
+# puts(m["var"])
+
+"fb!".match(a) -> (m)
+  puts(m[1])
+  puts(m["var"])
+end
+
