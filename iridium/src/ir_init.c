@@ -7,6 +7,7 @@ void IR_INIT(void) {
     IR_init_Dictionary();
     IR_init_File();
     IR_init_Queue();
+    IR_init_Regex();
     handler_id = 0; // Set the first handler id
     _exception_frames = stack_new(); // Initialize the exception stack
     // IR_CORE_INIT is a main function of the compiled

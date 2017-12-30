@@ -4,7 +4,7 @@ module Compiler
   extend self
 
   IRIDIUM = File.expand_path File.join(File.dirname(__FILE__), "..", "iridium", "objects", "iridium.o")
-  LDFLAGS = `pkg-config --libs bdw-gc`.strip
+  LDFLAGS = [`pkg-config --libs bdw-gc`, `pkg-config --libs libpcre`].map(&:strip).join " "
   CC = `which gcc`.strip
 
   def compile(code, output: "a.out", debug: false, link: true)

@@ -1,0 +1,6 @@
+class String
+  method match(regex, pos=0, fn=->(m) return m end)
+    return regex.match(self, pos, fn)
+  end
+end
+

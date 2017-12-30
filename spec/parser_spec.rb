@@ -775,6 +775,14 @@ describe Parser do
     expect(parser.parse("Baz = 2")).to eq([[:"=", :Baz, 2]])
   end
 
+  it "should allow regex literals" do
+    expect(parser.parse("/fo.+/")).to eq([[:regex, "fo.+"]])
+  end
+
+  it "should allow escaping in regex literals" do
+    expect(parser.parse('/(foo\/\))/')).to eq([[:regex, '(foo/\))']])
+  end
+
   describe "simple programs" do
     it "should parse a class, function, begin" do
       expect(parser.parse("class X end function y end begin end")).to eq([[:class, :X, nil, []], [:function, :y, [], []], [:begin, [], {}, []]])

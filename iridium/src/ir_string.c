@@ -47,10 +47,15 @@ iridium_method(String, hash) {
   return FIXNUM(hash);
 }
 
+iridium_method(String, size) {
+  return FIXNUM(strlen(C_STRING(local("self"))));
+}
+
 void IR_init_String(void)
 {
     DEF_METHOD(CLASS(String), "__add__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(String, __add__));
     DEF_METHOD(CLASS(String), "__eq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(String, __eq__));
     DEF_METHOD(CLASS(String), "hash", ARGLIST(), iridium_method_name(String, hash));
+    DEF_METHOD(CLASS(String), "size", ARGLIST(), iridium_method_name(String, size));
 }
 

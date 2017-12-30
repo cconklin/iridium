@@ -1,5 +1,7 @@
+require "string"
 require "dictionary"
 require "enumerable"
+require "regex"
 require "array"
 require "range"
 require "file"
