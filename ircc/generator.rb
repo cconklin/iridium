@@ -112,7 +112,7 @@ class Generator
     exception_handlers = []
     open_constants = %i[Object Class Atom Function Array Dictionary Integer Float String Module NilClass
                         File FileNotFoundError Exception IOError AttributeError TypeError Queue Queue.Empty
-                        ArgumentError Thread]
+                        ArgumentError Thread Regex]
     # Ensure that self is put in any closures
     modified_variables << "self"
 
@@ -551,6 +551,8 @@ class Generator
           "invoke(context, ir_cmp_Dictionary, \"new\", array_push(array_new(), #{dict_lst}))"
         when :===
           "(#{generate_expression(expr[1], active_variables: active_variables, literals: literals)} == #{generate_expression(expr[2], active_variables: active_variables, literals: literals)} ? ir_cmp_true : ir_cmp_false)"
+        when :regex
+          "(#{generate_expression([:"()", [:".", :Regex, :new], [expr[1]]])})"
       end
     end
   end

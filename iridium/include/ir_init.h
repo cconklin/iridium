@@ -5,6 +5,7 @@
 #include "ir_file.h"
 #include "ir_queue.h"
 #include "ir_thread.h"
+#include "ir_regex.h"
 #pragma once
 
 struct array * ir_context_stack;

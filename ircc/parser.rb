@@ -56,6 +56,7 @@ class Parser < Whittle::Parser
   rule(:wsp => /\s+/).skip!
   rule(:comment => /#.*$/).skip!
 
+  rule(:regex => /\/(\\\/|[^\/])*\//).as { |n| [:regex, n[1...-1].gsub("\\/", "/")] }
   rule(:identifier => /[a-z_][a-zA-Z0-9_]*[\?!]?/).as { |n| n.to_sym }
   rule(:constant => /[A-Z][a-zA-Z0-9_]*/).as { |n| n.to_sym }
   rule(:sym_key => /[a-zA-Z_][a-zA-Z0-9_]*:/).as { |n| ":#{n[0...-1]}".to_sym }
@@ -126,6 +127,7 @@ class Parser < Whittle::Parser
     r[:index_expr].as { |n| n }
     r[:attr_expr].as { |n| n }
     r[:lambda].as { |n| n }
+    r[:regex].as { |n| n }
   end
 
   rule(:index_expr) do |r|

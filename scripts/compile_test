@@ -16,7 +16,7 @@ rm -f "${test_name}"
 if [[ "$extension" == "ir" ]]; then
   ircc ${test_file} -o ${test_name} >& $temp
 elif [[ "$extension" == "c" ]]; then
-  $CC ${test_file} ${root}/iridium/objects/iridium.o `pkg-config --libs bdw-gc` -o ${test_name} >& $temp
+  $CC ${test_file} ${root}/iridium/objects/iridium.o `pkg-config --libs bdw-gc` `pkg-config --libs libpcre` -o ${test_name} >& $temp
 fi
 if [[ ! -e ${test_name} ]]; then
   echo '#!/bin/bash' > ${test_name}

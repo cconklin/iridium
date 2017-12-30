@@ -15,6 +15,7 @@ void IR_INIT(struct IridiumContext * context) {
     IR_init_Dictionary(context);
     IR_init_File(context);
     IR_init_Queue(context);
+    IR_init_Regex(context);
     IR_init_Thread(context);
     // IR_CORE_INIT is a main function of the compiled
     IR_CORE_INIT(context);
