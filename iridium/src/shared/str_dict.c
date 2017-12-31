@@ -44,7 +44,7 @@ void str_dict_set(struct dict * h, char * key, void * value) {
     (h -> hashtab)[hashval] = entry; // Make this the first element seen when looked up in the hashtab array.
   }
   (entry -> value).ptr = value;
-  entry -> key = malloc(strlen(key) + 1);
+  entry -> key = malloc((strlen(key) + 1) * sizeof(char));
   assert(entry -> key);
   strcpy(entry -> key, key);
 }
