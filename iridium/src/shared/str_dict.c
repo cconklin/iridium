@@ -23,11 +23,14 @@ unsigned int str_hash(struct dict * h, char * key) {
 
 struct dict * str_dict_new(unsigned int hashsize) {
   struct dict * h;
-  h = GC_MALLOC(sizeof(struct dict));
+  h = malloc(sizeof(struct dict));
   assert(h);
   h -> hashsize = hashsize;
   h -> hashtab = (struct dict_entry **) malloc(hashsize * sizeof(struct dict_entry *));
   assert(h -> hashtab);
+  for (int i = 0; i < hashsize; i++) {
+    h -> hashtab[i] = NULL;
+  }
   return h;
 }
 

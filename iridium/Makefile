@@ -2,7 +2,7 @@ SRCS 	:= $(shell find src -name "*.c")
 OBJS 	:= $(SRCS:src/%.c=objects/%.o)
 IR   	:= $(wildcard src/*.ir)
 CC   	:= gcc
-CFLAGS 	:= $(shell pkg-config --cflags bdw-gc) -I./include/
+CFLAGS 	:= $(shell pkg-config --cflags bdw-gc) -I./include/ -O3
 LDFLAGS := $(shell pkg-config --libs bdw-gc)
 OBJECTS := objects
 # Can add -g flag to .c and .ir rules to get debug symbols

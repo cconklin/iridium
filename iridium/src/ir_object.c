@@ -7,6 +7,8 @@
 
 #include "ir_object.h"
 
+int handler_id;
+
 struct list * _ARGLIST(int unused, ...) {
   va_list args;
   struct list * l = NULL;
@@ -63,7 +65,7 @@ iridium_attribute
 instance_attribute_lookup(object receiver, void * attribute, unsigned char access) {
   // Try and get it from the objects instance attributes
   iridium_attribute result = dict_get(receiver -> instance_attributes, attribute);
-  struct list * modules;
+  struct list * modules = NULL;
   object module;
   
   if (no_result) {
@@ -99,7 +101,7 @@ iridium_attribute
 attribute_lookup(object receiver, void * attribute, unsigned char access) {
   // Look for attribute among the objects attributes
   iridium_attribute result = dict_get(receiver -> attributes, attribute);
-  struct list * modules;
+  struct list * modules = NULL;
   object module;
   object class;
   
@@ -686,7 +688,7 @@ iridium_method(Object, __get__) {
   object self = local("self");
   
   // Dictionary of attribute locals, if attribute is a function
-  struct dict * vars;
+  struct dict * vars = NULL;
 
   // Grab the key from the locals
   object name = local("name");
@@ -816,16 +818,26 @@ iridium_method(Function, __call__) {
   object self = local("self");
   // Get args to be passed to function
   object args = local("args"); // array
-  
+ 
+  object result;
+
   // Get the corresponding C function
   object ( * func )(struct dict *) = internal_get_attribute(self, ATOM("function"), object (*)(struct dict *));
   assert(func);
 
   // Set the locals to that of the function (retrieve closed values and arguments)
   bindings = process_args(self, destructure(array_new(), args));
-      
+
+  // Add the function name to the stacktrace
+  stack_push(stacktrace, internal_get_attribute(get_attribute(self, ATOM("name"), PUBLIC), ATOM("string"), char *));
+
   // Invoke the function
-  return func(dict_copy(bindings));
+  result = func(dict_copy(bindings));
+
+  // Remove the function from the stacktrace
+  stack_pop(stacktrace);
+
+  return result;
 }
 
 // FUNCTION helper
@@ -1336,7 +1348,7 @@ void handleException(object exception) {
   // Active exception frame
   exception_frame frame;
   // Exception handler information
-  struct Exception * e;
+  struct Exception * e = NULL;
   // Should not be NULL
   assert(frames);
   // Ensure that the raised exception is an Object
@@ -1344,9 +1356,13 @@ void handleException(object exception) {
   assert(isObject(_raised));
   // Indicate that an exception is being handled
   _rescuing = 1;
+  // Set function stacktrace (different from the handler stack) into exception
+  internal_set_attribute(exception, ATOM("stacktrace"), stack_copy(stacktrace));
   // Should have at least one handler
   while(! stack_empty(frames)) {
     frame = (exception_frame) stack_top(frames);
+    // Clear any functions in the stacktrace called within this exception frame
+    stack_pop_to(stacktrace, frame -> stacktrace_idx);
     if ((e = catchesException(frame, exception)) && !(frame -> already_rescued)) {
       // Jump to the appropriate handler
       // Binding of the exception to the variable happens during the exception handler
@@ -1371,6 +1387,8 @@ void handleException(object exception) {
 exception_frame ExceptionHandler(struct list * exceptions, int ensure, int else_block, int count) {
   exception_frame frame = (exception_frame) GC_MALLOC(sizeof(struct ExceptionFrame));
   assert(frame);
+  frame -> id = handler_id++;
+  frame -> stacktrace_idx = stacktrace -> depth;
   frame -> exceptions = exceptions;
   frame -> ensure = ensure;
   frame -> count = count;
@@ -1465,6 +1483,21 @@ object lookup_constant(object name) {
   return constant;
 }
 
+void display_stacktrace(object exception) {
+  struct stack * trace = internal_get_attribute(exception, ATOM("stacktrace"), struct stack *);
+  // Something is wrong in the commented out versions that causes the corruption of the trace
+  char * classname = C_STRING(((struct IridiumAttribute*)dict_get(exception->class->attributes, ATOM("name")))->value); // C_STRING(send(exception->class, "to_s"));
+  char * reason = C_STRING(((struct IridiumAttribute*)dict_get(exception->attributes, ATOM("message")))->value); // C_STRING(send(send(exception, "reason"), "to_s"));
+  printf("%s: %s\n", classname, reason);
+  if (trace) {
+    printf("Trace (most recent call first):\n");
+    while (!stack_empty(trace)) {
+      char * elem = stack_pop(trace);
+      printf("\t%s\n", elem);
+    }
+  }
+}
+
 // Creates the objects defined here
 void IR_init_Object() {
   
@@ -1475,6 +1508,9 @@ void IR_init_Object() {
   struct IridiumArgument * other;
   object call, get, class_new, class_inst_new, obj_init, class_inspect, object_inspect, fix_plus, nil_inspect, fix_inspect, atom_inspect, func_inspect, obj_puts, str_inspect, obj_write;
   
+  stacktrace = stack_new();
+  stack_push(stacktrace, "<main>");
+
   // Create class
   CLASS(Class) = construct(CLASS(Class));
   CLASS(Class) -> class = CLASS(Class);

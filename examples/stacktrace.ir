@@ -1,0 +1,14 @@
+function foo
+  s
+end
+
+function bar
+  foo()
+end
+
+function baz
+  bar()
+end
+
+baz()
+

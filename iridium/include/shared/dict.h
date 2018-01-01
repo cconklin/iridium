@@ -9,7 +9,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
-#include <gc.h>
+
+#include "../garbage_collector.h"
 
 #ifndef DICT_H
 #define DICT_H

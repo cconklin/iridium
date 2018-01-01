@@ -5,9 +5,10 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 #pragma once
 
-#include <gc.h>
+#include "../garbage_collector.h"
 
 struct stack {
   int length;
@@ -25,3 +26,6 @@ void stack_push(struct stack *, void * data);
 void * stack_pop(struct stack *);
 void * stack_top(struct stack *);
 void stack_destroy(struct stack *);
+struct stack * stack_copy(struct stack *);
+void stack_pop_to(struct stack *, int n);
+

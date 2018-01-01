@@ -54,13 +54,11 @@ void stack_push(struct stack * stack, void * data) {
 // returns: void *
 // Pop an element off the top of the stack, removing it from the stack
 void * stack_pop(struct stack * stack) {
-  // Element that is removed from the stack
-  void * data;
   // Set `data` to the top of the stack
-  data = stack_top(stack);
+  void * data = stack_top(stack);
   // Decrement the depth of the stack
   stack -> depth --;
-  
+
   return data;
 }
 
@@ -88,4 +86,35 @@ void stack_destroy(struct stack * stack) {
 
 int stack_empty(struct stack * s) {
   return (s -> depth == -1);
-} 
+}
+
+// stack_copy
+// inputs: stack (struct stack *)
+// returns: struct stack *
+// Creates a copy of the passed stack
+struct stack * stack_copy(struct stack * orig) {
+  struct stack * copy = stack_new();
+  if (stack_empty(orig)) {
+    return copy;
+  }
+  copy -> stack = (void **) realloc(copy -> stack, orig -> length);
+  assert(copy->stack);
+  copy -> length = orig -> length;
+  copy -> depth = orig -> depth;
+  memcpy(copy -> stack, orig -> stack, (orig -> length) * sizeof(void *));
+  return copy;
+}
+
+// stack_pop_to
+// inputs: stack (struct stack *)
+//         n (int) -- the depth of the last frame to keep
+// Sets the depth of the stack to n (if n is less than the current depth)
+void stack_pop_to(struct stack * stack, int n) {
+  if (n < -1) {
+    n = -1;
+  }
+  if (n < stack -> depth) {
+    stack -> depth = n;
+  }
+}
+

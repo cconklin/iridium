@@ -7,8 +7,9 @@
 #define ARRAY_H
 
 #include <stdlib.h>
-#include <gc.h>
 #include <assert.h>
+
+#include "../garbage_collector.h"
 
 #define max(a,b) \
    ({ __typeof__ (a) _a = (a); \

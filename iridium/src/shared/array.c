@@ -29,7 +29,11 @@ struct array * array_new(void) {
   
   // Ensure that memory was allocated
   assert(ary -> elements);
-  
+ 
+  for (int i = 0; i < ary->size; i++) {
+    ary->elements[i] = NULL;
+  }
+
   return ary;
 }
 
@@ -39,6 +43,7 @@ struct array * array_new(void) {
 void array_resize(struct array * ary, unsigned int size) {
   // Check if space for index has been allocated
   if ( size >= ary -> size ) {
+    int old_size = ary -> size;
     // Allocate to 1.5 times the needed size
     // This sacrifices space in exchange for needing fewer reallocations
     ary -> size = size + size / 2;
@@ -47,7 +52,11 @@ void array_resize(struct array * ary, unsigned int size) {
     ary -> elements = GC_REALLOC(ary -> elements, ary -> size * sizeof(void *));
     
     // Ensure that memory was allocated
-    assert(ary -> elements);  
+    assert(ary -> elements);
+
+    for (int i = old_size; i < ary->size; i++) {
+      ary -> elements[i] = NULL;
+    }
   }
 }
 

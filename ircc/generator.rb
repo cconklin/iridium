@@ -98,7 +98,7 @@ class Generator
       code << "return 0;"
       code << "case 1:"
       code << "// any uncaught exception"
-      code << 'printf("%s: %s\n", C_STRING(send(_raised->class, "to_s")), C_STRING(send(send(_raised, "reason"), "to_s")));'
+      code << 'display_stacktrace(_raised);'
       code << "return 1;"
       code << "}"
       code << "}"
@@ -276,6 +276,10 @@ class Generator
   end
 
   def generate_statement(code, statement, modified_variables:, active_variables:, new_variables:, literals:, in_begin:, exception_handlers:)
+    unless statement.is_a?(Array)
+      code << generate_expression(statement, active_variables: active_variables, literals: literals) + ";"
+      return
+    end
     case statement.first
       when :"="
         # Assignment

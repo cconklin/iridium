@@ -1,13 +1,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include <gc.h>
 #include <string.h>
 #include <setjmp.h>
 #include <stdarg.h>
 
 #ifndef OBJECT_H
 #define OBJECT_H
+
+#include "garbage_collector.h"
 
 // Use the array library to get args
 #include "shared/array.h"
@@ -306,6 +307,10 @@ struct Exception {
 };
 
 typedef struct ExceptionFrame {
+  // Unique identifier for this handler
+  int id;
+  // Index into stacktrace
+  int stacktrace_idx;
   // Used to indicate the index of this exception frame
   // When a iridium function is invoked, this counter starts at zero
   // Each successive exception frame in this iridium function has a higher
@@ -400,6 +405,11 @@ object _raised;
 // Global variable to indicate if an exception is being handled
 extern int _rescuing;
 
+// Unique identifier of each handler
+extern int handler_id;
+
+struct stack * stacktrace;
+
 struct Exception * EXCEPTION(object exception_class, int jump_location);
 
 struct Exception * catchesException(exception_frame frame, object exception);
@@ -424,6 +434,9 @@ void IR_PUTS(object obj);
 
 // Define a constant with name (atom)
 void define_constant(object name, object constant);
+
+// Display a stacktrace
+void display_stacktrace(object exception);
 
 // Lookup a constant with name (atom)
 object lookup_constant(object name);

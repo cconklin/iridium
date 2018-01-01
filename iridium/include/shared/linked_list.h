@@ -6,7 +6,8 @@
 
 #include <stdlib.h>
 #include <assert.h>
-#include <gc.h>
+
+#include "../garbage_collector.h"
 
 #ifndef LINKED_LIST_H
 #define LINKED_LIST_H

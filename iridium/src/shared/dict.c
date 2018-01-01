@@ -7,19 +7,23 @@
 */
 
 #include "shared/dict.h"
+#include "stdio.h"
 
 struct dict * dict_new(unsigned int hashsize) {
-  struct dict * h;
+  struct dict * h = NULL;
   h = GC_MALLOC(sizeof(struct dict));
   assert(h);
   h -> hashsize = hashsize;
   h -> hashtab = (struct dict_entry **) GC_MALLOC(hashsize * sizeof(struct dict_entry *));
   assert(h -> hashtab);
+  for (int i = 0; i < hashsize; i++) {
+    h -> hashtab[i] = NULL;
+  }
   return h;
 }
 
 struct dict_entry * dict_set_base(struct dict * h, void * key) {
-  struct dict_entry * entry ;
+  struct dict_entry * entry = NULL;
   // associate key with value in hash
   if (!(entry = lookup(h, key))) {
     // not in the hash
