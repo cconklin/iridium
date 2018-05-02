@@ -771,6 +771,10 @@ describe Parser do
     expect(parser.parse("1 << 2")).to eq([[:<<, 1, 2]])
   end
 
+  it "should allow assignment to constants" do
+    expect(parser.parse("Baz = 2")).to eq([[:"=", :Baz, 2]])
+  end
+
   describe "simple programs" do
     it "should parse a class, function, begin" do
       expect(parser.parse("class X end function y end begin end")).to eq([[:class, :X, nil, []], [:function, :y, [], []], [:begin, [], {}, []]])

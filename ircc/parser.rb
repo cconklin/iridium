@@ -59,9 +59,10 @@ class Parser < Whittle::Parser
   rule(:identifier => /[a-z_][a-zA-Z0-9_]*[\?!]?/).as { |n| n.to_sym }
   rule(:constant => /[A-Z][a-zA-Z0-9_]*/).as { |n| n.to_sym }
   rule(:sym_key => /[a-zA-Z_][a-zA-Z0-9_]*:/).as { |n| ":#{n[0...-1]}".to_sym }
-  
-  rule(:int => /[+-]?[0-9]+/).as { |n| n.to_i }
-  rule(:flt => /[+-]?[0-9]+\.[0-9]+/).as { |n| n.to_f }
+
+  # Lookbehind to disambiguate 2-3 to 2 - 3
+  rule(:int => /(?:(?<=\s|^)[+-])?[0-9]+/).as { |n| n.to_i }
+  rule(:flt => /(?:(?<=\s|^)[+-])?[0-9]+\.[0-9]+/).as { |n| n.to_f }
   rule(:str => /"(\\"|[^"])*"/).as { |n| n.to_s[1...-1] }
   rule(:array) do |r|
     r["[", :args, "]"].as { |_1, a, _2| [:array, a] }
@@ -149,6 +150,7 @@ class Parser < Whittle::Parser
 
   rule(:assignment) do |a|
     a[:identifier, "=", :expr].as { |a, _, b| [:"=", a, b] }
+    a[:constant, "=", :expr].as { |a, _, b| [:"=", a, b] }
     # Extract expr and args from the index expr: [:[], expr, args]
     a[:index_expr, "=", :expr].as { |a, _, b| [:insert, a[1], a[2], b] }
     a[:attr_expr, "=", :expr].as { |a, _, b| [:set, a[1], a[2], b] }
