@@ -1485,17 +1485,21 @@ object lookup_constant(object name) {
 
 void display_stacktrace(object exception) {
   struct stack * trace = internal_get_attribute(exception, ATOM("stacktrace"), struct stack *);
+  struct stack * rtrace = stack_new();
   // Something is wrong in the commented out versions that causes the corruption of the trace
   char * classname = C_STRING(((struct IridiumAttribute*)dict_get(exception->class->attributes, ATOM("name")))->value); // C_STRING(send(exception->class, "to_s"));
   char * reason = C_STRING(((struct IridiumAttribute*)dict_get(exception->attributes, ATOM("message")))->value); // C_STRING(send(send(exception, "reason"), "to_s"));
-  printf("%s: %s\n", classname, reason);
   if (trace) {
-    printf("Trace (most recent call first):\n");
-    while (!stack_empty(trace)) {
-      char * elem = stack_pop(trace);
+    while(!stack_empty(trace)) {
+      stack_push(rtrace, stack_pop(trace));
+    }
+    printf("Trace (most recent call last):\n");
+    while (!stack_empty(rtrace)) {
+      char * elem = stack_pop(rtrace);
       printf("\t%s\n", elem);
     }
   }
+  printf("%s: %s\n", classname, reason);
 }
 
 // Creates the objects defined here
