@@ -108,7 +108,7 @@ void * array_pop(struct array * ary) {
 // array_shift
 // returns the first value of the array, moving the remaining elements one back
 void * array_shift(struct array * ary) {
-  void * result;
+  void * result = NULL;
   // Ensure that the array is large enough
   if (ary -> start >= ary -> size)
     return NULL;

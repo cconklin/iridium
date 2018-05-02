@@ -60,7 +60,7 @@ struct dict * dict_with(struct dict * h, void * key, void * value) {
 struct dict_entry * lookup(struct dict * h, void * key) {
   // Find the dict_entry element corresponding to a key
   // Return NULL if key not present
-  struct dict_entry * entry ;
+  struct dict_entry * entry = NULL;
   for (entry = (h -> hashtab[hash(h, key)]); entry != NULL; entry = entry -> next)
     if (key == entry -> key)
       return entry; // Found the entry with key: key
@@ -97,7 +97,7 @@ double dict_get_flt(struct dict * h, void * key) {
 void dict_delete(struct dict * h, void * key) {
   if (lookup(h, key)) {
     // Key has to exist to be deleted
-    struct dict_entry * entry;
+    struct dict_entry * entry = NULL;
     if ((entry = h -> hashtab[hash(h, key)]) && (h -> hashtab[hash(h, key)]) -> key == key) {
       // First element in the hashtab
       h -> hashtab[hash(h, key)] = entry -> next;

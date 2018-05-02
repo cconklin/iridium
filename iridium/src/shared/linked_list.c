@@ -53,7 +53,7 @@ struct list * list_cons(struct list * tail, void * head) {
 // returns:
 // Destroy and deallocate `l`
 void list_destroy(struct list * l) {
-  struct list * temp;
+  struct list * temp = NULL;
   while (l) {
     temp = l -> tail;
     // set to NULL so the GC is able to collect the head, if needed

@@ -2,7 +2,7 @@ SRCS 	:= $(shell find src -name "*.c")
 OBJS 	:= $(SRCS:src/%.c=objects/%.o)
 IR   	:= $(wildcard src/*.ir)
 CC   	:= gcc
-CFLAGS 	:= $(shell pkg-config --cflags bdw-gc) -I./include/ -O3
+CFLAGS 	:= $(shell pkg-config --cflags bdw-gc) -I./include/ -O2 -Wall -Wextra
 LDFLAGS := $(shell pkg-config --libs bdw-gc)
 OBJECTS := objects
 # Can add -g flag to .c and .ir rules to get debug symbols
@@ -15,7 +15,7 @@ $(OBJECTS)/iridium.o: $(OBJS) $(OBJECTS)/core.o
 
 $(OBJS): $(OBJECTS)/%.o: src/%.c
 	@echo CC $@
-	$(CC) $(CFLAGS) -o $@ -c $< -Wall
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(OBJECTS):
 	mkdir $(OBJECTS)

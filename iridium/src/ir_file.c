@@ -1,7 +1,7 @@
 #include "ir_file.h"
 
 FILE * get_file(object self) {
-  object reason;
+  object reason = NULL;
   FILE * f = internal_get_attribute(self, ATOM("FILE"), FILE *);
   if (f == NULL) {
     reason = send(self, "to_s");
@@ -13,7 +13,7 @@ FILE * get_file(object self) {
 
 size_t file_length(FILE * f, object filename) {
   struct stat st;
-  object reason;
+  object reason = NULL;
   if (-1 == fstat(fileno(f), &st)) {
     reason = filename;
     reason = send(reason, "__add__", IR_STRING(" -- "));
@@ -39,7 +39,7 @@ iridium_method(File, initialize) {
 }
 
 char * read_file(FILE * f, object filename) {
-  char * buffer;
+  char * buffer = NULL;
   size_t file_size;
   size_t nbytes_read;
   file_size = file_length(f, filename);
@@ -88,13 +88,13 @@ iridium_method(File, each_line) {
   object self = local("self");
   object filename = local("filename"); // From self
   object fn = local("fn");
-  object str;
+  object str = NULL;
   FILE * f = get_file(self);
   size_t file_size = file_length(f, filename);
   char * buffer = GC_MALLOC((file_size+1)*sizeof(char));
   assert(buffer);
   int nchars;
-  char * line;
+  char * line = NULL;
 
   while ((nchars = getline(&buffer, &file_size, f)) != -1) {
     // Remove the newline, if present

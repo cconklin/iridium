@@ -33,7 +33,7 @@ iridium_method(Queue, dequeue) {
   object self = local("self");
   struct list * lst = internal_get_attribute(self, ATOM("list"), struct list *);
   object result = NIL;
-  object reason;
+  object reason = NULL;
   if (lst) {
     result = list_head(lst);
     lst = list_tail(lst);

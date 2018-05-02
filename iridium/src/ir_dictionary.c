@@ -27,8 +27,8 @@ struct IR_DICTIONARY_ENTRY * lookup_IR_DICTIONARY(struct IR_DICTIONARY * dict, o
 }
 
 void insert_IR_DICTIONARY(struct IR_DICTIONARY * dict, object key, object value) {
-  struct IR_DICTIONARY_ENTRY * prev;
-  struct IR_DICTIONARY_ENTRY * new_entry;
+  struct IR_DICTIONARY_ENTRY * prev = NULL;
+  struct IR_DICTIONARY_ENTRY * new_entry = NULL;
   struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(dict, key, &prev);
   unsigned long long int hash = (unsigned long long int) INT(send(key, "hash"));
   unsigned long long int searchval = hash % IR_DICTIONARY_HASHSIZE;
@@ -66,7 +66,7 @@ void insert_IR_DICTIONARY(struct IR_DICTIONARY * dict, object key, object value)
 
 // returns -1 if not present, 0 on success
 int remove_IR_DICTIONARY(struct IR_DICTIONARY * dict, object key) {
-  struct IR_DICTIONARY_ENTRY * prev;
+  struct IR_DICTIONARY_ENTRY * prev = NULL;
   struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(dict, key, &prev);
   unsigned long long int hash = (unsigned long long int) INT(send(key, "hash"));
   unsigned long long int searchval = hash % IR_DICTIONARY_HASHSIZE;

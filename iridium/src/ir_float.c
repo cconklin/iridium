@@ -80,7 +80,7 @@ iridium_method(Float, to_s) {
   object self = local("self");
   double val = C_DOUBLE(self);
   char buffer[100];
-  char * str;
+  char * str = NULL;
   sprintf(buffer, "%lf", val);
   str = GC_MALLOC((strlen(buffer) + 1) * sizeof(char));
   assert(str);

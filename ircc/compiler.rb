@@ -10,9 +10,9 @@ module Compiler
   def compile(code, output: "a.out", debug: false, link: true)
     fname = SecureRandom.hex + ".c"
     command = if link
-      "#{CC} #{LDFLAGS} -o #{output} #{debug ? '-g' : ''} #{IRIDIUM} -xc #{debug ? fname : '-'}"
+      "#{CC} #{LDFLAGS} -o #{output} #{debug ? '-O0 -g' : '-O2'} #{IRIDIUM} -xc #{debug ? fname : '-'}"
     else
-      "#{CC} -o #{output} -c #{debug ? '-g' : '' } -xc #{debug ? fname : '-'}"
+      "#{CC} -o #{output} -c #{debug ? '-O0 -g' : '-O2' } -xc #{debug ? fname : '-'}"
     end
     if debug
       puts command

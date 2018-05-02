@@ -13,7 +13,7 @@ struct list * _ARGLIST(int unused, ...) {
   va_list args;
   struct list * l = NULL;
   struct array * ary = array_new();
-  void * elem;
+  void * elem = NULL;
   va_start(args, unused);
   // Doing this to reverse the list
   while ((elem = va_arg(args, void *))) {
@@ -66,7 +66,7 @@ instance_attribute_lookup(object receiver, void * attribute, unsigned char acces
   // Try and get it from the objects instance attributes
   iridium_attribute result = dict_get(receiver -> instance_attributes, attribute);
   struct list * modules = NULL;
-  object module;
+  object module = NULL;
   
   if (no_result) {
     // Attribute was not found
@@ -102,8 +102,8 @@ attribute_lookup(object receiver, void * attribute, unsigned char access) {
   // Look for attribute among the objects attributes
   iridium_attribute result = dict_get(receiver -> attributes, attribute);
   struct list * modules = NULL;
-  object module;
-  object class;
+  object module = NULL;
+  object class = NULL;
   
   if (no_result) {
     // Attribute was not found
@@ -230,8 +230,8 @@ object set_instance_attribute(object receiver, void * attribute, unsigned char a
 // Locals
 object _local(struct dict * locals, object atm) {
     object value = dict_get(locals, atm);
-    object attribute;
-    struct dict * vars;
+    object attribute = NULL;
+    struct dict * vars = NULL;
     if (value == NULL) {
         value = dict_get(locals, ATOM("self"));
         if (value == NULL) {
@@ -268,11 +268,11 @@ void _set_local(struct dict * locals, object name, object value) {
 object
 function_bind(object func, struct dict * locals) {
   // attributes of Iridium functions
-  object name;
+  object name = NULL;
   // Function arguments
-  struct list * args;
+  struct list * args = NULL;
   // Pointer to C function
-  object (* c_func)(struct dict *);
+  object (* c_func)(struct dict *) = NULL;
   // Args
   args = internal_get_attribute(func, ATOM("args"), struct list *);
   // name of function
@@ -294,7 +294,7 @@ function_bind(object func, struct dict * locals) {
 
 object construct(object class) {
   // Container for the object under construction
-  object obj;
+  object obj = NULL;
 
   // Allocate memory for the object
   obj = (object) GC_MALLOC(sizeof(struct IridiumObject));
@@ -335,7 +335,7 @@ object invoke(object obj, char * name, struct array * args) {
 object _send(object obj, char * name, ...) {
   va_list ap;
   va_start(ap, name);
-  object argument;
+  object argument = NULL;
   struct array * args = array_new();
   while ((argument = va_arg(ap, object))) {
     args = array_push(args, argument);
@@ -349,8 +349,8 @@ object _send(object obj, char * name, ...) {
 
 object calls(object callable, struct array * args) {
   object get_function = get_attribute(callable, ATOM("__get__"), PUBLIC);
-  object call_function;
-  struct dict * bindings;
+  object call_function = NULL;
+  struct dict * bindings = NULL;
   object ( * func )(struct dict *) = internal_get_attribute(get_function, ATOM("function"), object (*)(struct dict *));
 
   // get_function MUST BE an Iridium Function => func != NULL
@@ -380,7 +380,7 @@ char * str(object string) {
 // Destructures arrays into struct array *
 struct array * destructure(struct array * args, object argument_array) {
   struct array * array_args = internal_get_attribute(argument_array, ATOM("array"), struct array *);
-  object reason;
+  object reason = NULL;
   if (array_args == NULL) {
     // Not actually an array...
     reason = IR_STRING("Cannot destructure ");
@@ -399,7 +399,7 @@ struct dict * process_args(object function, struct array * _args) {
   struct dict * argument_values = dict_new(ObjectHashsize);
   struct list * argument_list = internal_get_attribute(function, ATOM("args"), struct list *);
   struct list * iter_arg_list = argument_list;
-  struct array * partial_args;
+  struct array * partial_args = NULL;
   int splat = 0;
   int first_optional = -1;
   int index = 0;
@@ -407,8 +407,8 @@ struct dict * process_args(object function, struct array * _args) {
   int length = 0;
   int arg_length = args -> length;
   unsigned int required = 0;
-  struct IridiumArgument * this_arg;
-  object reason;
+  struct IridiumArgument * this_arg = NULL;
+  object reason = NULL;
   while (iter_arg_list) {
     this_arg = (struct IridiumArgument *) list_head(iter_arg_list);
     if (this_arg -> splat) {
@@ -607,8 +607,8 @@ iridium_method(Object, write) {
 
 // Object#gets
 iridium_method(Object, gets) {
-  char * gets_buffer;
-  char * str_buffer;
+  char * gets_buffer = NULL;
+  char * str_buffer = NULL;
   size_t gets_len;
   object prompt = local("prompt");
   printf("%s", C_STRING(prompt));
@@ -652,7 +652,7 @@ iridium_method(Object, inspect) {
   object self = local("self");
   object class_name = get_attribute(self->class, ATOM("name"), PUBLIC);
   char buffer[1000];
-  char * c_str;
+  char * c_str = NULL;
   sprintf(buffer, "#<%s:%p>", C_STRING(class_name), self);
   c_str = GC_MALLOC((strlen(buffer) + 1) * sizeof(char));
   assert(c_str);
@@ -813,13 +813,13 @@ iridium_method(Module, define_method) {
 // method __call__(* args)
 iridium_method(Function, __call__) {
   // Locals to be passed to the C function
-  struct dict * bindings;
+  struct dict * bindings = NULL;
   // Value of the receiver
   object self = local("self");
   // Get args to be passed to function
   object args = local("args"); // array
  
-  object result;
+  object result = NULL;
 
   // Get the corresponding C function
   object ( * func )(struct dict *) = internal_get_attribute(self, ATOM("function"), object (*)(struct dict *));
@@ -887,7 +887,7 @@ void * ATOM_TABLE_KEY = NULL;
 
 // function new(name)
 iridium_classmethod(Atom, new) {
-  object atom;
+  object atom = NULL;
   // Get the name of the atom
   object name = local("name");
   struct array * args = array_new();
@@ -908,7 +908,7 @@ struct dict * ATOM_TABLE() {
   object atom_class = CLASS(Atom);
 
   // Atom table
-  struct dict * atom_table;
+  struct dict * atom_table = NULL;
 
   // Ensure that the atom table exists
   if (! ATOM_TABLE_KEY) {
@@ -964,7 +964,7 @@ object create_self_atom() {
 // Create or fetch atoms
 object _ATOM(char * name) {
   // Container for the new atom
-  object atom;
+  object atom = NULL;
 
 
   // Table of atoms
@@ -1026,10 +1026,10 @@ iridium_method(Array, reduce) {
   object self = local("self");
   object accumulator = local("accumulator");
   object fn = local("fn");
-  object element;
+  object element = NULL;
   // Get a duplicate of the internal array
   struct array * ary = array_copy(internal_get_attribute(self, ATOM("array"), struct array *));
-  struct array * args;
+  struct array * args = NULL;
   while (ary -> length) {
     element = array_shift(ary);
     args = array_new();
@@ -1071,7 +1071,7 @@ iridium_method(Array, inspect) {
     return IR_STRING("[]");
   }
   char ** strs = malloc(ary_len*sizeof(char *));
-  char * str;
+  char * str = NULL;
   assert(strs);
   for (idx = ary -> start; idx < ary -> length; idx++) {
     sidx = idx - (ary -> start);
@@ -1259,7 +1259,7 @@ object IR_STRING(char * c_str) {
 }
 
 char * C_STRING(object str) {
-  object reason;
+  object reason = NULL;
   if (str -> class != CLASS(String)) {
     reason = send(str, "inspect");
     reason = send(reason, "__add__", IR_STRING(" is not a string object"));
@@ -1330,7 +1330,7 @@ struct Exception * EXCEPTION(object exception_class, int jump_location) {
 }
 
 struct Exception * catchesException(exception_frame frame, object exception) {
-  struct Exception * e;
+  struct Exception * e = NULL;
   struct list * exceptions = frame -> exceptions;
   while ( exceptions ) {
     e = list_head(exceptions);
@@ -1470,7 +1470,7 @@ void define_constant(object name, object constant) {
 // Lookup a constant with name (atom)
 object lookup_constant(object name) {
   object constant = (object) dict_get(constants, name);
-  object reason;
+  object reason = NULL;
   if (constant == NULL) {
     // Not a base constant, look under the current context
     constant = get_attribute(ir_context, name, PUBLIC);
@@ -1501,11 +1501,11 @@ void display_stacktrace(object exception) {
 // Creates the objects defined here
 void IR_init_Object() {
   
-  struct IridiumArgument * args;
-  struct IridiumArgument * name;
-  struct IridiumArgument * class_superclass;
-  struct IridiumArgument * class_name;
-  struct IridiumArgument * other;
+  struct IridiumArgument * args = NULL;
+  struct IridiumArgument * name = NULL;
+  struct IridiumArgument * class_superclass = NULL;
+  struct IridiumArgument * class_name = NULL;
+  struct IridiumArgument * other = NULL;
   object call, get, class_new, class_inst_new, obj_init, class_inspect, object_inspect, fix_plus, nil_inspect, fix_inspect, atom_inspect, func_inspect, obj_puts, str_inspect, obj_write;
   
   stacktrace = stack_new();

@@ -39,7 +39,7 @@ void stack_push(struct stack * stack, void * data) {
     // Add 10 elements to the stack
     stack -> length += 10;
     // Allocate the memory for the larger stack
-    stack -> stack = (void **) realloc(stack -> stack, stack -> length);
+    stack -> stack = (void **) realloc(stack -> stack, stack -> length * sizeof(void *));
     // Ensure that the memory was allocated
     assert(stack -> stack);
   }
@@ -97,7 +97,7 @@ struct stack * stack_copy(struct stack * orig) {
   if (stack_empty(orig)) {
     return copy;
   }
-  copy -> stack = (void **) realloc(copy -> stack, orig -> length);
+  copy -> stack = (void **) realloc(copy -> stack, orig -> length * sizeof(void *));
   assert(copy->stack);
   copy -> length = orig -> length;
   copy -> depth = orig -> depth;

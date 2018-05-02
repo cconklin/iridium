@@ -22,7 +22,7 @@ unsigned int str_hash(struct dict * h, char * key) {
 }
 
 struct dict * str_dict_new(unsigned int hashsize) {
-  struct dict * h;
+  struct dict * h = NULL;
   h = malloc(sizeof(struct dict));
   assert(h);
   h -> hashsize = hashsize;
@@ -81,7 +81,7 @@ void * str_dict_get(struct dict * h, char * key) {
 void str_dict_delete(struct dict * h, char * key) {
   if (str_lookup(h, key)) {
     // Key has to exist to be deleted
-    struct dict_entry * entry, * temp;
+    struct dict_entry * entry = NULL, * temp = NULL;
     if ((entry = h -> hashtab[str_hash(h, key)]) && (h -> hashtab[str_hash(h, key)]) -> key == key) {
       // First element in the hashtab
       h -> hashtab[str_hash(h, key)] = entry -> next;
@@ -98,7 +98,7 @@ void str_dict_delete(struct dict * h, char * key) {
 }
 
 struct dict * str_dict_merge(struct dict * mergee, struct dict * merger) {
-  struct dict_entry * entry;
+  struct dict_entry * entry = NULL;
   unsigned int index;
   // Create a copy of the mergee
   struct dict * result = str_dict_copy(mergee);
@@ -117,7 +117,7 @@ struct dict * str_dict_merge(struct dict * mergee, struct dict * merger) {
 
 struct dict * str_dict_copy(struct dict * h) {
   struct dict * result = str_dict_new(h -> hashsize);
-  struct dict_entry * entry;
+  struct dict_entry * entry = NULL;
   unsigned int index;
   // Look through each key of the mergee, add it to the result
   for (index = 0; index < h -> hashsize; index ++) {
