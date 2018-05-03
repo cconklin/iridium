@@ -1,10 +1,20 @@
 a = /(f[ob])(?<var>.)/
-# m = a.match("foo")
-# puts(m[1])
-# puts(m["var"])
+m = a.match("foo")
+puts(m[1])
+puts(m["var"])
 
 "fb!".match(a) -> (m)
   puts(m[1])
   puts(m["var"])
+end
+
+# Right now, the parser is interpreting the array literal as index of the
+# previous expression. The assignment stops that.
+x = ["foo", "fob", "boz"].each -> (s)
+  puts(s)
+  s.match(a) -> (m)
+    puts(m[1])
+    puts(m["var"])
+  end
 end
 
