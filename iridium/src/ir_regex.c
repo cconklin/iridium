@@ -87,12 +87,11 @@ iridium_method(Regex, match) {
   ret = pcre_exec(code, extra, cstr, strlen(cstr), INT(pos), 0, ovector, ovector_size);
 
   if (ret >= 0) {
-     matchdata = create_matchdata(self, code, str, INT(pos), ovector, captures);
+    matchdata = create_matchdata(self, code, str, INT(pos), ovector, captures);
+    return calls(context, fun, array_push(array_new(), matchdata));
   } else {
-    matchdata = NIL;
+    return NIL;
   }
-
-  return calls(context, fun, array_push(array_new(), matchdata));
 }
 
 // new and initialize are NOT defined on MatchData since it needs to be passed non-iridiium objects
