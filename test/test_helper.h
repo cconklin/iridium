@@ -1,4 +1,5 @@
 #include <gc.h>
+#include "../iridium/include/ir_object.h"
 
 void * _l, * _r;
 double _dl, _dr;
@@ -8,8 +9,12 @@ double _dl, _dr;
 #define assertNotEqual(l, r) if ((_l = l) == (_r = r)) { printf("Assertion Failed (line %d): assertNotEqual(%s, %s)\n    %llu != %llu (%p == %p)\nLine %d\n", __LINE__, #l, #r, (unsigned long long int) _l, (unsigned long long int) _r, _l, _r); exit(1); }
 #define assertNotReaches() { printf("Assertion Failed (line %d): Arrived at unreachable point\n", __LINE__); exit(1); }
 
+int test(struct IridiumContext *);
+
 int main(int argc, char ** argv) {
   GC_INIT();
-  return test();
+  struct IridiumContext context;
+  IR_early_init_context(&context);
+  return test(&context);
 }
 

@@ -1,7 +1,7 @@
 #include "../../iridium/include/shared/stack.h"
 #include "../test_helper.h"
 
-int test() {
+int test(struct IridiumContext * context) {
   struct stack * st = stack_new();
 
   stack_push(st, 5);

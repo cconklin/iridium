@@ -11,7 +11,7 @@ struct IR_DICTIONARY * new_IR_DICTIONARY(void) {
   return dict;
 }
 
-struct IR_DICTIONARY_ENTRY * lookup_IR_DICTIONARY(struct IR_DICTIONARY * dict, object key, struct IR_DICTIONARY_ENTRY ** prev) {
+struct IR_DICTIONARY_ENTRY * lookup_IR_DICTIONARY(struct IridiumContext * context, struct IR_DICTIONARY * dict, object key, struct IR_DICTIONARY_ENTRY ** prev) {
   unsigned long long int hash = (unsigned long long int) INT(send(key, "hash"));
   unsigned long long int searchval = hash % IR_DICTIONARY_HASHSIZE;
   struct IR_DICTIONARY_ENTRY * entry = dict -> hashtable[searchval];
@@ -26,10 +26,10 @@ struct IR_DICTIONARY_ENTRY * lookup_IR_DICTIONARY(struct IR_DICTIONARY * dict, o
   return NULL;
 }
 
-void insert_IR_DICTIONARY(struct IR_DICTIONARY * dict, object key, object value) {
+void insert_IR_DICTIONARY(struct IridiumContext * context, struct IR_DICTIONARY * dict, object key, object value) {
   struct IR_DICTIONARY_ENTRY * prev = NULL;
   struct IR_DICTIONARY_ENTRY * new_entry = NULL;
-  struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(dict, key, &prev);
+  struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(context, dict, key, &prev);
   unsigned long long int hash = (unsigned long long int) INT(send(key, "hash"));
   unsigned long long int searchval = hash % IR_DICTIONARY_HASHSIZE;
   if (NULL == entry) {
@@ -65,9 +65,9 @@ void insert_IR_DICTIONARY(struct IR_DICTIONARY * dict, object key, object value)
 }
 
 // returns -1 if not present, 0 on success
-int remove_IR_DICTIONARY(struct IR_DICTIONARY * dict, object key) {
+int remove_IR_DICTIONARY(struct IridiumContext * context, struct IR_DICTIONARY * dict, object key) {
   struct IR_DICTIONARY_ENTRY * prev = NULL;
-  struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(dict, key, &prev);
+  struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(context, dict, key, &prev);
   unsigned long long int hash = (unsigned long long int) INT(send(key, "hash"));
   unsigned long long int searchval = hash % IR_DICTIONARY_HASHSIZE;
   if (NULL != entry) {
@@ -107,7 +107,7 @@ iridium_method(Lambda, dict_initialize) {
   object value = send(elem, "__get_index__", FIXNUM(1));
   // Hooray for breaking type safety...
   struct IR_DICTIONARY * dict = (struct IR_DICTIONARY *) acc;
-  insert_IR_DICTIONARY(dict, key, value);
+  insert_IR_DICTIONARY(context, dict, key, value);
   return acc;
 }
 
@@ -138,9 +138,9 @@ iridium_method(Dictionary, inspect) {
     if (entry != dict -> first) {        
       str = send(str, "__add__", IR_STRING(", "));
     }
-    str = send(str, "__add__", _send(entry -> key, "inspect", 0));
+    str = send(str, "__add__", _send(context, entry -> key, "inspect", 0));
     str = send(str, "__add__", IR_STRING(" => "));
-    str = send(str, "__add__", _send(entry -> value, "inspect", 0));
+    str = send(str, "__add__", _send(context, entry -> value, "inspect", 0));
     entry = entry -> ordered_next;
   }
   return send(str, "__add__", IR_STRING("}"));
@@ -151,7 +151,7 @@ iridium_method(Dictionary, __get_index__) {
   object self = local("self");
   object key = local("key");
   struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
-  struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(dict, key, NULL);
+  struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(context, dict, key, NULL);
   if (entry) {
     return entry -> value;
   } else {
@@ -164,7 +164,7 @@ iridium_method(Dictionary, has_key) {
   object self = local("self");
   object key = local("key");
   struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
-  struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(dict, key, NULL);
+  struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(context, dict, key, NULL);
   if (entry) {
     return ir_cmp_true;
   } else {
@@ -178,7 +178,7 @@ iridium_method(Dictionary, __set_index__) {
   object key = local("key");
   object value = local("value");
   struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
-  insert_IR_DICTIONARY(dict, key, value);
+  insert_IR_DICTIONARY(context, dict, key, value);
   return NIL;
 }
 
@@ -187,7 +187,7 @@ iridium_method(Dictionary, remove) {
   object self = local("self");
   object key = local("key");
   struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
-  remove_IR_DICTIONARY(dict, key);
+  remove_IR_DICTIONARY(context, dict, key);
   return NIL;
 }
 
@@ -207,14 +207,14 @@ iridium_method(Dictionary, reduce) {
     array_set(args, 1, entry -> value);
     array_set(args, 2, accumulator);
     // Call the annonymous fn
-    accumulator = calls(fn, args);
+    accumulator = calls(context, fn, args);
     entry = entry -> ordered_next;
   }
   return accumulator;
 }
 
 // Dictionary Init
-void IR_init_Dictionary() {
+void IR_init_Dictionary(struct IridiumContext * context) {
   CLASS(Dictionary) = send(CLASS(Class), "new", IR_STRING("Dictionary"));
   DEF_METHOD(CLASS(Dictionary), "initialize", ARGLIST(argument_new(ATOM("elements"), NULL, 0)), iridium_method_name(Dictionary, initialize));
   DEF_METHOD(CLASS(Dictionary), "inspect", ARGLIST(), iridium_method_name(Dictionary, inspect));

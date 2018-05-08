@@ -7,7 +7,20 @@
 
 #include "ir_object.h"
 
-int handler_id;
+void IR_early_init_context(struct IridiumContext * context)
+{
+    context->handler_id = 0; // Set the first handler id
+    context->_exception_frames = stack_new(); // Initialize the exception stack
+    context->stacktrace = stack_new();
+    context->_raised = NULL;
+    context->_rescuing = 0;
+}
+
+void IR_init_context(struct IridiumContext * context)
+{
+    IR_early_init_context(context);
+    context->_raised = NIL;
+}
 
 struct list * _ARGLIST(int unused, ...) {
   va_list args;
@@ -228,7 +241,7 @@ object set_instance_attribute(object receiver, void * attribute, unsigned char a
 }
 
 // Locals
-object _local(struct dict * locals, object atm) {
+object _local(struct IridiumContext * context, struct dict * locals, object atm) {
     object value = dict_get(locals, atm);
     object attribute = NULL;
     struct dict * vars = NULL;
@@ -236,12 +249,12 @@ object _local(struct dict * locals, object atm) {
         value = dict_get(locals, ATOM("self"));
         if (value == NULL) {
             // NameError
-            handleException(send(CLASS(NameError), "new", IR_STRING("self")));
+            RAISE(send(CLASS(NameError), "new", IR_STRING("self")));
         } else {
             attribute = get_attribute(value, atm, PRIVATE);
             if (attribute == NULL) {
                 // NameError
-                handleException(send(CLASS(NameError), "new", invoke(atm, "to_s", array_new())));
+                RAISE(send(CLASS(NameError), "new", invoke(context, atm, "to_s", array_new())));
             }
             // If the attribute is found, is it a function?
             if (isA(attribute, CLASS(Function))) {
@@ -272,7 +285,7 @@ function_bind(object func, struct dict * locals) {
   // Function arguments
   struct list * args = NULL;
   // Pointer to C function
-  object (* c_func)(struct dict *) = NULL;
+  object (* c_func)(struct IridiumContext * context, struct dict *) = NULL;
   // Args
   args = internal_get_attribute(func, ATOM("args"), struct list *);
   // name of function
@@ -326,13 +339,13 @@ object construct(object class) {
 //    obj.name(args)
 // Iridium_Object_get() will retun a bound function to the `obj` #"name" method (obj will automatically be passed)
 // Invoke function with handle `name` by getting the function from the object `obj`, and bind it to `self` before passing it to the C Function for Iridium Function calls.
-object invoke(object obj, char * name, struct array * args) {
+object invoke(struct IridiumContext * context, object obj, char * name, struct array * args) {
   // Find the callable object
-  object callable = iridium_method_name(Object, __get__)(dict_with(bind_self(obj), ATOM("name"), ATOM(name)));
-  return calls(callable, args);
+  object callable = iridium_method_name(Object, __get__)(context, dict_with(bind_self(obj), ATOM("name"), ATOM(name)));
+  return calls(context, callable, args);
 }
 
-object _send(object obj, char * name, ...) {
+object _send(struct IridiumContext * context, object obj, char * name, ...) {
   va_list ap;
   va_start(ap, name);
   object argument = NULL;
@@ -341,35 +354,35 @@ object _send(object obj, char * name, ...) {
     args = array_push(args, argument);
   }
   va_end(ap);
-  return invoke(obj, name, args);
+  return invoke(context, obj, name, args);
 }
 
 // Function for generic invocations
 // Used by the translator
 
-object calls(object callable, struct array * args) {
+object calls(struct IridiumContext * context, object callable, struct array * args) {
   object get_function = get_attribute(callable, ATOM("__get__"), PUBLIC);
   object call_function = NULL;
   struct dict * bindings = NULL;
-  object ( * func )(struct dict *) = internal_get_attribute(get_function, ATOM("function"), object (*)(struct dict *));
+  object ( * func )(struct IridiumContext *, struct dict *) = internal_get_attribute(get_function, ATOM("function"), object (*)(struct IridiumContext *, struct dict *));
 
   // get_function MUST BE an Iridium Function => func != NULL
   if (func == NULL) {
-    handleException(send(CLASS(TypeError), "new", IR_STRING("__get__ must be a Function")));
+    RAISE(send(CLASS(TypeError), "new", IR_STRING("__get__ must be a Function")));
   }
 
   // invoke the get_function to get the call_function
-  call_function = func(dict_with(bind_self(callable), ATOM("name"), ATOM("__call__")));
+  call_function = func(context, dict_with(bind_self(callable), ATOM("name"), ATOM("__call__")));
 
   if (!isA(call_function, CLASS(Function))) {
-    handleException(send(CLASS(TypeError), "new", IR_STRING("__call__ must be a Function")));
+    RAISE(send(CLASS(TypeError), "new", IR_STRING("__call__ must be a Function")));
   }
 
   // call_function IS an Iridium Function
-  bindings = process_args(call_function, args);
-  func = internal_get_attribute(call_function, ATOM("function"), object (*)(struct dict *));
+  bindings = process_args(context, call_function, args);
+  func = internal_get_attribute(call_function, ATOM("function"), object (*)(struct IridiumContext *, struct dict *));
   assert(func);
-  return func(bindings);
+  return func(context, bindings);
 }
 
 // Converts iridium strings to C strings
@@ -378,22 +391,22 @@ char * str(object string) {
 }
 
 // Destructures arrays into struct array *
-struct array * destructure(struct array * args, object argument_array) {
+struct array * destructure(struct IridiumContext * context, struct array * args, object argument_array) {
   struct array * array_args = internal_get_attribute(argument_array, ATOM("array"), struct array *);
   object reason = NULL;
   if (array_args == NULL) {
     // Not actually an array...
     reason = IR_STRING("Cannot destructure ");
-    reason = send(reason, "__add__", _send(argument_array, "to_s", 0));
+    reason = send(reason, "__add__", _send(context, argument_array, "to_s", 0));
     reason = send(reason, "__add__", IR_STRING(":"));
-    reason = send(reason, "__add__", _send(argument_array -> class, "to_s", 0));
-    handleException(send(CLASS(TypeError), "new", reason));
+    reason = send(reason, "__add__", _send(context, argument_array -> class, "to_s", 0));
+    RAISE(send(CLASS(TypeError), "new", reason));
   }
   return array_merge(args, array_args);
 }
 
 // Create a binding dictionary by processing function arguments (retrieve closed values and arguments)
-struct dict * process_args(object function, struct array * _args) {
+struct dict * process_args(struct IridiumContext * context, object function, struct array * _args) {
   struct array * args = array_copy(_args);
   struct dict * closed_values = internal_get_attribute(function, ATOM("bindings"), struct dict *);
   struct dict * argument_values = dict_new(ObjectHashsize);
@@ -425,9 +438,9 @@ struct dict * process_args(object function, struct array * _args) {
     // There is a required argument after an optional one
     if ((first_optional >= 0) && (this_arg -> default_value == NULL) && (this_arg -> splat == 0)) {
       reason = IR_STRING("Cannot have a required argument after an optional one (");
-      reason = send(reason, "__add__", _send(function, "to_s", 0));
+      reason = send(reason, "__add__", _send(context, function, "to_s", 0));
       reason = send(reason, "__add__", IR_STRING(")"));
-      handleException(send(CLASS(ArgumentError), "new", reason));
+      RAISE(send(CLASS(ArgumentError), "new", reason));
     }
     iter_arg_list = list_tail(iter_arg_list);
     index ++;
@@ -436,25 +449,25 @@ struct dict * process_args(object function, struct array * _args) {
   // ensure that the argument list does not have multiple splatted args
   if (splat >= 2) {
     reason = IR_STRING("Cannot have multiple splatted args (ex. *args) (");
-    reason = send(reason, "__add__", _send(function, "to_s", 0));
+    reason = send(reason, "__add__", _send(context, function, "to_s", 0));
     reason = send(reason, "__add__", IR_STRING(")"));
-    handleException(send(CLASS(ArgumentError), "new", reason));
+    RAISE(send(CLASS(ArgumentError), "new", reason));
   }
   // ensure that the arity is sufficient
   // if there is no splat, ensure that the arity is not too large
   if ((arg_length < required) || ((splat == 0) && (arg_length > length))) {
     reason = IR_STRING("Wrong number of arguments: ");
-    reason = send(reason, "__add__", _send(FIXNUM(arg_length), "to_s", 0));
+    reason = send(reason, "__add__", _send(context, FIXNUM(arg_length), "to_s", 0));
     reason = send(reason, "__add__", IR_STRING(" for "));
-    reason = send(reason, "__add__", _send(FIXNUM(required), "to_s", 0));
+    reason = send(reason, "__add__", _send(context, FIXNUM(required), "to_s", 0));
     if (required != length) {
       reason = send(reason, "__add__", IR_STRING(".."));
-      reason = send(reason, "__add__", _send(FIXNUM(length), "to_s", 0));
+      reason = send(reason, "__add__", _send(context, FIXNUM(length), "to_s", 0));
     }
     reason = send(reason, "__add__", IR_STRING(" ("));
-    reason = send(reason, "__add__", _send(function, "to_s", 0));
+    reason = send(reason, "__add__", _send(context, function, "to_s", 0));
     reason = send(reason, "__add__", IR_STRING(")"));
-    handleException(send(CLASS(ArgumentError), "new", reason));
+    RAISE(send(CLASS(ArgumentError), "new", reason));
   }
   
   // function x(a, * args, b = 2, c = 4) ...
@@ -517,7 +530,7 @@ iridium_classmethod(Class, new) {
   // Set the name
   set_attribute(obj, ATOM("name"), PUBLIC, name);
   // Call initialize, merging the superclass with any other args
-  invoke(obj, "initialize", destructure(array_push(array_push(array_new(), name), superclass), args));
+  invoke(context, obj, "initialize", destructure(context, array_push(array_push(array_new(), name), superclass), args));
   // Return the created object
   return obj;
 }
@@ -539,7 +552,7 @@ iridium_method(Class, new) {
   // Container for the object under construction
   object obj = construct(self);
   // Send off to the object initialize method
-  invoke(obj, "initialize", destructure(array_new(), args));
+  invoke(context, obj, "initialize", destructure(context, array_new(), args));
   
   // Now that the object is constructed and initialized, return it
   return obj;
@@ -576,10 +589,10 @@ iridium_method(Object, puts) {
   object * objs = (object *) obj_ary -> elements;
   int end = obj_ary -> length;
   for (idx = 0; idx < end-1; idx ++) {
-    printf("%s ", C_STRING(send(objs[idx], "to_s")));
+    printf("%s ", C_STRING(context, send(objs[idx], "to_s")));
   }
   if (end-1>=0) {
-    printf("%s", C_STRING(send(objs[end-1], "to_s")));
+    printf("%s", C_STRING(context, send(objs[end-1], "to_s")));
   }
   printf("\n");
   return NIL;
@@ -595,10 +608,10 @@ iridium_method(Object, write) {
   object * objs = (object *) obj_ary -> elements;
   int end = obj_ary -> length;
   for (idx = 0; idx < end-1; idx ++) {
-    printf("%s ", C_STRING(send(objs[idx], "to_s")));
+    printf("%s ", C_STRING(context, send(objs[idx], "to_s")));
   }
   if (end-1>=0) {
-    printf("%s", C_STRING(send(objs[end-1], "to_s")));
+    printf("%s", C_STRING(context, send(objs[end-1], "to_s")));
   }
   return NIL;
 }
@@ -611,7 +624,7 @@ iridium_method(Object, gets) {
   char * str_buffer = NULL;
   size_t gets_len;
   object prompt = local("prompt");
-  printf("%s", C_STRING(prompt));
+  printf("%s", C_STRING(context, prompt));
   getline(&gets_buffer, &gets_len, stdin);
   str_buffer = GC_MALLOC((strlen(gets_buffer))*sizeof(char));
   gets_buffer[strlen(gets_buffer)-1] = 0; // Remove the newline
@@ -625,7 +638,7 @@ iridium_method(Object, gets) {
 // Raise an exception
 // Locals used: exc
 iridium_method(Object, raise) {
-  handleException(local("exc"));
+  RAISE(local("exc"));
   // Shouldn't get here
   return NIL;
 }
@@ -653,7 +666,7 @@ iridium_method(Object, inspect) {
   object class_name = get_attribute(self->class, ATOM("name"), PUBLIC);
   char buffer[1000];
   char * c_str = NULL;
-  sprintf(buffer, "#<%s:%p>", C_STRING(class_name), self);
+  sprintf(buffer, "#<%s:%p>", C_STRING(context, class_name), self);
   c_str = GC_MALLOC((strlen(buffer) + 1) * sizeof(char));
   assert(c_str);
   strcpy(c_str, buffer);
@@ -668,7 +681,7 @@ iridium_method(Object, inspect) {
 iridium_method(Object, to_s) {
   // Receiver
   object self = local("self");
-  return invoke(self, "inspect", array_new());
+  return send(self, "inspect");
 }
 
 // Object#__get__
@@ -700,10 +713,10 @@ iridium_method(Object, __get__) {
   if (NULL == attribute) {
     object reason = send(name, "to_s");
     reason = send(reason, "__add__", IR_STRING(" is not defined on "));
-    reason = send(reason, "__add__", invoke(self, "inspect", array_new()));
+    reason = send(reason, "__add__", invoke(context, self, "inspect", array_new()));
     reason = send(reason, "__add__", IR_STRING(":"));
-    reason = send(reason, "__add__", invoke(self->class, "inspect", array_new()));
-    handleException(send(CLASS(AttributeError), "new", reason));
+    reason = send(reason, "__add__", invoke(context, self->class, "inspect", array_new()));
+    RAISE(send(CLASS(AttributeError), "new", reason));
   }
 
   // If the attribute is found, is it a function?
@@ -781,7 +794,7 @@ iridium_method(Module, include) {
     // Not including a module -- bad!
     object reason = send(mod, "to_s");
     reason = send(reason, "__add__", IR_STRING(" is not a module"));
-    handleException(send(CLASS(TypeError), "new", reason));
+    RAISE(send(CLASS(TypeError), "new", reason));
   } else {
     self -> included_modules = list_cons(self -> included_modules, mod);
   }
@@ -797,10 +810,10 @@ iridium_method(Module, define_method) {
   object fn_reason = send(method, "inspect");
   fn_reason = send(fn_reason, "__add__", IR_STRING(" is not a function"));
   if (method -> class != CLASS(Function)) {
-    handleException(send(CLASS(TypeError), "new", fn_reason));
+    RAISE(send(CLASS(TypeError), "new", fn_reason));
   }
   if (name -> class != CLASS(Atom)) {
-    handleException(send(CLASS(TypeError), "new", name_reason));
+    RAISE(send(CLASS(TypeError), "new", name_reason));
   }
   set_instance_attribute(self, name, PUBLIC, method);
   return name;
@@ -822,20 +835,20 @@ iridium_method(Function, __call__) {
   object result = NULL;
 
   // Get the corresponding C function
-  object ( * func )(struct dict *) = internal_get_attribute(self, ATOM("function"), object (*)(struct dict *));
+  object ( * func )(struct IridiumContext *, struct dict *) = internal_get_attribute(self, ATOM("function"), object (*)(struct IridiumContext *, struct dict *));
   assert(func);
 
   // Set the locals to that of the function (retrieve closed values and arguments)
-  bindings = process_args(self, destructure(array_new(), args));
+  bindings = process_args(context, self, destructure(context, array_new(), args));
 
   // Add the function name to the stacktrace
-  stack_push(stacktrace, internal_get_attribute(get_attribute(self, ATOM("name"), PUBLIC), ATOM("string"), char *));
+  stack_push(context->stacktrace, internal_get_attribute(get_attribute(self, ATOM("name"), PUBLIC), ATOM("string"), char *));
 
   // Invoke the function
-  result = func(dict_copy(bindings));
+  result = func(context, dict_copy(bindings));
 
   // Remove the function from the stacktrace
-  stack_pop(stacktrace);
+  stack_pop(context->stacktrace);
 
   return result;
 }
@@ -847,7 +860,7 @@ iridium_method(Function, __call__) {
 //  bindings (struct dict *)
 //  func (iridium_method)
 //  Convert a C function to an Iridium Function
-object FUNCTION(object name, struct list * args, struct dict * bindings, object (* func)(struct dict *)) {
+object FUNCTION(object name, struct list * args, struct dict * bindings, object (* func)(struct IridiumContext *, struct dict *)) {
   object self = construct(CLASS(Function));
   internal_set_attribute(self, ATOM("args"), args);
   set_attribute(self, ATOM("name"), PUBLIC, name);
@@ -868,7 +881,7 @@ iridium_method(Function, inspect) {
     // Avoid to_s'ing ourself forever
     sprintf(buffer, "#<Function self.%s:%p>", given_name, self);
   } else if (owner) {
-    sprintf(buffer, "#<Function %s%c%s:%p>", C_STRING(invoke(owner, "inspect", array_new())), (owner_type ? '#' : '.'), given_name, self);
+    sprintf(buffer, "#<Function %s%c%s:%p>", C_STRING(context, send(owner, "inspect")), (owner_type ? '#' : '.'), given_name, self);
   } else {
     sprintf(buffer, "#<Function %s:%p>", given_name, self);
   }
@@ -898,7 +911,7 @@ iridium_classmethod(Atom, new) {
 
   array_set(args, 0, name);
   // Initialize the atom (unless overloaded in an Iridium Program, will default to doing nothing at all)
-  invoke(atom, "initialize", args);
+  invoke(context, atom, "initialize", args);
 
   return atom;
 }
@@ -1015,9 +1028,9 @@ object ARRAY(struct array * values) {
 
 iridium_classmethod(Array, new) {
   object args = local("args");
-  object array = ARRAY(destructure(array_new(), args));
+  object array = ARRAY(destructure(context, array_new(), args));
   // Call initialize (which should do nothing unless overidden)
-  invoke(array, "initialize", destructure(array_new(), args));
+  invoke(context, array, "initialize", destructure(context, array_new(), args));
   return array;
 }
 
@@ -1035,7 +1048,7 @@ iridium_method(Array, reduce) {
     args = array_new();
     array_set(args, 0, element);
     array_set(args, 1, accumulator);
-    accumulator = calls(fn, args);
+    accumulator = calls(context, fn, args);
   }
   return accumulator;
 }
@@ -1075,7 +1088,7 @@ iridium_method(Array, inspect) {
   assert(strs);
   for (idx = ary -> start; idx < ary -> length; idx++) {
     sidx = idx - (ary -> start);
-    strs[sidx] = C_STRING(invoke(array_get(ary, idx), "inspect", array_new()));
+    strs[sidx] = C_STRING(context, send(array_get(ary, idx), "inspect"));
     strsize += strlen(strs[sidx]);
   }
   if (ary_len > 1) {
@@ -1258,12 +1271,12 @@ object IR_STRING(char * c_str) {
   return str;
 }
 
-char * C_STRING(object str) {
+char * C_STRING(struct IridiumContext * context, object str) {
   object reason = NULL;
   if (str -> class != CLASS(String)) {
     reason = send(str, "inspect");
     reason = send(reason, "__add__", IR_STRING(" is not a string object"));
-    handleException(send(CLASS(TypeError), "new", reason));
+    RAISE(send(CLASS(TypeError), "new", reason));
   }
   return internal_get_attribute(str, ATOM("str"), char *);
 }
@@ -1272,7 +1285,7 @@ char * C_STRING(object str) {
 // Returns a copy of the same string
 iridium_method(String, to_s) {
   object self = local("self");
-  char * str = C_STRING(self);
+  char * str = C_STRING(context, self);
   unsigned int l = strlen(str);
   char * str_copy = GC_MALLOC((l+1)*sizeof(char));
   strcpy(str_copy, str);
@@ -1283,7 +1296,7 @@ iridium_method(String, to_s) {
 // Returns a copy of the same string with quotes
 iridium_method(String, inspect) {
   object self = local("self");
-  char * str = C_STRING(self);
+  char * str = C_STRING(context, self);
   unsigned int l = strlen(str);
   char * str_copy = GC_MALLOC((l+3)*sizeof(char));
   str_copy[0] = '"';
@@ -1318,9 +1331,6 @@ iridium_method(Object, exit) {
 
 // class Exception
 
-// Global variable to indicate if an exception is being handled
-int _rescuing = 0;
-
 struct Exception * EXCEPTION(object exception_class, int jump_location) {
   struct Exception * exception = (struct Exception *) GC_MALLOC(sizeof(struct Exception));
   assert(exception);
@@ -1343,8 +1353,8 @@ struct Exception * catchesException(exception_frame frame, object exception) {
 }
 
 // Handle a raised exception object
-void handleException(object exception) {
-  struct stack * frames = _exception_frames;
+void handleException(struct IridiumContext * context, object exception) {
+  struct stack * frames = context->_exception_frames;
   // Active exception frame
   exception_frame frame;
   // Exception handler information
@@ -1352,43 +1362,43 @@ void handleException(object exception) {
   // Should not be NULL
   assert(frames);
   // Ensure that the raised exception is an Object
-  _raised = exception;
-  assert(isObject(_raised));
+  context->_raised = exception;
+  assert(isObject(context->_raised));
   // Indicate that an exception is being handled
-  _rescuing = 1;
+  context->_rescuing = 1;
   // Set function stacktrace (different from the handler stack) into exception
-  internal_set_attribute(exception, ATOM("stacktrace"), stack_copy(stacktrace));
+  internal_set_attribute(exception, ATOM("stacktrace"), stack_copy(context->stacktrace));
   // Should have at least one handler
   while(! stack_empty(frames)) {
     frame = (exception_frame) stack_top(frames);
     // Clear any functions in the stacktrace called within this exception frame
-    stack_pop_to(stacktrace, frame -> stacktrace_idx);
+    stack_pop_to(context->stacktrace, frame -> stacktrace_idx);
     if ((e = catchesException(frame, exception)) && !(frame -> already_rescued)) {
       // Jump to the appropriate handler
       // Binding of the exception to the variable happens during the exception handler
       // Before we jump, we need to indicate that we are no longer handling the exception
       // since a handler has been located
-      _rescuing = 0;
+      context->_rescuing = 0;
       frame -> already_rescued = 1;
       longjmp(frame -> env, e -> jump_location);
     }
     if (!(frame -> in_ensure)) {
       // Run the ensure
-      ensure(frame);
+      ensure(context, frame);
     } else {
       // There was an exception within the ensure
       // That means it never removed itself from the stack
-      endHandler(frame);
+      endHandler(context, frame);
     }
   }
   // Should NEVER get here
 }
 
-exception_frame ExceptionHandler(struct list * exceptions, int ensure, int else_block, int count) {
+exception_frame ExceptionHandler(struct IridiumContext * context, struct list * exceptions, int ensure, int else_block, int count) {
   exception_frame frame = (exception_frame) GC_MALLOC(sizeof(struct ExceptionFrame));
   assert(frame);
-  frame -> id = handler_id++;
-  frame -> stacktrace_idx = stacktrace -> depth;
+  frame -> id = context->handler_id++;
+  frame -> stacktrace_idx = context -> stacktrace -> depth;
   frame -> exceptions = exceptions;
   frame -> ensure = ensure;
   frame -> count = count;
@@ -1397,7 +1407,7 @@ exception_frame ExceptionHandler(struct list * exceptions, int ensure, int else_
   frame -> in_ensure = 0;
   frame -> return_value = NULL;
   // Push to the exception handler stack
-  stack_push(_exception_frames, frame);
+  stack_push(context->_exception_frames, frame);
   return frame;
 }
 
@@ -1408,8 +1418,8 @@ exception_frame ExceptionHandler(struct list * exceptions, int ensure, int else_
 //  return_in_begin_block();
 //  return value;
 
-void return_in_begin_block(object return_value) {
-  struct stack * frames = _exception_frames;
+void return_in_begin_block(struct IridiumContext * context, object return_value) {
+  struct stack * frames = context->_exception_frames;
   exception_frame frame;
   assert(frames);
   // Should have at least one handler
@@ -1419,11 +1429,11 @@ void return_in_begin_block(object return_value) {
     frame -> return_value = return_value;
     if (!(frame -> in_ensure)) {
       // Run the ensure
-      ensure(frame);
+      ensure(context, frame);
     } else {
       // There was an return within the ensure
       // That means it never removed itself from the stack
-      endHandler(frame);
+      endHandler(context, frame);
     }
     // This is the last frame in this iridium function
     // Don't process any more
@@ -1433,18 +1443,18 @@ void return_in_begin_block(object return_value) {
   }
 }
 
-void endHandler(exception_frame e) {
+void endHandler(struct IridiumContext * context, exception_frame e) {
   // Check to ensure that this is not called incorrectly
-  assert(e == stack_top(_exception_frames));
-  stack_pop(_exception_frames);
+  assert(e == stack_top(context->_exception_frames));
+  stack_pop(context->_exception_frames);
   // If it showed intent at returning a value, try to return it
   if (e -> return_value) {    
     longjmp(e -> env, FRAME_RETURN);
   }
 }
 
-void IR_PUTS(object obj) {
-  printf("%s\n", C_STRING(invoke(obj, "to_s", array_new())));
+void IR_PUTS(struct IridiumContext * context, object obj) {
+  printf("%s\n", C_STRING(context, invoke(context, obj, "to_s", array_new())));
 }
 
 // Hash method for objects
@@ -1468,7 +1478,7 @@ void define_constant(object name, object constant) {
 }
 
 // Lookup a constant with name (atom)
-object lookup_constant(object name) {
+object lookup_constant(struct IridiumContext * context, object name) {
   object constant = (object) dict_get(constants, name);
   object reason = NULL;
   if (constant == NULL) {
@@ -1477,18 +1487,18 @@ object lookup_constant(object name) {
     if (constant == NULL) {
       reason = send(name, "to_s");
       reason = send(reason, "__add__", IR_STRING(" is not a valid constant"));
-      handleException(send(CLASS(NameError), "new", reason));
+      RAISE(send(CLASS(NameError), "new", reason));
     }
   }
   return constant;
 }
 
-void display_stacktrace(object exception) {
+void display_stacktrace(struct IridiumContext * context, object exception) {
   struct stack * trace = internal_get_attribute(exception, ATOM("stacktrace"), struct stack *);
   struct stack * rtrace = stack_new();
   // Something is wrong in the commented out versions that causes the corruption of the trace
-  char * classname = C_STRING(((struct IridiumAttribute*)dict_get(exception->class->attributes, ATOM("name")))->value); // C_STRING(send(exception->class, "to_s"));
-  char * reason = C_STRING(((struct IridiumAttribute*)dict_get(exception->attributes, ATOM("message")))->value); // C_STRING(send(send(exception, "reason"), "to_s"));
+  char * classname = C_STRING(context, ((struct IridiumAttribute*)dict_get(exception->class->attributes, ATOM("name")))->value); // C_STRING(send(exception->class, "to_s"));
+  char * reason = C_STRING(context, ((struct IridiumAttribute*)dict_get(exception->attributes, ATOM("message")))->value); // C_STRING(send(send(exception, "reason"), "to_s"));
   if (trace) {
     while(!stack_empty(trace)) {
       stack_push(rtrace, stack_pop(trace));
@@ -1503,7 +1513,7 @@ void display_stacktrace(object exception) {
 }
 
 // Creates the objects defined here
-void IR_init_Object() {
+void IR_init_Object(struct IridiumContext * context) {
   
   struct IridiumArgument * args = NULL;
   struct IridiumArgument * name = NULL;
@@ -1512,8 +1522,7 @@ void IR_init_Object() {
   struct IridiumArgument * other = NULL;
   object call, get, class_new, class_inst_new, obj_init, class_inspect, object_inspect, fix_plus, nil_inspect, fix_inspect, atom_inspect, func_inspect, obj_puts, str_inspect, obj_write;
   
-  stacktrace = stack_new();
-  stack_push(stacktrace, "<main>");
+  stack_push(context -> stacktrace, "<main>");
 
   // Create class
   CLASS(Class) = construct(CLASS(Class));

@@ -31,6 +31,6 @@ object IR_FLOAT(double val);
 double C_DOUBLE(object flt);
 
 /* Setup Code */
-void IR_init_Float();
+void IR_init_Float(struct IridiumContext * context);
 
 #endif

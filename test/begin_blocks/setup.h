@@ -1,13 +1,13 @@
 object MyException, AnotherException;
 
-void setup() {
+void setup(struct IridiumContext * context) {
   // Init
-  IR_init_Object();
+  IR_init_Object(context);
 
   // Create MyException
-  MyException = invoke(CLASS(Class), "new", array_push(array_new(), IR_STRING("MyException")));
-  AnotherException = invoke(CLASS(Class), "new", array_push(array_new(), IR_STRING("AnotherException")));
+  MyException = invoke(context, CLASS(Class), "new", array_push(array_new(), IR_STRING("MyException")));
+  AnotherException = invoke(context, CLASS(Class), "new", array_push(array_new(), IR_STRING("AnotherException")));
   
   // Initialize the exception stack
-  _exception_frames = stack_new();
+  context->_exception_frames = stack_new();
 }

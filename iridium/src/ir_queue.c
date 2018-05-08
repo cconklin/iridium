@@ -41,7 +41,7 @@ iridium_method(Queue, dequeue) {
   } else {
     reason = send(self, "inspect");
     reason = send(reason, "__add__", IR_STRING(" is empty"));
-    handleException(send(CLASS(EmptyQueueError), "new", reason));
+    RAISE(send(CLASS(EmptyQueueError), "new", reason));
   }
   return result;
 }
@@ -55,7 +55,7 @@ iridium_method(Queue, length) {
   return FIXNUM(len);
 }
 
-void IR_init_Queue(void) {
+void IR_init_Queue(struct IridiumContext * context) {
   CLASS(Queue) = send(CLASS(Class), "new", IR_STRING("Queue"));
   CLASS(EmptyQueueError) = send(CLASS(Class), "new", IR_STRING("Queue.Empty"), CLASS(Exception));
 

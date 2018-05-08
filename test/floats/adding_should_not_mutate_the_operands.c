@@ -2,10 +2,10 @@
 #include "../../iridium/include/ir_float.h"
 #include "setup.h"
 
-int test() {
+int test(struct IridiumContext * context) {
   object flt, flt_2;
 
-  setup();
+  setup(context);
 
   flt = IR_FLOAT(5.0);
   flt_2 = IR_FLOAT(9.0);

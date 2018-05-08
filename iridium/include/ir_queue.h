@@ -4,5 +4,5 @@
 object CLASS(Queue);
 object CLASS(EmptyQueueError);
 
-void IR_init_Queue(void);
+void IR_init_Queue(struct IridiumContext *);
 

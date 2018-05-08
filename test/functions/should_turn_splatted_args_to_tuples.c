@@ -11,11 +11,11 @@ iridium_method(Test, func_splat_and_optional) {
   return NIL;
 }
 
-int test() {
+int test(struct IridiumContext * context) {
   object func, obj;
   struct IridiumArgument * a, * b;
   struct array * args;
-  setup();
+  setup(context);
 
   // test with a splatted args and an optional arg, filling both
   a = argument_new(ATOM("args"), NULL, 1);
@@ -29,7 +29,7 @@ int test() {
   array_push(args, ATOM("c"));
   // function f(* args, b = :f)
   // obj.f(:a, :b, :c) # > args = {:a, :b}, b = :c
-  invoke(obj, "f", args);
+  invoke(context, obj, "f", args);
 
   return 0;
 }

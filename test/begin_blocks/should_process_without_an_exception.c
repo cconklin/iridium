@@ -2,8 +2,8 @@
 #include "../../iridium/include/ir_object.h"
 #include "setup.h"
 
-int test() {
-  setup();
+int test(struct IridiumContext * context) {
+  setup(context);
   
   // x is a flag to indicate whether a jump occurred
   int x = 0;
@@ -11,20 +11,20 @@ int test() {
   
   // With no exception raised
   // Create the exception frame with no ensure
-  exception_frame e = ExceptionHandler(exceptions, 0, 0, 0);
+  exception_frame e = ExceptionHandler(context, exceptions, 0, 0, 0);
   switch (setjmp(e -> env)) {
     case 0:
       // begin
       // ...
       x = 1;
-      END_BEGIN(e);
+      END_BEGIN(context, e);
     case 1:
       // rescue MyException
       // ...
       assertNotReaches();
-      END_RESCUE(e);
+      END_RESCUE(context, e);
   }
-  assert(stack_empty(_exception_frames));
+  assert(stack_empty(context->_exception_frames));
   assertEqual(x, 1);
   
   return 0;

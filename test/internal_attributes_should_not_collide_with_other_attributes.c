@@ -1,12 +1,12 @@
 #include "../iridium/include/ir_object.h"
 #include "test_helper.h"
 
-void setup() {
-  IR_init_Object();
+void setup(struct IridiumContext * context) {
+  IR_init_Object(context);
 }
 
-int test() {
-  setup();
+int test(struct IridiumContext * context) {
+  setup(context);
   object a = ATOM("a");
   object attr = ATOM("attr");
   object val = ATOM("val");

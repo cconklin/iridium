@@ -24,6 +24,6 @@ struct IR_DICTIONARY {
 object CLASS(Dictionary);
 
 // Dictionary Init
-void IR_init_Dictionary();
+void IR_init_Dictionary(struct IridiumContext *);
 
 #endif

@@ -1,8 +1,8 @@
 #include "../test_helper.h"
 #include "setup.h"
 
-int test() {
-    setup();
+int test(struct IridiumContext * context) {
+    setup(context);
 
     // Using the default approach
     object MyClass = send(CLASS(Class), "new", IR_STRING("MyClass"));

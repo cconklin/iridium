@@ -11,11 +11,11 @@ iridium_method(Test, func_splat_and_required) {
   return NIL;
 }
 
-int test() {
+int test(struct IridiumContext * context) {
   object func, obj;
   struct IridiumArgument * a, * b;
   struct array * args;
-  setup();
+  setup(context);
 
   // test with a splatted args and an required arg, filling both
   a = argument_new(ATOM("args"), NULL, 1);

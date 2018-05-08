@@ -1,7 +1,7 @@
 #include "../../iridium/include/ir_object.h"
 
-void setup(void)
+void setup(struct IridiumContext * context)
 {
-    IR_init_Object();
+    IR_init_Object(context);
 }
 

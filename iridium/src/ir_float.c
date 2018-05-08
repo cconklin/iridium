@@ -97,7 +97,7 @@ iridium_method(Float, hash) {
 }
 
 /* Setup Code */
-void IR_init_Float() {
+void IR_init_Float(struct IridiumContext * context) {
   CLASS(Float) = send(CLASS(Class), "new", IR_STRING("Float"));
 
   object new_func = FUNCTION(ATOM("new"), ARGLIST(argument_new(ATOM("val"), NULL, 0)), dict_new(ObjectHashsize), iridium_classmethod_name(Float, new));

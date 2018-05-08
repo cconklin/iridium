@@ -2,8 +2,8 @@
 #include "../test_helper.h"
 #include "setup.h"
 
-int test() {
-  setup();
+int test(struct IridiumContext * context) {
+  setup(context);
 
   object a = ATOM("a");
   object attr = ATOM("attr");

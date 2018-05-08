@@ -1,24 +1,24 @@
 #include "ir_file.h"
 
-FILE * get_file(object self) {
+FILE * get_file(struct IridiumContext * context, object self) {
   object reason = NULL;
   FILE * f = internal_get_attribute(self, ATOM("FILE"), FILE *);
   if (f == NULL) {
     reason = send(self, "to_s");
     reason = send(reason, "__add__", IR_STRING(" is not open"));
-    handleException(send(CLASS(IOError), "new", reason));  
+    RAISE(send(CLASS(IOError), "new", reason));  
   }
   return f;
 }
 
-size_t file_length(FILE * f, object filename) {
+size_t file_length(struct IridiumContext * context, FILE * f, object filename) {
   struct stat st;
   object reason = NULL;
   if (-1 == fstat(fileno(f), &st)) {
     reason = filename;
     reason = send(reason, "__add__", IR_STRING(" -- "));
     reason = send(reason, "__add__", IR_STRING(strerror(errno)));
-    handleException(send(CLASS(IOError), "new", reason));
+    RAISE(send(CLASS(IOError), "new", reason));
   }
   return st.st_size;
 }
@@ -28,28 +28,28 @@ iridium_method(File, initialize) {
   object self = local("self");
   object filename = local("filename");
   object mode = local("mode");
-  FILE * f = fopen(C_STRING(filename), C_STRING(mode));
+  FILE * f = fopen(C_STRING(context, filename), C_STRING(context, mode));
   send(self, "__set__", ATOM("filename"), filename);
   send(self, "__set__", ATOM("mode"), mode);
   if (NULL == f) {
-    handleException(send(CLASS(FileNotFoundError), "new", filename));
+    RAISE(send(CLASS(FileNotFoundError), "new", filename));
   }
   internal_set_attribute(self, ATOM("FILE"), f);
   return NIL;
 }
 
-char * read_file(FILE * f, object filename) {
+char * read_file(struct IridiumContext * context, FILE * f, object filename) {
   char * buffer = NULL;
   size_t file_size;
   size_t nbytes_read;
-  file_size = file_length(f, filename);
+  file_size = file_length(context, f, filename);
   // Is +1 needed for a terminating null?
   buffer = GC_MALLOC((file_size+1)*sizeof(char));
   nbytes_read = fread(buffer, sizeof(char), file_size, f);
   if (nbytes_read != file_size) {
     // DEBUG
     printf("%lu != %zu\n", nbytes_read, file_size);
-    handleException(send(CLASS(IOError), "new", IR_STRING("Reading Error")));    
+    RAISE(send(CLASS(IOError), "new", IR_STRING("Reading Error")));    
   }
   buffer[file_size] = 0; // Add terminating NULL
   return buffer;
@@ -57,19 +57,19 @@ char * read_file(FILE * f, object filename) {
 
 iridium_method(File, read) {
   object self = local("self");
-  FILE * f = get_file(self);
-  char * buffer = read_file(f, local("filename"));
+  FILE * f = get_file(context, self);
+  char * buffer = read_file(context, f, local("filename"));
   return IR_STRING(buffer);
 }
 
 iridium_method(File, write) {
   // The string to write
-  char * str = C_STRING(local("str"));
+  char * str = C_STRING(context, local("str"));
   size_t len = strlen(str);
   FILE * f = internal_get_attribute(local("self"), ATOM("FILE"), FILE *);
   size_t written = fwrite(str, sizeof str[0], len, f);
   if (written != len) {
-    handleException(send(CLASS(IOError), "new", IR_STRING("File not in write mode")));
+    RAISE(send(CLASS(IOError), "new", IR_STRING("File not in write mode")));
   }
   return NIL;
 }
@@ -77,7 +77,7 @@ iridium_method(File, write) {
 iridium_method(File, close) {
   object self = local("self");
   
-  FILE * f = get_file(self);
+  FILE * f = get_file(context, self);
   fclose(f);
   // Now that the file has been closed, set it to NULL
   internal_set_attribute(self, ATOM("FILE"), NULL);
@@ -89,8 +89,8 @@ iridium_method(File, each_line) {
   object filename = local("filename"); // From self
   object fn = local("fn");
   object str = NULL;
-  FILE * f = get_file(self);
-  size_t file_size = file_length(f, filename);
+  FILE * f = get_file(context, self);
+  size_t file_size = file_length(context, f, filename);
   char * buffer = GC_MALLOC((file_size+1)*sizeof(char));
   assert(buffer);
   int nchars;
@@ -105,7 +105,7 @@ iridium_method(File, each_line) {
     assert(line);
     strncpy(line, buffer, nchars);
     str = IR_STRING(line);
-    calls(fn, array_push(array_new(), str));
+    calls(context, fn, array_push(array_new(), str));
   }
   return NIL;
 }
@@ -124,7 +124,7 @@ iridium_classmethod(File, read) {
   return result;
 }
 
-void IR_init_File(void)
+void IR_init_File(struct IridiumContext * context)
 {
   CLASS(File) = send(CLASS(Class), "new", IR_STRING("File"));
   CLASS(FileNotFoundError) = send(CLASS(Class), "new", IR_STRING("FileNotFoundError"), CLASS(Exception));

@@ -2,9 +2,9 @@
 #include "../test_helper.h"
 #include "setup.h"
 
-int test() {
+int test(struct IridiumContext * context) {
   char * c_nil;
-  setup();
-  c_nil = C_STRING(send(NIL, "to_s"));
+  setup(context);
+  c_nil = C_STRING(context, send(NIL, "to_s"));
   assertEqual(strcmp(c_nil, "nil"), 0);
 }

@@ -2,10 +2,10 @@
 #include "../../iridium/include/ir_object.h"
 #include "setup.h"
 
-int test() {
+int test(struct IridiumContext * context) {
   object fixnum;
 
-  setup();
+  setup(context);
 
   // it should round trip C integers
   fixnum = FIXNUM(5);

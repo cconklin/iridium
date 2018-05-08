@@ -1,17 +1,18 @@
 #include "ir_init.h"
 
-void IR_INIT(void) {
-    IR_init_Object();
-    IR_init_Float();
-    IR_init_String();
-    IR_init_Dictionary();
-    IR_init_File();
-    IR_init_Queue();
-    IR_init_Thread();
-    handler_id = 0; // Set the first handler id
-    _exception_frames = stack_new(); // Initialize the exception stack
+void IR_INIT(struct IridiumContext * context) {
+    IR_early_init_context(context);
+    IR_init_Object(context);
+    // set the _raised to NIL now that NIL is defined
+    context->_raised = NIL;
+    IR_init_Float(context);
+    IR_init_String(context);
+    IR_init_Dictionary(context);
+    IR_init_File(context);
+    IR_init_Queue(context);
+    IR_init_Thread(context);
     // IR_CORE_INIT is a main function of the compiled
-    IR_CORE_INIT();
+    IR_CORE_INIT(context);
 }
 
 iridium_classmethod(ir_main, to_s) {
@@ -24,7 +25,7 @@ iridium_classmethod(ir_main, to_s) {
     return IR_STRING(c_str); 
 }
 
-object IR_MAIN_OBJECT(void) {
+object IR_MAIN_OBJECT(struct IridiumContext * context) {
     object ir_main = send(CLASS(Object), "new");
     object main_to_s = FUNCTION(ATOM("inspect"), ARGLIST(), dict_new(ObjectHashsize), iridium_classmethod_name(ir_main, to_s));
     set_attribute(ir_main, ATOM("inspect"), PUBLIC, main_to_s);

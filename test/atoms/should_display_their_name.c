@@ -1,16 +1,16 @@
 #include "../../iridium/include/ir_object.h"
 #include "../test_helper.h"
 
-void setup() {
-  IR_init_Object();
+void setup(struct IridiumContext * context) {
+  IR_init_Object(context);
 }
 
-int test() {
-  setup();
+int test(struct IridiumContext * context) {
+  setup(context);
   object self = ATOM("self");
   object turtle = ATOM("turtle");
-  char * c_self = C_STRING(send(self, "inspect"));
-  char * c_turtle = C_STRING(send(turtle, "inspect"));
+  char * c_self = C_STRING(context, send(self, "inspect"));
+  char * c_turtle = C_STRING(context, send(turtle, "inspect"));
 
   assertEqual(strcmp(c_self, ":self"), 0);
   assertEqual(strcmp(c_turtle, ":turtle"), 0);

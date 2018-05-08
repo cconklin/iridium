@@ -31,7 +31,7 @@ class Generator
 
   def generate_prototypes
     @callables.keys.map do |name|
-      "object #{name}(struct dict * locals);"
+      "object #{name}(struct IridiumContext * context, struct dict * locals);"
     end.join("\n")
   end
 
@@ -77,10 +77,10 @@ class Generator
     code.unshift "struct array * self_stack = array_new();"
     code.unshift "ir_context_stack = array_new();"
     code.unshift "ir_context = ir_main;"
-    code.unshift "object ir_main = IR_MAIN_OBJECT();"
+    code.unshift "object ir_main = IR_MAIN_OBJECT(context);"
     code.unshift "struct dict * locals = dict_new(ObjectHashsize);"
     code.unshift "int _handler_count = 0;"
-    code.unshift "object #{@main_fn_name}() {"
+    code.unshift "object #{@main_fn_name}(struct IridiumContext * context) {"
 
     code << "return NIL;"
     code << "}"
@@ -88,17 +88,18 @@ class Generator
       code << "int main(int argc, const char ** argv) {"
       code << "GC_INIT();"
       # TODO ARGV
-      code << "IR_INIT();"
+      code << "struct IridiumContext context;"
+      code << "IR_INIT(&context);"
       # FIXME only catch children of exception / string?
       code << "struct list * main_exceptions = list_new(EXCEPTION(CLASS(Object), 1));"
-      code << "exception_frame e = ExceptionHandler(main_exceptions, 0, 0, 0);"
+      code << "exception_frame e = ExceptionHandler(&context, main_exceptions, 0, 0, 0);"
       code << "switch (setjmp(e->env)) {"
       code << "case 0:"
-      code << "#{@main_fn_name}();"
+      code << "#{@main_fn_name}(&context);"
       code << "return 0;"
       code << "case 1:"
       code << "// any uncaught exception"
-      code << 'display_stacktrace(_raised);'
+      code << 'display_stacktrace(&context, context._raised);'
       code << "return 1;"
       code << "}"
       code << "}"
@@ -107,14 +108,14 @@ class Generator
   end
 
   def last_constant
-    @self_stack[1..-1].reduce "lookup_constant(ATOM(\"#{@self_stack[0]}\"))" do |acc, n|
+    @self_stack[1..-1].reduce "lookup_constant(context, ATOM(\"#{@self_stack[0]}\"))" do |acc, n|
       "get_attribute(#{acc}, ATOM(\"#{n}\"), PUBLIC)"
     end
   end
 
   def get_constant(name)
     if @self_stack.empty?
-      "lookup_constant(ATOM(\"#{name}\"))"
+      "lookup_constant(context, ATOM(\"#{name}\"))"
     else
       "get_attribute(#{last_constant}, ATOM(\"#{name}\"), PUBLIC)"
     end
@@ -146,7 +147,7 @@ class Generator
           full_name = (@self_stack + [name]).map(&:to_s).join(".")
           unless open_constants.include? full_name.to_sym
             open_constants << full_name.to_sym
-            constant = "invoke(ir_cmp_Module, \"new\", array_push(array_new(), IR_STRING(\"#{full_name}\")))"
+            constant = "invoke(context, ir_cmp_Module, \"new\", array_push(array_new(), IR_STRING(\"#{full_name}\")))"
             if @self_stack.empty?
               # Top level module
               code << "define_constant(ATOM(\"#{name}\"), #{constant});"
@@ -169,7 +170,7 @@ class Generator
           full_name = (@self_stack + [name]).map(&:to_s).join(".")
           unless open_constants.include? full_name.to_sym
             open_constants << full_name.to_sym
-            constant = "invoke(ir_cmp_Class, \"new\", array_push(array_push(array_new(), IR_STRING(\"#{full_name}\")), #{generate_expression(superclass)}))"
+            constant = "invoke(context, ir_cmp_Class, \"new\", array_push(array_push(array_new(), IR_STRING(\"#{full_name}\")), #{generate_expression(superclass)}))"
             if @self_stack.empty?
               # Top level module
               code << "define_constant(ATOM(\"#{name}\"), #{constant});"
@@ -241,7 +242,7 @@ class Generator
       code.unshift "exception_frame #{handler};"
     end
     code.unshift "int _handler_count = 0;"
-    code.unshift "object #{name}(struct dict * locals) {"
+    code.unshift "object #{name}(struct IridiumContext * context, struct dict * locals) {"
     code << "return NIL;"
     code << "}"
     code.join("\n")
@@ -354,12 +355,12 @@ class Generator
         end
         exception_list = "ARGLIST(#{exception_list.join(',')})"
         exception_handlers << handler_var
-        code << "#{handler_var} = ExceptionHandler(#{exception_list}, #{ensure_section.empty? ? 0 : 1}, 0, _handler_count++);"
+        code << "#{handler_var} = ExceptionHandler(context, #{exception_list}, #{ensure_section.empty? ? 0 : 1}, 0, _handler_count++);"
         # Rest goes here
         code << "switch (setjmp(#{handler_var} -> env)) {"
         code << "case 0:"
         code.concat(generate_block(begin_section, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: true, exception_handlers: exception_handlers))
-        code << "END_BEGIN(#{handler_var});"
+        code << "END_BEGIN(context, #{handler_var});"
         rescue_sections.each_with_index do |(exc, handler), i|
           exc_idx = i + 1
           exc_variable = handler[0]
@@ -373,21 +374,21 @@ class Generator
             unless modified_variables.include? exc_variable
               modified_variables << exc_variable
             end
-            code << "#{variable_name(exc_variable)} = _raised;"
+            code << "#{variable_name(exc_variable)} = context->_raised;"
           end
           code.concat(generate_block(exc_block, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: true, exception_handlers: exception_handlers))
-          code << "END_RESCUE(#{handler_var});"
+          code << "END_RESCUE(context, #{handler_var});"
         end
         unless ensure_section.empty?
           code << "case ENSURE_JUMP:"
           code.concat(generate_block(ensure_section, modified_variables: modified_variables, active_variables: active_variables, new_variables: new_variables, literals: literals, in_begin: true, exception_handlers: exception_handlers))
-          code << "END_ENSURE(#{handler_var});"
+          code << "END_ENSURE(context, #{handler_var});"
         end
         code << "case FRAME_RETURN:"
         code << "if (#{handler_var} -> count == 0) {"
         code << "return #{handler_var} -> return_value;"
         code << "} else {"
-        code << "return_in_begin_block(#{handler_var} -> return_value);"
+        code << "return_in_begin_block(context, #{handler_var} -> return_value);"
         code << "}"
         code << "break;"
         code << "}"
@@ -398,10 +399,10 @@ class Generator
       when :insert
         # [:insert, :x, [5], [:[], :y, [[:+, 4, 5]]]]
         arg_ary = generate_argarray(statement[2] + [statement[3]], active_variables: active_variables, literals: literals)
-        code << "invoke(#{generate_expression(statement[1], active_variables: active_variables, literals: literals)}, \"__set_index__\", #{arg_ary});"
+        code << "invoke(context, #{generate_expression(statement[1], active_variables: active_variables, literals: literals)}, \"__set_index__\", #{arg_ary});"
       when :return
         if in_begin
-          code << "return_in_begin_block(#{generate_expression(statement[1], active_variables: active_variables, literals: literals)});"
+          code << "return_in_begin_block(context, #{generate_expression(statement[1], active_variables: active_variables, literals: literals)});"
         else
           code << "return #{generate_expression(statement[1], active_variables: active_variables, literals: literals)};"
         end
@@ -430,7 +431,7 @@ class Generator
             "ATOM(\"#{expr.to_s[1..-1]}\")"
           elsif expr.to_s.match /^[^a-zA-Z]*[A-Z].*$/
             # First letter is uppercase -> constant
-            "lookup_constant(ATOM(\"#{expr}\"))"
+            "lookup_constant(context, ATOM(\"#{expr}\"))"
           else
             # Variable
             active_variables << expr unless active_variables.include? expr
@@ -458,26 +459,26 @@ class Generator
           # Invocation
           args = expr[2]
           arg_ary = generate_argarray(args, active_variables: active_variables, literals: literals)
-          "calls(#{generate_expression(expr[1], active_variables: active_variables, literals: literals)}, #{arg_ary})"
+          "calls(context, #{generate_expression(expr[1], active_variables: active_variables, literals: literals)}, #{arg_ary})"
         when :"[]"
           # Indexing
           # [:[], :y, [[:+, 4, 5]]]
           arg_ary = generate_argarray(expr[2], active_variables: active_variables, literals: literals)
-          "invoke(#{generate_expression(expr[1], active_variables: active_variables, literals: literals)}, \"__get_index__\", #{arg_ary})"
+          "invoke(context, #{generate_expression(expr[1], active_variables: active_variables, literals: literals)}, \"__get_index__\", #{arg_ary})"
         when :"."
           # Attribute Get
-          "invoke(#{generate_expression(expr[1], active_variables: active_variables, literals: literals)}, \"__get__\", array_push(array_new(), ATOM(\"#{expr[2]}\")))"
+          "invoke(context, #{generate_expression(expr[1], active_variables: active_variables, literals: literals)}, \"__get__\", array_push(array_new(), ATOM(\"#{expr[2]}\")))"
         when :lambda
           # Annonymous Function
           # [:lambda, [:x, {y: 10}, [:destructure, :z]], "code_name"]
           "FUNCTION(ATOM(\"lambda\"), #{generate_arglist(expr[1], active_variables: active_variables, literals: literals)}, locals, #{expr[2]})"
         when :array
           arg_ary = generate_argarray(expr[1], active_variables: active_variables, literals: literals)
-          "invoke(ir_cmp_Array, \"new\", #{arg_ary})"
+          "invoke(context, ir_cmp_Array, \"new\", #{arg_ary})"
         when :dictionary
           # [:dictionary, {:":foo" => [:+, 2, 3], "baz" => :X, :v => 3}]
           dict_lst = generate_expression([:array, expr[1].map {|k, v| [:array, [k, v]]}], active_variables: active_variables, literals: literals)
-          "invoke(ir_cmp_Dictionary, \"new\", array_push(array_new(), #{dict_lst}))"
+          "invoke(context, ir_cmp_Dictionary, \"new\", array_push(array_new(), #{dict_lst}))"
         when :===
           "(#{generate_expression(expr[1], active_variables: active_variables, literals: literals)} == #{generate_expression(expr[2], active_variables: active_variables, literals: literals)} ? ir_cmp_true : ir_cmp_false)"
       end
@@ -487,7 +488,7 @@ class Generator
   def generate_argarray(args, active_variables:, literals:)
     args.reduce("array_new()") do |acc, arg|
       if arg.respond_to?(:[]) && arg[0] == :destructure
-        "destructure(#{acc}, #{generate_expression(arg[1], active_variables: active_variables, literals: literals)})"
+        "destructure(context, #{acc}, #{generate_expression(arg[1], active_variables: active_variables, literals: literals)})"
       else
         "array_push(#{acc}, #{generate_expression(arg, active_variables: active_variables, literals: literals)})"
       end

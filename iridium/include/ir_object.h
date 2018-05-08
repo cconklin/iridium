@@ -32,8 +32,8 @@
 #define iridium_method_name(class, name) Iridium_##class##_##name
 #define iridium_classmethod_name(class, name) IridiumClassmethod_##class##_##name
 
-#define iridium_method(class, name) object iridium_method_name(class, name)(struct dict * locals)
-#define iridium_classmethod(class, name) object iridium_classmethod_name(class, name)(struct dict * locals)
+#define iridium_method(class, name) object iridium_method_name(class, name)(struct IridiumContext * context, struct dict * locals)
+#define iridium_classmethod(class, name) object iridium_classmethod_name(class, name)(struct IridiumContext * context, struct dict * locals)
 
 
 // Struct underlying all Iridium objects
@@ -68,6 +68,25 @@ struct IridiumArgument {
   char splat; // Whether the argument takes multiple values
 };
 
+struct IridiumContext {
+    // Thread-global variable to hold exceptions
+    // Will ALWAYS have a top level handler which will terminate the Iridium program
+    struct stack * _exception_frames;
+    // Global variable to hold the exception being raised
+    object _raised;
+    // Global variable to indicate if an exception is being handled
+    int _rescuing;
+    // Location that an ensure jumps to if it completes normally when an exception is raised
+    jmp_buf _handler_env;
+    
+    // Unique identifier of each handler
+    int handler_id;
+    
+    struct stack * stacktrace;
+};
+
+void IR_early_init_context(struct IridiumContext * context);
+void IR_init_context(struct IridiumContext * context);
 struct list * _ARGLIST(int unused, ...);
 
 #define ARGLIST(...) _ARGLIST(0, ##__VA_ARGS__, 0)
@@ -152,20 +171,19 @@ object _ATOM(char * name);
 object create_self_atom();
 object create_nil();
 object construct(object class);
-object FUNCTION(object name, struct list * args, struct dict * bindings, object (* func)(struct dict *));
+object FUNCTION(object name, struct list * args, struct dict * bindings, object (* func)(struct IridiumContext * context, struct dict *));
 object ARRAY(struct array * values);
 int INT(object);
 object FIXNUM(int);
 object IR_STRING(char *);
-char * C_STRING(object);
-void handleException(object);
+char * C_STRING(struct IridiumContext * context, object);
+void handleException(struct IridiumContext *, object);
 
-object invoke(object obj, char * name, struct array * args);
-object calls(object callable, struct array * args);
+#define RAISE(exc) handleException(context, exc)
 
 char * str(object);
-struct array * destructure(struct array *, object);
-struct dict * process_args(object, struct array *);
+struct array * destructure(struct IridiumContext *, struct array *, object);
+struct dict * process_args(struct IridiumContext *, object, struct array *);
 
 extern struct dict * constants;
 
@@ -174,8 +192,7 @@ struct IridiumArgument * argument_new(object name, object default_value, char sp
 // :self atom
 extern object _SELF_ATOM;
 
-object _send(object, char *, ...);
-#define send(obj, name, ...) _send(obj, name , ##__VA_ARGS__, 0)
+#define send(obj, name, ...) _send(context, obj, name , ##__VA_ARGS__, 0)
 
 // Function to determine object inheritance
 int kindOf(object obj, object class);
@@ -229,8 +246,8 @@ object no_instance_attribute(object receiver, void * attribute);
 object set_instance_attribute(object receiver, void * attribute, unsigned char access, object value);
 
 // Locals
-#define local(name) _local(locals, ATOM(name))
-object _local(struct dict * locals, object atm);
+#define local(name) _local(context, locals, ATOM(name))
+object _local(struct IridiumContext * context, struct dict * locals, object atm);
 
 #define set_local(name, value) _set_local(locals, ATOM(name), value)
 void _set_local(struct dict * locals, object name, object value);
@@ -251,25 +268,19 @@ object construct(object class);
 //    obj.name(args)
 // Iridium_Object_get() will retun a bound function to the `obj` #"name" method (obj will automatically be passed)
 // Invoke function with handle `name` by getting the function from the object `obj`, and bind it to `self` before passing it to the C Function for Iridium Function calls.
-object invoke(object obj, char * name, struct array * args);
+object invoke(struct IridiumContext * context, object obj, char * name, struct array * args);
 
-object _send(object obj, char * name, ...);
+object _send(struct IridiumContext * context, object obj, char * name, ...);
 
 #define pubget(obj, name) get_attribute(obj, ATOM(name), PUBLIC)
 
 // Function for generic invocations
 // Used by the translator
 
-object calls(object callable, struct array * args);
+object calls(struct IridiumContext * context, object callable, struct array * args);
 
 // Converts iridium strings to C strings
 char * str(object string);
-
-// Destructures arrays into struct array *
-struct array * destructure(struct array * args, object argument_array);
-
-// Create a binding dictionary by processing function arguments (retrieve closed values and arguments)
-struct dict * process_args(object function, struct array * _args);
 
 // FUNCTION helper
 // args:
@@ -278,7 +289,7 @@ struct dict * process_args(object function, struct array * _args);
 //  bindings (struct dict *)
 //  func (iridium_method)
 //  Convert a C function to an Iridium Function
-object FUNCTION(object name, struct list * args, struct dict * bindings, object (* func)(struct dict *));
+object FUNCTION(object name, struct list * args, struct dict * bindings, object (* func)(struct IridiumContext *, struct dict *));
 
 
 extern void * ATOM_TABLE_KEY;
@@ -366,58 +377,40 @@ typedef struct ExceptionFrame {
 */
 
 #define ENSURE_JUMP -1
-#define END_ENSURE(frame) endHandler(frame); if (_rescuing) handleException(_raised); break
+#define END_ENSURE(context, frame) endHandler(context, frame); if (context->_rescuing) handleException(context, context->_raised); break
 // End the handler first so that if an exception is raised in the `ensure`,
 // this handler will not rescue it
-#define END_BEGIN(frame) run_else(frame); ensure(frame); break
-#define END_RESCUE(frame) ensure(frame); break
-#define END_ELSE(frame) ensure(frame); break
+#define END_BEGIN(context, frame) run_else(context, frame); ensure(context, frame); break
+#define END_RESCUE(context, frame) ensure(context, frame); break
+#define END_ELSE(context, frame) ensure(context, frame); break
 #define ELSE_JUMP -2
 #define FRAME_RETURN -3
 
-void endHandler(exception_frame e);
-// Location that an ensure jumps to if it completes normally when an exception is raised
-jmp_buf _handler_env;
-
 // Now that the ensure has been run, don't let it catch any other exceptions
 // or run the ensure again
-#define ensure(e) \
+#define ensure(context, e) \
   if ( e -> ensure ) {\
     e -> in_ensure = 1;\
     e -> already_rescued = 1;\
-    if (! setjmp(_handler_env)) \
+    if (! setjmp(context->_handler_env)) \
       longjmp(e -> env, ENSURE_JUMP);}\
   else\
-    endHandler(e);
+    endHandler(context, e);
 
-#define run_else(e) \
+#define run_else(context, e) \
   if ( e -> else_block ) \
-    if (! setjmp(_handler_env)) \
+    if (! setjmp(context->_handler_env)) \
       longjmp(e -> env, ELSE_JUMP);
 
-
-// FIXME Not thread-safe
-// Global variable to hold exceptions
-// Will ALWAYS have a top level handler which will terminate the Iridium program
-struct stack * _exception_frames;
-// Global variable to hold the exception being raised
-object _raised;
-// Global variable to indicate if an exception is being handled
-extern int _rescuing;
-
-// Unique identifier of each handler
-extern int handler_id;
-
-struct stack * stacktrace;
 
 struct Exception * EXCEPTION(object exception_class, int jump_location);
 
 struct Exception * catchesException(exception_frame frame, object exception);
 
 // Handle a raised exception object
-void handleException(object exception);
+void handleException(struct IridiumContext * context, object exception);
 
-exception_frame ExceptionHandler(struct list * exceptions, int ensure, int else_block, int count);
+exception_frame ExceptionHandler(struct IridiumContext * context, struct list * exceptions, int ensure, int else_block, int count);
 
 // Used for returns that occur in begin..end blocks
 // Usage:
@@ -426,22 +419,22 @@ exception_frame ExceptionHandler(struct list * exceptions, int ensure, int else_
 //  return_in_begin_block();
 //  return value;
 
-void return_in_begin_block(object return_value);
+void return_in_begin_block(struct IridiumContext * context, object return_value);
 
-void endHandler(exception_frame e);
+void endHandler(struct IridiumContext * context, exception_frame e);
 
-void IR_PUTS(object obj);
+void IR_PUTS(struct IridiumContext * context, object obj);
 
 // Define a constant with name (atom)
 void define_constant(object name, object constant);
 
 // Display a stacktrace
-void display_stacktrace(object exception);
+void display_stacktrace(struct IridiumContext * context, object exception);
 
 // Lookup a constant with name (atom)
-object lookup_constant(object name);
+object lookup_constant(struct IridiumContext * context, object name);
 
 // Creates the objects defined here
-void IR_init_Object();
+void IR_init_Object(struct IridiumContext * context);
 
 #endif

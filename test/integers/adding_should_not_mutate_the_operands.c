@@ -2,10 +2,10 @@
 #include "../../iridium/include/ir_object.h"
 #include "setup.h"
 
-int test() {
+int test(struct IridiumContext * context) {
   object fixnum, fixnum_2;
 
-  setup();
+  setup(context);
 
   fixnum = FIXNUM(5);
   fixnum_2 = FIXNUM(9);

@@ -1,10 +1,10 @@
-void setup() {
+void setup(struct IridiumContext * context) {
 
   // Standard Init
-  IR_init_Object();
+  IR_init_Object(context);
 
   // Create Float
-  IR_init_Float();
+  IR_init_Float(context);
 
 }
 

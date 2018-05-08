@@ -8,11 +8,11 @@ iridium_method(Test, func_required_and_optional) {
   return NIL;
 }
 
-int test() {
+int test(struct IridiumContext * context) {
   object func, obj;
   struct IridiumArgument * a, * b;
   struct array * args;
-  setup();
+  setup(context);
 
   // test with a required and optional arg passing only the required
   a = argument_new(ATOM("a"), NULL, 0);
@@ -24,7 +24,7 @@ int test() {
   array_push(args, ATOM("a"));
   // function f(a, b = :b)
   // obj.f(:a) # > a = :a, b = :b
-  invoke(obj, "f", args);
+  invoke(context, obj, "f", args);
   
   return 0;
 }

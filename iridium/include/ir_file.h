@@ -9,4 +9,4 @@ object CLASS(File);
 object CLASS(FileNotFoundError);
 object CLASS(IOError);
 
-void IR_init_File(void);
+void IR_init_File(struct IridiumContext * context);
