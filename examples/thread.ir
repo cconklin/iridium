@@ -1,6 +1,6 @@
 threads = [1, 2, 3].map -> (id)
   return Thread.new ->
-    result = Range.new(100+i).sum()
+    result = Range.new(100+id).sum()
     puts("Thread", id, "sum =", result)
     return result
   end
