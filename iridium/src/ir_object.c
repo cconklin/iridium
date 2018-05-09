@@ -787,6 +787,27 @@ iridium_method(Object, initialize) {
 
 // class Module
 
+// Module.new
+// Constructor of modules
+// Locals used: self, args
+// Output:      obj (new module)
+iridium_classmethod(Module, new) {
+  // Receiver
+  object self = local("self");
+  // Module name
+  object name = local("name");
+  // Any args for initialize
+  object args = local("args");
+  // Create the module
+  object obj = construct(self);
+  // Set the name
+  set_attribute(obj, ATOM("name"), PUBLIC, name);
+  // Call initialize, merging the superclass with any other args
+  invoke(context, obj, "initialize", destructure(context, array_push(array_new(), name), args));
+  // Return the created object
+  return obj;
+}
+
 iridium_method(Module, include) {
   object self = local("self");
   object mod = local("module");
@@ -1514,14 +1535,14 @@ void display_stacktrace(struct IridiumContext * context, object exception) {
 
 // Creates the objects defined here
 void IR_init_Object(struct IridiumContext * context) {
-  
+
   struct IridiumArgument * args = NULL;
   struct IridiumArgument * name = NULL;
   struct IridiumArgument * class_superclass = NULL;
   struct IridiumArgument * class_name = NULL;
   struct IridiumArgument * other = NULL;
-  object call, get, class_new, class_inst_new, obj_init, class_inspect, object_inspect, fix_plus, nil_inspect, fix_inspect, atom_inspect, func_inspect, obj_puts, str_inspect, obj_write;
-  
+  object call, get, class_new, class_inst_new, obj_init, class_inspect, object_inspect, fix_plus, nil_inspect, fix_inspect, atom_inspect, func_inspect, obj_puts, str_inspect, obj_write, module_new;
+
   stack_push(context -> stacktrace, "<main>");
 
   // Create class
@@ -1563,7 +1584,9 @@ void IR_init_Object(struct IridiumContext * context) {
   class_superclass = argument_new(ATOM("superclass"), CLASS(Object), 0);
   class_name = argument_new(ATOM("name"), NULL, 0);
   class_new = FUNCTION(ATOM("new"), list_cons(list_cons(list_new(args), class_superclass), class_name), dict_new(ObjectHashsize), iridium_classmethod_name(Class, new));
+  module_new = FUNCTION(ATOM("new"), list_cons(list_new(args), class_name), dict_new(ObjectHashsize), iridium_classmethod_name(Module, new));
   set_attribute(CLASS(Class), ATOM("new"), PUBLIC, class_new);
+  set_attribute(CLASS(Module), ATOM("new"), PUBLIC, module_new);
   class_inst_new = FUNCTION(ATOM("new"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Class, new));
   set_instance_attribute(CLASS(Class), ATOM("new"), PUBLIC, class_inst_new);
   class_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Class, inspect));
