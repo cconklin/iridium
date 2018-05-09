@@ -1,10 +1,9 @@
 #include "ir_object.h"
 #include <pthread.h>
 
-struct ThreadArg
-{
-    object thread;
-    struct IridiumContext * context;
+struct ThreadStatus {
+    int is_ok;
+    object result;
 };
 
 void * ir_dispatch_thread(void *);

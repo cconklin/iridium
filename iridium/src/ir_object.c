@@ -7,6 +7,8 @@
 
 #include "ir_object.h"
 
+pthread_rwlock_t LOCK = PTHREAD_RWLOCK_INITIALIZER;
+
 void IR_early_init_context(struct IridiumContext * context)
 {
     context->handler_id = 0; // Set the first handler id
@@ -81,7 +83,7 @@ instance_attribute_lookup(object receiver, void * attribute, unsigned char acces
   iridium_attribute result = dict_get(receiver -> instance_attributes, attribute);
   struct list * modules = NULL;
   object module = NULL;
-  
+
   if (no_result) {
     // Attribute was not found
     // Now look at any modules the object included
@@ -118,7 +120,7 @@ attribute_lookup(object receiver, void * attribute, unsigned char access) {
   struct list * modules = NULL;
   object module = NULL;
   object class = NULL;
-  
+
   if (no_result) {
     // Attribute was not found
     // Now look at any modules the object extended
@@ -470,7 +472,7 @@ struct dict * process_args(struct IridiumContext * context, object function, str
     reason = send(reason, "__add__", IR_STRING(")"));
     RAISE(send(CLASS(ArgumentError), "new", reason));
   }
-  
+
   // function x(a, * args, b = 2, c = 4) ...
   // x(1) # > a = 1, args = {}, b = 2, c = 4
   // x(1, 3) # > a = 1, args = {}, b = 3, c = 4
@@ -549,15 +551,15 @@ iridium_method(Class, new) {
   object self = local("self");
   // Value of the args
   object args = local("args"); // array
-  
+
   // Container for the object under construction
   object obj = construct(self);
   // Send off to the object initialize method
   invoke(context, obj, "initialize", destructure(context, array_new(), args));
-  
+
   // Now that the object is constructed and initialized, return it
   return obj;
-  
+
 }
 
 // Class#inspect
@@ -700,13 +702,13 @@ iridium_method(Object, __get__) {
 
   // Value of the receiver
   object self = local("self");
-  
+
   // Dictionary of attribute locals, if attribute is a function
   struct dict * vars = NULL;
 
   // Grab the key from the locals
   object name = local("name");
-  
+
   // Look for the attribute
   object attribute = get_attribute(self, name, PUBLIC);
 
@@ -853,7 +855,7 @@ iridium_method(Function, __call__) {
   object self = local("self");
   // Get args to be passed to function
   object args = local("args"); // array
- 
+
   object result = NULL;
 
   // Get the corresponding C function
@@ -1014,26 +1016,37 @@ object create_self_atom() {
 
 // Create or fetch atoms
 object _ATOM(char * name) {
-  // Container for the new atom
-  object atom = NULL;
 
 
   // Table of atoms
   // Note: The key for the table is the only dict key that is not an atom.
   struct dict * atom_table = ATOM_TABLE();
 
-  if (! (atom = (object) str_dict_get(atom_table, name))) {
+  pthread_rwlock_rdlock(&LOCK);
+
+  // Container for the new atom
+  object atom = (object) str_dict_get(atom_table, name);
+
+  pthread_rwlock_unlock(&LOCK);
+
+  object string_atom = !strcmp(name, "string") ? atom : ATOM("string");
+
+  if (!atom) {
     // The atom does not exist
     // Create the new object
     atom = construct(CLASS(Atom));
+
+    pthread_rwlock_wrlock(&LOCK);
 
     // Add it to the Atom table
     add_atom(name, atom);
 
     // Set atom name
-    internal_set_attribute(atom, ATOM("string"), name);
+    internal_set_attribute(atom, string_atom, name);
 
+    pthread_rwlock_unlock(&LOCK);
   }
+
   return atom;
 }
 
@@ -1282,7 +1295,7 @@ iridium_method(Integer, __neq__) {
 
 object FIXNUM(int val) {
   object fixnum = construct(CLASS(Integer));
-  
+
   internal_set_integral(fixnum, ATOM("value"), val);
   return fixnum;
 }
@@ -1569,18 +1582,18 @@ void IR_init_Object(struct IridiumContext * context) {
   // Create Module
   CLASS(Module) = construct(CLASS(Class));
   CLASS(Module) -> class = CLASS(Class);
-  
+
   // Create Atom
   CLASS(Atom) = construct(CLASS(Class));
   create_str_atom();
-  
+
   // Create object
   CLASS(Object) = construct(CLASS(Class));
   set_attribute(CLASS(Atom), ATOM("superclass"), PUBLIC, CLASS(Object));
   set_attribute(CLASS(Module), ATOM("superclass"), PUBLIC, CLASS(Object));
   set_attribute(CLASS(Class), ATOM("superclass"), PUBLIC, CLASS(Module));
   set_attribute(CLASS(Object), ATOM("superclass"), PUBLIC, CLASS(Object));
-  
+
   // Create Function
   CLASS(Function) = construct(CLASS(Class));
   set_attribute(CLASS(Function), ATOM("superclass"), PUBLIC, CLASS(Object));
@@ -1640,7 +1653,7 @@ void IR_init_Object(struct IridiumContext * context) {
   CLASS(Array) = construct(CLASS(Class));
   CLASS(NilClass) = construct(CLASS(Class));
   CLASS(Integer) = construct(CLASS(Class));
-  
+
   set_attribute(CLASS(Array), ATOM("superclass"), PUBLIC, CLASS(Object));
   // NilClass Inherits from itself -- that way stuff defined on object doesn't affect it.
   set_attribute(CLASS(NilClass), ATOM("superclass"), PUBLIC, CLASS(NilClass));

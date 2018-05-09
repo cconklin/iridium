@@ -1,13 +1,27 @@
 #include "ir_thread.h"
 
-void * ir_dispatch_thread(void * _arg) {
-  struct ThreadArg * arg = (struct ThreadArg *) _arg;
-  object thr = arg->thread;
-  struct IridiumContext * context = arg->context;
-  free(_arg);
+void * ir_dispatch_thread(void * _thr) {
+  object thr = (object) _thr;
+  struct IridiumContext ctx;
+  IR_init_context(&ctx);
+  struct IridiumContext * context = &ctx;
+  struct ThreadStatus * status = (struct ThreadStatus *) GC_MALLOC(sizeof(struct ThreadStatus));
+  assert(status);
   // Invoke the thread function
-  object rval = send(thr, "fn");
-  set_attribute(thr, ATOM("return_value"), PUBLIC, rval);
+  struct list * thr_exceptions = list_new(EXCEPTION(CLASS(Object), 1));
+  exception_frame e = ExceptionHandler(context, thr_exceptions, 0, 0, 0);
+  switch (setjmp(e->env)) {
+  case 0:
+    status->is_ok = 1;
+    status->result = send(thr, "fn");
+    break;
+  case 1:
+    // Any uncaught exception
+    status->is_ok = 0;
+    status->result = context->_raised;
+    break;
+  }
+  internal_set_attribute(thr, ATOM("result"), status);
   pthread_exit(NULL);
 }
 
@@ -26,15 +40,10 @@ iridium_method(Thread, initialize) {
   pthread_attr_setdetachstate(attr, PTHREAD_CREATE_JOINABLE);
 
   set_attribute(self, ATOM("fn"), PUBLIC, fn);
-  set_attribute(self, ATOM("return_value"), PUBLIC, NIL);
-
-  struct ThreadArg * arg = (struct ThreadArg *) malloc(sizeof(struct ThreadArg));
-  assert(arg);
-  arg->thread = self;
-  arg->context = context;
+  internal_set_attribute(self, ATOM("result"), NULL);
 
   // Dispatch the thread
-  int rc = pthread_create(thr, attr, ir_dispatch_thread, (void *) arg);
+  int rc = pthread_create(thr, attr, ir_dispatch_thread, (void *) self);
 
   // Raise an exception if the thread failed to be dispatched
   if (rc) {
@@ -51,7 +60,22 @@ iridium_method(Thread, join) {
   if (rc) {
     RAISE(send(CLASS(Exception), "new", IR_STRING("Could not join thread")));
   }
-  return get_attribute(self, ATOM("return_value"), PUBLIC);
+  struct ThreadStatus * status = internal_get_attribute(self, ATOM("result"), struct ThreadStatus *);
+  if (status->is_ok) {
+    return status->result;
+  } else {
+    // Move the thread's context onto our context
+    struct stack * stacktrace = internal_get_attribute(status->result, ATOM("stacktrace"), struct stack *);
+    struct stack * rstacktrace = stack_new();
+    while (!stack_empty(stacktrace)) {
+      stack_push(rstacktrace, stack_pop(stacktrace));
+    }
+    while (!stack_empty(rstacktrace)) {
+      stack_push(context->stacktrace, stack_pop(rstacktrace));
+    }
+    // Raise the exception from the thread
+    RAISE(status->result);
+  }
 }
 
 void IR_init_Thread(struct IridiumContext * context) {

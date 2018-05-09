@@ -4,9 +4,12 @@
 #include <string.h>
 #include <setjmp.h>
 #include <stdarg.h>
+#include <pthread.h>
 
 #ifndef OBJECT_H
 #define OBJECT_H
+
+extern pthread_rwlock_t LOCK;
 
 #include "garbage_collector.h"
 
