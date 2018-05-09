@@ -81,13 +81,17 @@ struct IridiumContext {
     
     // Unique identifier of each handler
     int handler_id;
-    
+
+    // Stack Trace
+    int trace;
     struct stack * stacktrace;
 };
 
 void IR_early_init_context(struct IridiumContext * context);
 void IR_init_context(struct IridiumContext * context);
 struct list * _ARGLIST(int unused, ...);
+
+char * function_name(struct IridiumContext * context, object self);
 
 #define ARGLIST(...) _ARGLIST(0, ##__VA_ARGS__, 0)
 

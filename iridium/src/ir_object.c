@@ -12,6 +12,7 @@ void IR_early_init_context(struct IridiumContext * context)
     context->handler_id = 0; // Set the first handler id
     context->_exception_frames = stack_new(); // Initialize the exception stack
     context->stacktrace = stack_new();
+    context->trace = 1;
     context->_raised = NULL;
     context->_rescuing = 0;
 }
@@ -863,15 +864,42 @@ iridium_method(Function, __call__) {
   bindings = process_args(context, self, destructure(context, array_new(), args));
 
   // Add the function name to the stacktrace
-  stack_push(context->stacktrace, internal_get_attribute(get_attribute(self, ATOM("name"), PUBLIC), ATOM("string"), char *));
+  int was_tracing = context->trace;
+  if (was_tracing) {
+    context->trace = 0;
+    stack_push(context->stacktrace, function_name(context, self));
+    context->trace = 1;
+  }
 
   // Invoke the function
   result = func(context, dict_copy(bindings));
 
-  // Remove the function from the stacktrace
-  stack_pop(context->stacktrace);
+  if (was_tracing) {
+    // Remove the function from the stacktrace
+    stack_pop(context->stacktrace);
+  }
 
   return result;
+}
+
+char * function_name(struct IridiumContext * context, object self) {
+  object name = get_attribute(self, ATOM("name"), PUBLIC);
+  char * given_name = internal_get_attribute(name, ATOM("string"), char *);
+  char buffer[100];
+  object owner = internal_get_attribute(self, ATOM("owner"), object);
+  // 1: instance attribute of owner, 0: attribute of owner
+  int owner_type = internal_get_integral(self, ATOM("owner_type"), int);
+  if (owner == self) {
+    // Avoid to_s'ing ourself forever
+    sprintf(buffer, "self.%s", given_name);
+  } else if (owner) {
+    sprintf(buffer, "%s%c%s", C_STRING(context, send(owner, "inspect")), (owner_type ? '#' : '.'), given_name);
+  } else {
+    sprintf(buffer, "%s", given_name);
+  }
+  char * full_name = GC_MALLOC((strlen(buffer) + 1) * sizeof(char));
+  strcpy(full_name, buffer);
+  return full_name;
 }
 
 // FUNCTION helper
@@ -892,20 +920,9 @@ object FUNCTION(object name, struct list * args, struct dict * bindings, object 
 
 iridium_method(Function, inspect) {
   object self = local("self");
-  object name = get_attribute(self, ATOM("name"), PUBLIC);
-  char * given_name = internal_get_attribute(name, ATOM("string"), char *);
   char buffer[100];
-  object owner = internal_get_attribute(self, ATOM("owner"), object);
-  // 1: instance attribute of owner, 0: attribute of owner
-  int owner_type = internal_get_integral(self, ATOM("owner_type"), int);
-  if (owner == self) {
-    // Avoid to_s'ing ourself forever
-    sprintf(buffer, "#<Function self.%s:%p>", given_name, self);
-  } else if (owner) {
-    sprintf(buffer, "#<Function %s%c%s:%p>", C_STRING(context, send(owner, "inspect")), (owner_type ? '#' : '.'), given_name, self);
-  } else {
-    sprintf(buffer, "#<Function %s:%p>", given_name, self);
-  }
+  char * name = function_name(context, self);
+  sprintf(buffer, "#<Function %s:%p>", name, self);
   char * full_name = GC_MALLOC((strlen(buffer) + 1) * sizeof(char));
   strcpy(full_name, buffer);
   return IR_STRING(full_name);
