@@ -38,6 +38,10 @@ examples/*
 !examples/*.ir
 iridium/objects
 
+iridium/include/atoms.txt
+iridium/include/atoms.h
+iridium/src/atoms.c
+
 test/*
 !test/*.*
 !test/**/*.*

@@ -1,8 +1,9 @@
 #include "ir_file.h"
+#include "atoms.h"
 
 FILE * get_file(struct IridiumContext * context, object self) {
   object reason = NULL;
-  FILE * f = internal_get_attribute(self, ATOM("FILE"), FILE *);
+  FILE * f = internal_get_attribute(self, L_ATOM(FILE), FILE *);
   if (f == NULL) {
     reason = send(self, "to_s");
     reason = send(reason, "__add__", IR_STRING(" is not open"));
@@ -29,12 +30,12 @@ iridium_method(File, initialize) {
   object filename = local("filename");
   object mode = local("mode");
   FILE * f = fopen(C_STRING(context, filename), C_STRING(context, mode));
-  send(self, "__set__", ATOM("filename"), filename);
-  send(self, "__set__", ATOM("mode"), mode);
+  send(self, "__set__", L_ATOM(filename), filename);
+  send(self, "__set__", L_ATOM(mode), mode);
   if (NULL == f) {
     RAISE(send(CLASS(FileNotFoundError), "new", filename));
   }
-  internal_set_attribute(self, ATOM("FILE"), f);
+  internal_set_attribute(self, L_ATOM(FILE), f);
   return NIL;
 }
 
@@ -66,7 +67,7 @@ iridium_method(File, write) {
   // The string to write
   char * str = C_STRING(context, local("str"));
   size_t len = strlen(str);
-  FILE * f = internal_get_attribute(local("self"), ATOM("FILE"), FILE *);
+  FILE * f = internal_get_attribute(local("self"), L_ATOM(FILE), FILE *);
   size_t written = fwrite(str, sizeof str[0], len, f);
   if (written != len) {
     RAISE(send(CLASS(IOError), "new", IR_STRING("File not in write mode")));
@@ -80,7 +81,7 @@ iridium_method(File, close) {
   FILE * f = get_file(context, self);
   fclose(f);
   // Now that the file has been closed, set it to NULL
-  internal_set_attribute(self, ATOM("FILE"), NULL);
+  internal_set_attribute(self, L_ATOM(FILE), NULL);
   return NIL;
 }
 
@@ -130,12 +131,12 @@ void IR_init_File(struct IridiumContext * context)
   CLASS(FileNotFoundError) = send(CLASS(Class), "new", IR_STRING("FileNotFoundError"), CLASS(Exception));
   CLASS(IOError) = send(CLASS(Class), "new", IR_STRING("IOError"), CLASS(Exception));
 
-  DEF_METHOD(CLASS(File), "initialize", ARGLIST(argument_new(ATOM("filename"), NULL, 0), argument_new(ATOM("mode"), IR_STRING("r"), 0)), iridium_method_name(File, initialize));
+  DEF_METHOD(CLASS(File), "initialize", ARGLIST(argument_new(L_ATOM(filename), NULL, 0), argument_new(L_ATOM(mode), IR_STRING("r"), 0)), iridium_method_name(File, initialize));
   DEF_METHOD(CLASS(File), "read", ARGLIST(), iridium_method_name(File, read));
-  DEF_METHOD(CLASS(File), "write", ARGLIST(argument_new(ATOM("str"), NULL, 0)), iridium_method_name(File, write));
+  DEF_METHOD(CLASS(File), "write", ARGLIST(argument_new(L_ATOM(str), NULL, 0)), iridium_method_name(File, write));
   DEF_METHOD(CLASS(File), "close", ARGLIST(), iridium_method_name(File, close));
-  DEF_FUNCTION(CLASS(File), "read", ARGLIST(argument_new(ATOM("filename"), NULL, 0)), iridium_classmethod_name(File, read));
-  DEF_METHOD(CLASS(File), "each_line", ARGLIST(argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(File, each_line));
+  DEF_FUNCTION(CLASS(File), "read", ARGLIST(argument_new(L_ATOM(filename), NULL, 0)), iridium_classmethod_name(File, read));
+  DEF_METHOD(CLASS(File), "each_line", ARGLIST(argument_new(L_ATOM(fn), NULL, 0)), iridium_method_name(File, each_line));
 
-  define_constant(ATOM("File"), CLASS(File));
+  define_constant(L_ATOM(File), CLASS(File));
 }

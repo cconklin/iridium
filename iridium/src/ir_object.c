@@ -6,6 +6,7 @@
 #include <stdarg.h>
 
 #include "ir_object.h"
+#include "atoms.h"
 
 pthread_rwlock_t LOCK = PTHREAD_RWLOCK_INITIALIZER;
 
@@ -53,9 +54,6 @@ struct IridiumArgument * argument_new(object name, object default_value, char sp
   arg -> splat = splat;
   return arg;
 }
-
-// :self atom
-object _SELF_ATOM = NULL;
 
 // Function to determine object inheritance
 
@@ -189,8 +187,8 @@ object set_attribute(object receiver, void * attribute, unsigned char access, ob
   dict_set(receiver -> attributes, attribute, attr);
   // Owner info for functions
   if (value -> class == CLASS(Function)) {
-    internal_set_attribute(value, ATOM("owner"), receiver);
-    internal_set_integral(value, ATOM("owner_type"), 0); // 0: attribute of object
+    internal_set_attribute(value, L_ATOM(owner), receiver);
+    internal_set_integral(value, L_ATOM(owner_type), 0); // 0: attribute of object
   }
   return value;
 }
@@ -237,8 +235,8 @@ object set_instance_attribute(object receiver, void * attribute, unsigned char a
   dict_set(receiver -> instance_attributes, attribute, attr);
   // Owner info for functions
   if (value -> class == CLASS(Function)) {
-    internal_set_attribute(value, ATOM("owner"), receiver);
-    internal_set_integral(value, ATOM("owner_type"), 1); // 0: instance attribute of object
+    internal_set_attribute(value, L_ATOM(owner), receiver);
+    internal_set_integral(value, L_ATOM(owner_type), 1); // 0: instance attribute of object
   }
   return value;
 }
@@ -249,7 +247,7 @@ object _local(struct IridiumContext * context, struct dict * locals, object atm)
     object attribute = NULL;
     struct dict * vars = NULL;
     if (value == NULL) {
-        value = dict_get(locals, ATOM("self"));
+        value = dict_get(locals, L_ATOM(self));
         if (value == NULL) {
             // NameError
             RAISE(send(CLASS(NameError), "new", IR_STRING("self")));
@@ -261,10 +259,10 @@ object _local(struct IridiumContext * context, struct dict * locals, object atm)
             }
             // If the attribute is found, is it a function?
             if (isA(attribute, CLASS(Function))) {
-              vars = internal_get_attribute(attribute, ATOM("bindings"), struct dict *);
+              vars = internal_get_attribute(attribute, L_ATOM(bindings), struct dict *);
               // The function better have some bindings, even if it is an empty dictionary.
               assert(vars);
-              attribute = function_bind(attribute, dict_with(vars, ATOM("self"), value));
+              attribute = function_bind(attribute, dict_with(vars, L_ATOM(self), value));
             }
             value = attribute;
         }
@@ -290,19 +288,19 @@ function_bind(object func, struct dict * locals) {
   // Pointer to C function
   object (* c_func)(struct IridiumContext * context, struct dict *) = NULL;
   // Args
-  args = internal_get_attribute(func, ATOM("args"), struct list *);
+  args = internal_get_attribute(func, L_ATOM(args), struct list *);
   // name of function
-  name = get_attribute(func, ATOM("name"), PUBLIC);
+  name = get_attribute(func, L_ATOM(name), PUBLIC);
 
   // Set the function
-  c_func = internal_get_attribute(func, ATOM("function"), __typeof__(c_func));
+  c_func = internal_get_attribute(func, L_ATOM(function), __typeof__(c_func));
   assert(c_func);
 
   // Return the new bound function
   object new_func = FUNCTION(name, args, locals, c_func);
   // retain ownership info
-  internal_set_attribute(new_func, ATOM("owner"), internal_get_attribute(func, ATOM("owner"), object));
-  internal_set_integral(new_func, ATOM("owner_type"), internal_get_integral(func, ATOM("owner_type"), int));
+  internal_set_attribute(new_func, L_ATOM(owner), internal_get_attribute(func, L_ATOM(owner), object));
+  internal_set_integral(new_func, L_ATOM(owner_type), internal_get_integral(func, L_ATOM(owner_type), int));
   return new_func;
 }
 
@@ -344,7 +342,7 @@ object construct(object class) {
 // Invoke function with handle `name` by getting the function from the object `obj`, and bind it to `self` before passing it to the C Function for Iridium Function calls.
 object invoke(struct IridiumContext * context, object obj, char * name, struct array * args) {
   // Find the callable object
-  object callable = iridium_method_name(Object, __get__)(context, dict_with(bind_self(obj), ATOM("name"), ATOM(name)));
+  object callable = iridium_method_name(Object, __get__)(context, dict_with(bind_self(obj), L_ATOM(name), ATOM(name)));
   return calls(context, callable, args);
 }
 
@@ -364,10 +362,10 @@ object _send(struct IridiumContext * context, object obj, char * name, ...) {
 // Used by the translator
 
 object calls(struct IridiumContext * context, object callable, struct array * args) {
-  object get_function = get_attribute(callable, ATOM("__get__"), PUBLIC);
+  object get_function = get_attribute(callable, L_ATOM(__get__), PUBLIC);
   object call_function = NULL;
   struct dict * bindings = NULL;
-  object ( * func )(struct IridiumContext *, struct dict *) = internal_get_attribute(get_function, ATOM("function"), object (*)(struct IridiumContext *, struct dict *));
+  object ( * func )(struct IridiumContext *, struct dict *) = internal_get_attribute(get_function, L_ATOM(function), object (*)(struct IridiumContext *, struct dict *));
 
   // get_function MUST BE an Iridium Function => func != NULL
   if (func == NULL) {
@@ -375,7 +373,7 @@ object calls(struct IridiumContext * context, object callable, struct array * ar
   }
 
   // invoke the get_function to get the call_function
-  call_function = func(context, dict_with(bind_self(callable), ATOM("name"), ATOM("__call__")));
+  call_function = func(context, dict_with(bind_self(callable), L_ATOM(name), L_ATOM(__call__)));
 
   if (!isA(call_function, CLASS(Function))) {
     RAISE(send(CLASS(TypeError), "new", IR_STRING("__call__ must be a Function")));
@@ -383,19 +381,19 @@ object calls(struct IridiumContext * context, object callable, struct array * ar
 
   // call_function IS an Iridium Function
   bindings = process_args(context, call_function, args);
-  func = internal_get_attribute(call_function, ATOM("function"), object (*)(struct IridiumContext *, struct dict *));
+  func = internal_get_attribute(call_function, L_ATOM(function), object (*)(struct IridiumContext *, struct dict *));
   assert(func);
   return func(context, bindings);
 }
 
 // Converts iridium strings to C strings
 char * str(object string) {
-  return internal_get_attribute(string, ATOM("string"), char *);
+  return internal_get_attribute(string, L_ATOM(string), char *);
 }
 
 // Destructures arrays into struct array *
 struct array * destructure(struct IridiumContext * context, struct array * args, object argument_array) {
-  struct array * array_args = internal_get_attribute(argument_array, ATOM("array"), struct array *);
+  struct array * array_args = internal_get_attribute(argument_array, L_ATOM(array), struct array *);
   object reason = NULL;
   if (array_args == NULL) {
     // Not actually an array...
@@ -411,9 +409,9 @@ struct array * destructure(struct IridiumContext * context, struct array * args,
 // Create a binding dictionary by processing function arguments (retrieve closed values and arguments)
 struct dict * process_args(struct IridiumContext * context, object function, struct array * _args) {
   struct array * args = array_copy(_args);
-  struct dict * closed_values = internal_get_attribute(function, ATOM("bindings"), struct dict *);
+  struct dict * closed_values = internal_get_attribute(function, L_ATOM(bindings), struct dict *);
   struct dict * argument_values = dict_new(ObjectHashsize);
-  struct list * argument_list = internal_get_attribute(function, ATOM("args"), struct list *);
+  struct list * argument_list = internal_get_attribute(function, L_ATOM(args), struct list *);
   struct list * iter_arg_list = argument_list;
   struct array * partial_args = NULL;
   int splat = 0;
@@ -529,9 +527,9 @@ iridium_classmethod(Class, new) {
   // Create the class
   object obj = construct(self);
   // Set the superclass (needed for invoke to work)
-  set_attribute(obj, ATOM("superclass"), PUBLIC, superclass);
+  set_attribute(obj, L_ATOM(superclass), PUBLIC, superclass);
   // Set the name
-  set_attribute(obj, ATOM("name"), PUBLIC, name);
+  set_attribute(obj, L_ATOM(name), PUBLIC, name);
   // Call initialize, merging the superclass with any other args
   invoke(context, obj, "initialize", destructure(context, array_push(array_push(array_new(), name), superclass), args));
   // Return the created object
@@ -569,7 +567,7 @@ iridium_method(Class, new) {
 iridium_method(Class, inspect) {
   // Receiver
   object self = local("self");
-  object str = get_attribute(self, ATOM("name"), PUBLIC);
+  object str = get_attribute(self, L_ATOM(name), PUBLIC);
   return str;
 }
 
@@ -588,7 +586,7 @@ iridium_method(Object, class) {
 // Output: nil
 iridium_method(Object, puts) {
   int idx = 0;
-  struct array * obj_ary = internal_get_attribute(local("args"), ATOM("array"), struct array *);
+  struct array * obj_ary = internal_get_attribute(local("args"), L_ATOM(array), struct array *);
   object * objs = (object *) obj_ary -> elements;
   int end = obj_ary -> length;
   for (idx = 0; idx < end-1; idx ++) {
@@ -607,7 +605,7 @@ iridium_method(Object, puts) {
 // Output: nil
 iridium_method(Object, write) {
   int idx = 0;
-  struct array * obj_ary = internal_get_attribute(local("args"), ATOM("array"), struct array *);
+  struct array * obj_ary = internal_get_attribute(local("args"), L_ATOM(array), struct array *);
   object * objs = (object *) obj_ary -> elements;
   int end = obj_ary -> length;
   for (idx = 0; idx < end-1; idx ++) {
@@ -666,7 +664,7 @@ iridium_method(Object, __neq__) {
 iridium_method(Object, inspect) {
   // Receiver
   object self = local("self");
-  object class_name = get_attribute(self->class, ATOM("name"), PUBLIC);
+  object class_name = get_attribute(self->class, L_ATOM(name), PUBLIC);
   char buffer[1000];
   char * c_str = NULL;
   sprintf(buffer, "#<%s:%p>", C_STRING(context, class_name), self);
@@ -724,10 +722,10 @@ iridium_method(Object, __get__) {
 
   // If the attribute is found, is it a function?
   if (isA(attribute, CLASS(Function))) {
-    vars = internal_get_attribute(attribute, ATOM("bindings"), struct dict *);
+    vars = internal_get_attribute(attribute, L_ATOM(bindings), struct dict *);
     // The function better have some bindings, even if it is an empty dictionary.
     assert(vars);
-    attribute = function_bind(attribute, dict_with(vars, ATOM("self"), self));
+    attribute = function_bind(attribute, dict_with(vars, L_ATOM(self), self));
   }
 
   return attribute;
@@ -804,7 +802,7 @@ iridium_classmethod(Module, new) {
   // Create the module
   object obj = construct(self);
   // Set the name
-  set_attribute(obj, ATOM("name"), PUBLIC, name);
+  set_attribute(obj, L_ATOM(name), PUBLIC, name);
   // Call initialize, merging the superclass with any other args
   invoke(context, obj, "initialize", destructure(context, array_push(array_new(), name), args));
   // Return the created object
@@ -859,7 +857,7 @@ iridium_method(Function, __call__) {
   object result = NULL;
 
   // Get the corresponding C function
-  object ( * func )(struct IridiumContext *, struct dict *) = internal_get_attribute(self, ATOM("function"), object (*)(struct IridiumContext *, struct dict *));
+  object ( * func )(struct IridiumContext *, struct dict *) = internal_get_attribute(self, L_ATOM(function), object (*)(struct IridiumContext *, struct dict *));
   assert(func);
 
   // Set the locals to that of the function (retrieve closed values and arguments)
@@ -885,12 +883,12 @@ iridium_method(Function, __call__) {
 }
 
 char * function_name(struct IridiumContext * context, object self) {
-  object name = get_attribute(self, ATOM("name"), PUBLIC);
-  char * given_name = internal_get_attribute(name, ATOM("string"), char *);
+  object name = get_attribute(self, L_ATOM(name), PUBLIC);
+  char * given_name = internal_get_attribute(name, L_ATOM(string), char *);
   char buffer[100];
-  object owner = internal_get_attribute(self, ATOM("owner"), object);
+  object owner = internal_get_attribute(self, L_ATOM(owner), object);
   // 1: instance attribute of owner, 0: attribute of owner
-  int owner_type = internal_get_integral(self, ATOM("owner_type"), int);
+  int owner_type = internal_get_integral(self, L_ATOM(owner_type), int);
   if (owner == self) {
     // Avoid to_s'ing ourself forever
     sprintf(buffer, "self.%s", given_name);
@@ -913,10 +911,10 @@ char * function_name(struct IridiumContext * context, object self) {
 //  Convert a C function to an Iridium Function
 object FUNCTION(object name, struct list * args, struct dict * bindings, object (* func)(struct IridiumContext *, struct dict *)) {
   object self = construct(CLASS(Function));
-  internal_set_attribute(self, ATOM("args"), args);
-  set_attribute(self, ATOM("name"), PUBLIC, name);
-  internal_set_attribute(self, ATOM("bindings"), dict_copy(bindings));
-  internal_set_attribute(self, ATOM("function"), func);
+  internal_set_attribute(self, L_ATOM(args), args);
+  set_attribute(self, L_ATOM(name), PUBLIC, name);
+  internal_set_attribute(self, L_ATOM(bindings), dict_copy(bindings));
+  internal_set_attribute(self, L_ATOM(function), func);
   return self;
 }
 
@@ -997,25 +995,8 @@ object create_str_atom() {
   return str_atom;
 }
 
-// Create the `:self` atom
-object create_self_atom() {
-  // Allocate memory for the object
-  object self_atom = construct(CLASS(Atom));
-  // Set atom name
-  internal_set_attribute(self_atom, ATOM("string"), "self");
-
-  // Add it to the Atom table
-  add_atom("self", self_atom);
-
-  // Set _SELF_ATOM
-  _SELF_ATOM = self_atom;
-
-  // Return the atom
-  return self_atom;
-}
-
 // Create or fetch atoms
-object _ATOM(char * name) {
+object ATOM(char * name) {
 
 
   // Table of atoms
@@ -1029,8 +1010,6 @@ object _ATOM(char * name) {
 
   pthread_rwlock_unlock(&LOCK);
 
-  object string_atom = !strcmp(name, "string") ? atom : ATOM("string");
-
   if (!atom) {
     // The atom does not exist
     // Create the new object
@@ -1042,7 +1021,7 @@ object _ATOM(char * name) {
     add_atom(name, atom);
 
     // Set atom name
-    internal_set_attribute(atom, string_atom, name);
+    internal_set_attribute(atom, L_ATOM(string), name);
 
     pthread_rwlock_unlock(&LOCK);
   }
@@ -1053,7 +1032,7 @@ object _ATOM(char * name) {
 iridium_method(Atom, inspect) {
   object self = local("self");
   char buffer[100];
-  sprintf(buffer, ":%s", internal_get_attribute(self, ATOM("string"), char *));
+  sprintf(buffer, ":%s", internal_get_attribute(self, L_ATOM(string), char *));
   char * str = GC_MALLOC((strlen(buffer + 1) * sizeof(char)));
   assert(str);
   strcpy(str, buffer);
@@ -1062,7 +1041,7 @@ iridium_method(Atom, inspect) {
 
 iridium_method(Atom, to_s) {
   object self = local("self");
-  char * buffer = internal_get_attribute(self, ATOM("string"), char *);
+  char * buffer = internal_get_attribute(self, L_ATOM(string), char *);
   char * str = GC_MALLOC((strlen(buffer + 1) * sizeof(char)));
   assert(str);
   strcpy(str, buffer);
@@ -1073,7 +1052,7 @@ iridium_method(Atom, to_s) {
 
 object ARRAY(struct array * values) {
   object array = construct(CLASS(Array));
-  internal_set_attribute(array, ATOM("array"), values);
+  internal_set_attribute(array, L_ATOM(array), values);
   return array;
 }
 
@@ -1092,7 +1071,7 @@ iridium_method(Array, reduce) {
   object fn = local("fn");
   object element = NULL;
   // Get a duplicate of the internal array
-  struct array * ary = array_copy(internal_get_attribute(self, ATOM("array"), struct array *));
+  struct array * ary = array_copy(internal_get_attribute(self, L_ATOM(array), struct array *));
   struct array * args = NULL;
   while (ary -> length) {
     element = array_shift(ary);
@@ -1107,7 +1086,7 @@ iridium_method(Array, reduce) {
 iridium_method(Array, __get_index__) {
   object self = local("self");
   object index = local("index"); // Iridium Integer
-  struct array * ary = internal_get_attribute(self, ATOM("array"), struct array *);
+  struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
   object result = array_get(ary, INT(index));
   if (result) {
     return result;
@@ -1120,14 +1099,14 @@ iridium_method(Array, __set_index__) {
   object self = local("self");
   object index = local("index"); // Iridium Integer
   object value = local("value");
-  struct array * ary = internal_get_attribute(self, ATOM("array"), struct array *);
+  struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
   array_set(ary, INT(index), value);
   return value;
 }
 
 iridium_method(Array, inspect) {
   object self = local("self");
-  struct array * ary = internal_get_attribute(self, ATOM("array"), struct array *);
+  struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
   int idx, sidx;
   unsigned int strsize = 0;
   unsigned ary_len = (ary->length - ary->start);
@@ -1164,7 +1143,7 @@ iridium_method(Array, inspect) {
 iridium_method(Array, push) {
   object self = local("self");
   object value = local("value");
-  struct array * ary = internal_get_attribute(self, ATOM("array"), struct array *);
+  struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
   array_push(ary, value);
   return self;
 }
@@ -1172,9 +1151,9 @@ iridium_method(Array, push) {
 iridium_method(Array, unshift) {
   object self = local("self");
   object value = local("value");
-  struct array * ary = internal_get_attribute(self, ATOM("array"), struct array *);
+  struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
   ary = array_unshift(ary, value);
-  internal_set_attribute(self, ATOM("array"), ary);
+  internal_set_attribute(self, L_ATOM(array), ary);
   return self;
 }
 
@@ -1193,13 +1172,13 @@ iridium_classmethod(false, inspect) {
 iridium_method(AttributeError, initialize) {
     object self = local("self");
     object message = local("message");
-    send(self, "__set__", ATOM("message"), message);
+    send(self, "__set__", L_ATOM(message), message);
     return NIL;
 }
 
 iridium_method(AttributeError, reason) {
     object self = local("self");
-    object message = send(self, "__get__", ATOM("message"));
+    object message = send(self, "__get__", L_ATOM(message));
     return message;
 }
 
@@ -1296,12 +1275,12 @@ iridium_method(Integer, __neq__) {
 object FIXNUM(int val) {
   object fixnum = construct(CLASS(Integer));
 
-  internal_set_integral(fixnum, ATOM("value"), val);
+  internal_set_integral(fixnum, L_ATOM(value), val);
   return fixnum;
 }
 
 int INT(object fixnum) {
-  return internal_get_integral(fixnum, ATOM("value"), int);
+  return internal_get_integral(fixnum, L_ATOM(value), int);
 }
 
 iridium_method(Integer, inspect) {
@@ -1318,7 +1297,7 @@ iridium_method(Integer, inspect) {
 
 object IR_STRING(char * c_str) {
   object str = construct(CLASS(String));
-  internal_set_attribute(str, ATOM("str"), c_str);
+  internal_set_attribute(str, L_ATOM(str), c_str);
   return str;
 }
 
@@ -1329,7 +1308,7 @@ char * C_STRING(struct IridiumContext * context, object str) {
     reason = send(reason, "__add__", IR_STRING(" is not a string object"));
     RAISE(send(CLASS(TypeError), "new", reason));
   }
-  return internal_get_attribute(str, ATOM("str"), char *);
+  return internal_get_attribute(str, L_ATOM(str), char *);
 }
 
 // String#to_s
@@ -1418,7 +1397,7 @@ void handleException(struct IridiumContext * context, object exception) {
   // Indicate that an exception is being handled
   context->_rescuing = 1;
   // Set function stacktrace (different from the handler stack) into exception
-  internal_set_attribute(exception, ATOM("stacktrace"), stack_copy(context->stacktrace));
+  internal_set_attribute(exception, L_ATOM(stacktrace), stack_copy(context->stacktrace));
   // Should have at least one handler
   while(! stack_empty(frames)) {
     frame = (exception_frame) stack_top(frames);
@@ -1545,11 +1524,11 @@ object lookup_constant(struct IridiumContext * context, object name) {
 }
 
 void display_stacktrace(struct IridiumContext * context, object exception) {
-  struct stack * trace = internal_get_attribute(exception, ATOM("stacktrace"), struct stack *);
+  struct stack * trace = internal_get_attribute(exception, L_ATOM(stacktrace), struct stack *);
   struct stack * rtrace = stack_new();
   // Something is wrong in the commented out versions that causes the corruption of the trace
-  char * classname = C_STRING(context, ((struct IridiumAttribute*)dict_get(exception->class->attributes, ATOM("name")))->value); // C_STRING(send(exception->class, "to_s"));
-  char * reason = C_STRING(context, ((struct IridiumAttribute*)dict_get(exception->attributes, ATOM("message")))->value); // C_STRING(send(send(exception, "reason"), "to_s"));
+  char * classname = C_STRING(context, ((struct IridiumAttribute*)dict_get(exception->class->attributes, L_ATOM(name)))->value); // C_STRING(send(exception->class, "to_s"));
+  char * reason = C_STRING(context, ((struct IridiumAttribute*)dict_get(exception->attributes, L_ATOM(message)))->value); // C_STRING(send(send(exception, "reason"), "to_s"));
   if (trace) {
     while(!stack_empty(trace)) {
       stack_push(rtrace, stack_pop(trace));
@@ -1585,128 +1564,128 @@ void IR_init_Object(struct IridiumContext * context) {
 
   // Create Atom
   CLASS(Atom) = construct(CLASS(Class));
-  create_str_atom();
+  IR_init_Atom();
 
   // Create object
   CLASS(Object) = construct(CLASS(Class));
-  set_attribute(CLASS(Atom), ATOM("superclass"), PUBLIC, CLASS(Object));
-  set_attribute(CLASS(Module), ATOM("superclass"), PUBLIC, CLASS(Object));
-  set_attribute(CLASS(Class), ATOM("superclass"), PUBLIC, CLASS(Module));
-  set_attribute(CLASS(Object), ATOM("superclass"), PUBLIC, CLASS(Object));
+  set_attribute(CLASS(Atom), L_ATOM(superclass), PUBLIC, CLASS(Object));
+  set_attribute(CLASS(Module), L_ATOM(superclass), PUBLIC, CLASS(Object));
+  set_attribute(CLASS(Class), L_ATOM(superclass), PUBLIC, CLASS(Module));
+  set_attribute(CLASS(Object), L_ATOM(superclass), PUBLIC, CLASS(Object));
 
   // Create Function
   CLASS(Function) = construct(CLASS(Class));
-  set_attribute(CLASS(Function), ATOM("superclass"), PUBLIC, CLASS(Object));
+  set_attribute(CLASS(Function), L_ATOM(superclass), PUBLIC, CLASS(Object));
 
-  args = argument_new(ATOM("args"), NULL, 1);
-  call = FUNCTION(ATOM("__call__"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Function, __call__));
+  args = argument_new(L_ATOM(args), NULL, 1);
+  call = FUNCTION(L_ATOM(__call__), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Function, __call__));
 
-  name = argument_new(ATOM("name"), NULL, 0);
-  get = FUNCTION(ATOM("__get__"), list_new(name), dict_new(ObjectHashsize), iridium_method_name(Object, __get__));
+  name = argument_new(L_ATOM(name), NULL, 0);
+  get = FUNCTION(L_ATOM(__get__), list_new(name), dict_new(ObjectHashsize), iridium_method_name(Object, __get__));
 
-  set_instance_attribute(CLASS(Function), ATOM("__call__"), PUBLIC, call);
-  set_instance_attribute(CLASS(Object), ATOM("__get__"), PUBLIC, get);
+  set_instance_attribute(CLASS(Function), L_ATOM(__call__), PUBLIC, call);
+  set_instance_attribute(CLASS(Object), L_ATOM(__get__), PUBLIC, get);
 
   CLASS(String) = construct(CLASS(Class));
-  set_attribute(CLASS(String), ATOM("superclass"), PUBLIC, CLASS(Object));
+  set_attribute(CLASS(String), L_ATOM(superclass), PUBLIC, CLASS(Object));
 
   // Bootstrap Class
-  class_superclass = argument_new(ATOM("superclass"), CLASS(Object), 0);
-  class_name = argument_new(ATOM("name"), NULL, 0);
-  class_new = FUNCTION(ATOM("new"), list_cons(list_cons(list_new(args), class_superclass), class_name), dict_new(ObjectHashsize), iridium_classmethod_name(Class, new));
-  module_new = FUNCTION(ATOM("new"), list_cons(list_new(args), class_name), dict_new(ObjectHashsize), iridium_classmethod_name(Module, new));
-  set_attribute(CLASS(Class), ATOM("new"), PUBLIC, class_new);
-  set_attribute(CLASS(Module), ATOM("new"), PUBLIC, module_new);
-  class_inst_new = FUNCTION(ATOM("new"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Class, new));
-  set_instance_attribute(CLASS(Class), ATOM("new"), PUBLIC, class_inst_new);
-  class_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Class, inspect));
-  set_instance_attribute(CLASS(Module), ATOM("inspect"), PUBLIC, class_inspect);
+  class_superclass = argument_new(L_ATOM(superclass), CLASS(Object), 0);
+  class_name = argument_new(L_ATOM(name), NULL, 0);
+  class_new = FUNCTION(L_ATOM(new), list_cons(list_cons(list_new(args), class_superclass), class_name), dict_new(ObjectHashsize), iridium_classmethod_name(Class, new));
+  module_new = FUNCTION(L_ATOM(new), list_cons(list_new(args), class_name), dict_new(ObjectHashsize), iridium_classmethod_name(Module, new));
+  set_attribute(CLASS(Class), L_ATOM(new), PUBLIC, class_new);
+  set_attribute(CLASS(Module), L_ATOM(new), PUBLIC, module_new);
+  class_inst_new = FUNCTION(L_ATOM(new), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Class, new));
+  set_instance_attribute(CLASS(Class), L_ATOM(new), PUBLIC, class_inst_new);
+  class_inspect = FUNCTION(L_ATOM(inspect), NULL, dict_new(ObjectHashsize), iridium_method_name(Class, inspect));
+  set_instance_attribute(CLASS(Module), L_ATOM(inspect), PUBLIC, class_inspect);
   // Bootstrap Object
-  obj_puts = FUNCTION(ATOM("puts"), ARGLIST(argument_new(ATOM("args"), NULL, 1)), dict_new(ObjectHashsize), iridium_method_name(Object, puts));
-  obj_write = FUNCTION(ATOM("write"), ARGLIST(argument_new(ATOM("args"), NULL, 1)), dict_new(ObjectHashsize), iridium_method_name(Object, write));
-  set_instance_attribute(CLASS(Object), ATOM("puts"), PUBLIC, obj_puts);
-  set_instance_attribute(CLASS(Object), ATOM("write"), PUBLIC, obj_write);
-  obj_init = FUNCTION(ATOM("initialize"), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Object, initialize));
-  set_instance_attribute(CLASS(Object), ATOM("initialize"), PUBLIC, obj_init);
-  object_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Object, inspect));
-  set_instance_attribute(CLASS(Object), ATOM("inspect"), PUBLIC, object_inspect);
+  obj_puts = FUNCTION(L_ATOM(puts), ARGLIST(argument_new(L_ATOM(args), NULL, 1)), dict_new(ObjectHashsize), iridium_method_name(Object, puts));
+  obj_write = FUNCTION(L_ATOM(write), ARGLIST(argument_new(L_ATOM(args), NULL, 1)), dict_new(ObjectHashsize), iridium_method_name(Object, write));
+  set_instance_attribute(CLASS(Object), L_ATOM(puts), PUBLIC, obj_puts);
+  set_instance_attribute(CLASS(Object), L_ATOM(write), PUBLIC, obj_write);
+  obj_init = FUNCTION(L_ATOM(initialize), list_new(args), dict_new(ObjectHashsize), iridium_method_name(Object, initialize));
+  set_instance_attribute(CLASS(Object), L_ATOM(initialize), PUBLIC, obj_init);
+  object_inspect = FUNCTION(L_ATOM(inspect), NULL, dict_new(ObjectHashsize), iridium_method_name(Object, inspect));
+  set_instance_attribute(CLASS(Object), L_ATOM(inspect), PUBLIC, object_inspect);
   DEF_METHOD(CLASS(Object), "to_s", ARGLIST(), iridium_method_name(Object, to_s));
-  DEF_METHOD(CLASS(Object), "__set__", ARGLIST(name, argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Object, __set__));
-  DEF_METHOD(CLASS(Object), "raise", ARGLIST(argument_new(ATOM("exc"), NULL, 0)), iridium_method_name(Object, raise));
-  DEF_METHOD(CLASS(Object), "exit", ARGLIST(argument_new(ATOM("exitstatus"), NULL, 0)), iridium_method_name(Object, exit));
+  DEF_METHOD(CLASS(Object), "__set__", ARGLIST(name, argument_new(L_ATOM(value), NULL, 0)), iridium_method_name(Object, __set__));
+  DEF_METHOD(CLASS(Object), "raise", ARGLIST(argument_new(L_ATOM(exc), NULL, 0)), iridium_method_name(Object, raise));
+  DEF_METHOD(CLASS(Object), "exit", ARGLIST(argument_new(L_ATOM(exitstatus), NULL, 0)), iridium_method_name(Object, exit));
   DEF_METHOD(CLASS(Object), "class", ARGLIST(), iridium_method_name(Object, class));
-  DEF_METHOD(CLASS(Object), "__eq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Object, __eq__));
-  DEF_METHOD(CLASS(Object), "__neq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Object, __neq__));
+  DEF_METHOD(CLASS(Object), "__eq__", ARGLIST(argument_new(L_ATOM(other), NULL, 0)), iridium_method_name(Object, __eq__));
+  DEF_METHOD(CLASS(Object), "__neq__", ARGLIST(argument_new(L_ATOM(other), NULL, 0)), iridium_method_name(Object, __neq__));
   DEF_METHOD(CLASS(Object), "hash", ARGLIST(), iridium_method_name(Object, hash));
-  DEF_METHOD(CLASS(Object), "gets", ARGLIST(argument_new(ATOM("prompt"), IR_STRING(""), 0)), iridium_method_name(Object, gets));
-  DEF_METHOD(CLASS(Object), "has_attribute?", ARGLIST(argument_new(ATOM("attr"), NULL, 0)), iridium_method_name(Object, has_attribute));
-  DEF_METHOD(CLASS(Module), "define_method", ARGLIST(argument_new(ATOM("name"), NULL, 0), argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(Module, define_method));
+  DEF_METHOD(CLASS(Object), "gets", ARGLIST(argument_new(L_ATOM(prompt), IR_STRING(""), 0)), iridium_method_name(Object, gets));
+  DEF_METHOD(CLASS(Object), "has_attribute?", ARGLIST(argument_new(L_ATOM(attr), NULL, 0)), iridium_method_name(Object, has_attribute));
+  DEF_METHOD(CLASS(Module), "define_method", ARGLIST(argument_new(L_ATOM(name), NULL, 0), argument_new(L_ATOM(fn), NULL, 0)), iridium_method_name(Module, define_method));
 
   // Bootstrap everything
-  set_attribute(CLASS(Class), ATOM("name"), PUBLIC, IR_STRING("Class"));
-  set_attribute(CLASS(Module), ATOM("name"), PUBLIC, IR_STRING("Module"));
-  set_attribute(CLASS(Object), ATOM("name"), PUBLIC, IR_STRING("Object"));
-  set_attribute(CLASS(Atom), ATOM("name"), PUBLIC, IR_STRING("Atom"));
-  set_attribute(CLASS(Function), ATOM("name"), PUBLIC, IR_STRING("Function"));
-  set_attribute(CLASS(String), ATOM("name"), PUBLIC, IR_STRING("String"));
+  set_attribute(CLASS(Class), L_ATOM(name), PUBLIC, IR_STRING("Class"));
+  set_attribute(CLASS(Module), L_ATOM(name), PUBLIC, IR_STRING("Module"));
+  set_attribute(CLASS(Object), L_ATOM(name), PUBLIC, IR_STRING("Object"));
+  set_attribute(CLASS(Atom), L_ATOM(name), PUBLIC, IR_STRING("Atom"));
+  set_attribute(CLASS(Function), L_ATOM(name), PUBLIC, IR_STRING("Function"));
+  set_attribute(CLASS(String), L_ATOM(name), PUBLIC, IR_STRING("String"));
 
   CLASS(Array) = construct(CLASS(Class));
   CLASS(NilClass) = construct(CLASS(Class));
   CLASS(Integer) = construct(CLASS(Class));
 
-  set_attribute(CLASS(Array), ATOM("superclass"), PUBLIC, CLASS(Object));
+  set_attribute(CLASS(Array), L_ATOM(superclass), PUBLIC, CLASS(Object));
   // NilClass Inherits from itself -- that way stuff defined on object doesn't affect it.
-  set_attribute(CLASS(NilClass), ATOM("superclass"), PUBLIC, CLASS(NilClass));
-  set_instance_attribute(CLASS(NilClass), ATOM("__get__"), PUBLIC, get);
-  set_attribute(CLASS(Integer), ATOM("superclass"), PUBLIC, CLASS(Object));
-  set_attribute(CLASS(Array), ATOM("name"), PUBLIC, IR_STRING("Array"));
-  set_attribute(CLASS(NilClass), ATOM("name"), PUBLIC, IR_STRING("NilClass"));
-  set_attribute(CLASS(Integer), ATOM("name"), PUBLIC, IR_STRING("Integer"));
+  set_attribute(CLASS(NilClass), L_ATOM(superclass), PUBLIC, CLASS(NilClass));
+  set_instance_attribute(CLASS(NilClass), L_ATOM(__get__), PUBLIC, get);
+  set_attribute(CLASS(Integer), L_ATOM(superclass), PUBLIC, CLASS(Object));
+  set_attribute(CLASS(Array), L_ATOM(name), PUBLIC, IR_STRING("Array"));
+  set_attribute(CLASS(NilClass), L_ATOM(name), PUBLIC, IR_STRING("NilClass"));
+  set_attribute(CLASS(Integer), L_ATOM(name), PUBLIC, IR_STRING("Integer"));
 
   // Init Integer
-  other = argument_new(ATOM("other"), NULL, 0);
-  fix_plus = FUNCTION(ATOM("__add__"), list_new(other), dict_new(ObjectHashsize), iridium_method_name(Integer, __add__));
-  set_instance_attribute(CLASS(Integer), ATOM("__add__"), PUBLIC, fix_plus);
-  fix_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Integer, inspect));
-  set_instance_attribute(CLASS(Integer), ATOM("inspect"), PUBLIC, fix_inspect);
-  DEF_METHOD(CLASS(Integer), "__sub__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __sub__));
-  DEF_METHOD(CLASS(Integer), "__eq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __eq__));
-  DEF_METHOD(CLASS(Integer), "__neq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __neq__));
-  DEF_METHOD(CLASS(Integer), "__lt__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __lt__));
-  DEF_METHOD(CLASS(Integer), "__gt__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __gt__));
-  DEF_METHOD(CLASS(Integer), "__leq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __leq__));
-  DEF_METHOD(CLASS(Integer), "__geq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Integer, __geq__));
+  other = argument_new(L_ATOM(other), NULL, 0);
+  fix_plus = FUNCTION(L_ATOM(__add__), list_new(other), dict_new(ObjectHashsize), iridium_method_name(Integer, __add__));
+  set_instance_attribute(CLASS(Integer), L_ATOM(__add__), PUBLIC, fix_plus);
+  fix_inspect = FUNCTION(L_ATOM(inspect), NULL, dict_new(ObjectHashsize), iridium_method_name(Integer, inspect));
+  set_instance_attribute(CLASS(Integer), L_ATOM(inspect), PUBLIC, fix_inspect);
+  DEF_METHOD(CLASS(Integer), "__sub__", ARGLIST(argument_new(L_ATOM(other), NULL, 0)), iridium_method_name(Integer, __sub__));
+  DEF_METHOD(CLASS(Integer), "__eq__", ARGLIST(argument_new(L_ATOM(other), NULL, 0)), iridium_method_name(Integer, __eq__));
+  DEF_METHOD(CLASS(Integer), "__neq__", ARGLIST(argument_new(L_ATOM(other), NULL, 0)), iridium_method_name(Integer, __neq__));
+  DEF_METHOD(CLASS(Integer), "__lt__", ARGLIST(argument_new(L_ATOM(other), NULL, 0)), iridium_method_name(Integer, __lt__));
+  DEF_METHOD(CLASS(Integer), "__gt__", ARGLIST(argument_new(L_ATOM(other), NULL, 0)), iridium_method_name(Integer, __gt__));
+  DEF_METHOD(CLASS(Integer), "__leq__", ARGLIST(argument_new(L_ATOM(other), NULL, 0)), iridium_method_name(Integer, __leq__));
+  DEF_METHOD(CLASS(Integer), "__geq__", ARGLIST(argument_new(L_ATOM(other), NULL, 0)), iridium_method_name(Integer, __geq__));
   DEF_METHOD(CLASS(Integer), "hash", ARGLIST(), iridium_method_name(Integer, hash));
 
   // Init nil
-  nil_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(NilClass, inspect));
-  set_instance_attribute(CLASS(NilClass), ATOM("inspect"), PUBLIC, nil_inspect);
+  nil_inspect = FUNCTION(L_ATOM(inspect), NULL, dict_new(ObjectHashsize), iridium_method_name(NilClass, inspect));
+  set_instance_attribute(CLASS(NilClass), L_ATOM(inspect), PUBLIC, nil_inspect);
   DEF_METHOD(CLASS(NilClass), "to_s", ARGLIST(), iridium_method_name(NilClass, inspect));
-  DEF_METHOD(CLASS(NilClass), "__eq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Object, __eq__));
-  DEF_METHOD(CLASS(NilClass), "__neq__", ARGLIST(argument_new(ATOM("other"), NULL, 0)), iridium_method_name(Object, __neq__));
+  DEF_METHOD(CLASS(NilClass), "__eq__", ARGLIST(argument_new(L_ATOM(other), NULL, 0)), iridium_method_name(Object, __eq__));
+  DEF_METHOD(CLASS(NilClass), "__neq__", ARGLIST(argument_new(L_ATOM(other), NULL, 0)), iridium_method_name(Object, __neq__));
 
   // Init Atom
-  atom_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Atom, inspect));
-  set_instance_attribute(CLASS(Atom), ATOM("inspect"), PUBLIC, atom_inspect);
+  atom_inspect = FUNCTION(L_ATOM(inspect), NULL, dict_new(ObjectHashsize), iridium_method_name(Atom, inspect));
+  set_instance_attribute(CLASS(Atom), L_ATOM(inspect), PUBLIC, atom_inspect);
   DEF_METHOD(CLASS(Atom), "to_s", ARGLIST(), iridium_method_name(Atom, to_s));
 
   // Init Function
-  func_inspect = FUNCTION(ATOM("inspect"), NULL, dict_new(ObjectHashsize), iridium_method_name(Function, inspect));
-  set_instance_attribute(CLASS(Function), ATOM("inspect"), PUBLIC, func_inspect);
+  func_inspect = FUNCTION(L_ATOM(inspect), NULL, dict_new(ObjectHashsize), iridium_method_name(Function, inspect));
+  set_instance_attribute(CLASS(Function), L_ATOM(inspect), PUBLIC, func_inspect);
 
   // Init String
-  str_inspect = FUNCTION(ATOM("inspect"), ARGLIST(), dict_new(ObjectHashsize), iridium_method_name(String, inspect));
-  set_instance_attribute(CLASS(String), ATOM("inspect"), PUBLIC, str_inspect);
+  str_inspect = FUNCTION(L_ATOM(inspect), ARGLIST(), dict_new(ObjectHashsize), iridium_method_name(String, inspect));
+  set_instance_attribute(CLASS(String), L_ATOM(inspect), PUBLIC, str_inspect);
   DEF_METHOD(CLASS(String), "to_s", ARGLIST(), iridium_method_name(String, to_s));
 
   // Init Array
   DEF_METHOD(CLASS(Array), "inspect", ARGLIST(), iridium_method_name(Array, inspect));
-  DEF_METHOD(CLASS(Array), "reduce", ARGLIST(argument_new(ATOM("accumulator"), NULL, 0), argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(Array, reduce));
-  DEF_METHOD(CLASS(Array), "__get_index__", ARGLIST(argument_new(ATOM("index"), NULL, 0)), iridium_method_name(Array, __get_index__));
-  DEF_METHOD(CLASS(Array), "__set_index__", ARGLIST(argument_new(ATOM("index"), NULL, 0), argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Array, __set_index__));
-  DEF_FUNCTION(CLASS(Array), "new", ARGLIST(argument_new(ATOM("args"), NULL, 1)), iridium_classmethod_name(Array, new));
-  DEF_METHOD(CLASS(Array), "push", ARGLIST(argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Array, push));
-  DEF_METHOD(CLASS(Array), "unshift", ARGLIST(argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Array, unshift));
+  DEF_METHOD(CLASS(Array), "reduce", ARGLIST(argument_new(L_ATOM(accumulator), NULL, 0), argument_new(L_ATOM(fn), NULL, 0)), iridium_method_name(Array, reduce));
+  DEF_METHOD(CLASS(Array), "__get_index__", ARGLIST(argument_new(L_ATOM(index), NULL, 0)), iridium_method_name(Array, __get_index__));
+  DEF_METHOD(CLASS(Array), "__set_index__", ARGLIST(argument_new(L_ATOM(index), NULL, 0), argument_new(L_ATOM(value), NULL, 0)), iridium_method_name(Array, __set_index__));
+  DEF_FUNCTION(CLASS(Array), "new", ARGLIST(argument_new(L_ATOM(args), NULL, 1)), iridium_classmethod_name(Array, new));
+  DEF_METHOD(CLASS(Array), "push", ARGLIST(argument_new(L_ATOM(value), NULL, 0)), iridium_method_name(Array, push));
+  DEF_METHOD(CLASS(Array), "unshift", ARGLIST(argument_new(L_ATOM(value), NULL, 0)), iridium_method_name(Array, unshift));
 
   // Init Boolean
   CLASS(Boolean) = send(CLASS(Class), "new", IR_STRING("Boolean"));
@@ -1717,7 +1696,7 @@ void IR_init_Object(struct IridiumContext * context) {
 
   // TODO: Add full exception support
   CLASS(Exception) = send(CLASS(Class), "new", IR_STRING("Exception"));
-  DEF_METHOD(CLASS(Exception), "initialize", ARGLIST(argument_new(ATOM("message"), NIL, 0)), iridium_method_name(AttributeError, initialize));
+  DEF_METHOD(CLASS(Exception), "initialize", ARGLIST(argument_new(L_ATOM(message), NIL, 0)), iridium_method_name(AttributeError, initialize));
   DEF_METHOD(CLASS(Exception), "reason", ARGLIST(), iridium_method_name(AttributeError, reason));
 
   // Init AttributeError
@@ -1729,22 +1708,22 @@ void IR_init_Object(struct IridiumContext * context) {
 
   CLASS(ArgumentError) = send(CLASS(Class), "new", IR_STRING("ArgumentError"), CLASS(Exception));
 
-  DEF_METHOD(CLASS(Module), "include", ARGLIST(argument_new(ATOM("module"), NULL, 0)), iridium_method_name(Module, include));
-  no_instance_attribute(CLASS(Module), ATOM("new"));
+  DEF_METHOD(CLASS(Module), "include", ARGLIST(argument_new(L_ATOM(module), NULL, 0)), iridium_method_name(Module, include));
+  no_instance_attribute(CLASS(Module), L_ATOM(new));
 
-  define_constant(ATOM("Class"), CLASS(Class));
-  define_constant(ATOM("Object"), CLASS(Object));
-  define_constant(ATOM("Module"), CLASS(Module));
-  define_constant(ATOM("Array"), CLASS(Array));
-  define_constant(ATOM("Integer"), CLASS(Integer));
-  define_constant(ATOM("String"), CLASS(String));
-  define_constant(ATOM("Atom"), CLASS(Atom));
-  define_constant(ATOM("Function"), CLASS(Function));
-  define_constant(ATOM("Exception"), CLASS(Exception));
-  define_constant(ATOM("AttributeError"), CLASS(AttributeError));
-  define_constant(ATOM("NameError"), CLASS(NameError));
-  define_constant(ATOM("TypeError"), CLASS(TypeError));
-  define_constant(ATOM("Boolean"), CLASS(Boolean));
-  define_constant(ATOM("NilClass"), CLASS(NilClass));
-  define_constant(ATOM("ArgumentError"), CLASS(ArgumentError));
+  define_constant(L_ATOM(Class), CLASS(Class));
+  define_constant(L_ATOM(Object), CLASS(Object));
+  define_constant(L_ATOM(Module), CLASS(Module));
+  define_constant(L_ATOM(Array), CLASS(Array));
+  define_constant(L_ATOM(Integer), CLASS(Integer));
+  define_constant(L_ATOM(String), CLASS(String));
+  define_constant(L_ATOM(Atom), CLASS(Atom));
+  define_constant(L_ATOM(Function), CLASS(Function));
+  define_constant(L_ATOM(Exception), CLASS(Exception));
+  define_constant(L_ATOM(AttributeError), CLASS(AttributeError));
+  define_constant(L_ATOM(NameError), CLASS(NameError));
+  define_constant(L_ATOM(TypeError), CLASS(TypeError));
+  define_constant(L_ATOM(Boolean), CLASS(Boolean));
+  define_constant(L_ATOM(NilClass), CLASS(NilClass));
+  define_constant(L_ATOM(ArgumentError), CLASS(ArgumentError));
 }

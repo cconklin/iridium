@@ -1,4 +1,5 @@
 SRCS 	:= $(shell find src -name "*.c")
+HEADERS := $(shell find include -name "*.h")
 OBJS 	:= $(SRCS:src/%.c=objects/%.o)
 IR   	:= $(wildcard src/*.ir)
 CC   	:= gcc
@@ -7,13 +8,22 @@ LDFLAGS := $(shell pkg-config --libs bdw-gc)
 OBJECTS := objects
 # Can add -g flag to .c and .ir rules to get debug symbols
 
-all: $(OBJECTS) $(OBJECTS)/iridium.o
+ATOM_H := include/atoms.h
 
-$(OBJECTS)/iridium.o: $(OBJS) $(OBJECTS)/core.o
+all: atomgen
+	@$(MAKE) --no-print-directory iridium
+
+iridium: $(OBJECTS) $(OBJECTS)/iridium.o
+
+atomgen: $(SRCS) $(HEADERS)
+	@echo GEN $(ATOM_H)
+	../scripts/atomgen include/atoms.txt $(ATOM_H) src/atoms.c $^
+
+$(OBJECTS)/iridium.o: $(OBJS) $(OBJECTS)/core.o $(OBJECTS)/atoms.o
 	@echo LD $@
 	ld -r -o $@ $(OBJS) $(OBJECTS)/core.o
 
-$(OBJS): $(OBJECTS)/%.o: src/%.c
+$(OBJS): $(OBJECTS)/%.o: src/%.c $(ATOM_H)
 	@echo CC $@
 	$(CC) $(CFLAGS) -o $@ -c $<
 
@@ -28,5 +38,6 @@ $(OBJECTS)/core.o: $(IR)
 clean:
 	rm -rf $(OBJECTS)
 
-.SILENT: $(OBJS) $(OBJECTS)/iridium.o $(OBJECTS)/core.o
+.PHONY: all atomgen iridium
+.SILENT: $(OBJS) $(OBJECTS)/iridium.o $(OBJECTS)/core.o atomgen
 

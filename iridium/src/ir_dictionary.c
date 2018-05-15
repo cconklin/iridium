@@ -1,4 +1,5 @@
 #include "ir_dictionary.h"
+#include "atoms.h"
 
 struct IR_DICTIONARY * new_IR_DICTIONARY(void) {
   struct IR_DICTIONARY * dict = GC_MALLOC(sizeof(struct IR_DICTIONARY));
@@ -119,10 +120,10 @@ iridium_method(Lambda, dict_initialize) {
 iridium_method(Dictionary, initialize) {
   object self = local("self"); // Receiver
   object args = local("elements"); // List of tuples
-  object reduce_fn = FUNCTION(ATOM("lambda"), ARGLIST(argument_new(ATOM("element"), NULL, 0), argument_new(ATOM("acc"), NULL, 0)), dict_new(ObjectHashsize), iridium_method_name(Lambda, dict_initialize));
+  object reduce_fn = FUNCTION(L_ATOM(lambda), ARGLIST(argument_new(L_ATOM(element), NULL, 0), argument_new(L_ATOM(acc), NULL, 0)), dict_new(ObjectHashsize), iridium_method_name(Lambda, dict_initialize));
   struct IR_DICTIONARY * dict = new_IR_DICTIONARY();
   send(args, "reduce", (object) dict, reduce_fn);
-  internal_set_attribute(self, ATOM("dict"), dict);
+  internal_set_attribute(self, L_ATOM(dict), dict);
   return NIL;
 }
 
@@ -131,7 +132,7 @@ iridium_method(Dictionary, initialize) {
 // Ignores possiblity of containing itself as a value/key
 iridium_method(Dictionary, inspect) {
   object self = local("self");
-  struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
+  struct IR_DICTIONARY * dict = internal_get_attribute(self, L_ATOM(dict), struct IR_DICTIONARY *);
   object str = IR_STRING("{");
   struct IR_DICTIONARY_ENTRY * entry = dict -> first;
   while (entry) {      
@@ -150,7 +151,7 @@ iridium_method(Dictionary, inspect) {
 iridium_method(Dictionary, __get_index__) {
   object self = local("self");
   object key = local("key");
-  struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
+  struct IR_DICTIONARY * dict = internal_get_attribute(self, L_ATOM(dict), struct IR_DICTIONARY *);
   struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(context, dict, key, NULL);
   if (entry) {
     return entry -> value;
@@ -163,7 +164,7 @@ iridium_method(Dictionary, __get_index__) {
 iridium_method(Dictionary, has_key) {
   object self = local("self");
   object key = local("key");
-  struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
+  struct IR_DICTIONARY * dict = internal_get_attribute(self, L_ATOM(dict), struct IR_DICTIONARY *);
   struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(context, dict, key, NULL);
   if (entry) {
     return ir_cmp_true;
@@ -177,7 +178,7 @@ iridium_method(Dictionary, __set_index__) {
   object self = local("self");
   object key = local("key");
   object value = local("value");
-  struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
+  struct IR_DICTIONARY * dict = internal_get_attribute(self, L_ATOM(dict), struct IR_DICTIONARY *);
   insert_IR_DICTIONARY(context, dict, key, value);
   return NIL;
 }
@@ -186,7 +187,7 @@ iridium_method(Dictionary, __set_index__) {
 iridium_method(Dictionary, remove) {
   object self = local("self");
   object key = local("key");
-  struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
+  struct IR_DICTIONARY * dict = internal_get_attribute(self, L_ATOM(dict), struct IR_DICTIONARY *);
   remove_IR_DICTIONARY(context, dict, key);
   return NIL;
 }
@@ -198,7 +199,7 @@ iridium_method(Dictionary, reduce) {
   object self = local("self");
   object accumulator = local("accumulator");
   object fn = local("fn");
-  struct IR_DICTIONARY * dict = internal_get_attribute(self, ATOM("dict"), struct IR_DICTIONARY *);
+  struct IR_DICTIONARY * dict = internal_get_attribute(self, L_ATOM(dict), struct IR_DICTIONARY *);
   struct IR_DICTIONARY_ENTRY * entry = dict -> first;
   struct array * args = array_new();
   while (entry) {
@@ -216,13 +217,13 @@ iridium_method(Dictionary, reduce) {
 // Dictionary Init
 void IR_init_Dictionary(struct IridiumContext * context) {
   CLASS(Dictionary) = send(CLASS(Class), "new", IR_STRING("Dictionary"));
-  DEF_METHOD(CLASS(Dictionary), "initialize", ARGLIST(argument_new(ATOM("elements"), NULL, 0)), iridium_method_name(Dictionary, initialize));
+  DEF_METHOD(CLASS(Dictionary), "initialize", ARGLIST(argument_new(L_ATOM(elements), NULL, 0)), iridium_method_name(Dictionary, initialize));
   DEF_METHOD(CLASS(Dictionary), "inspect", ARGLIST(), iridium_method_name(Dictionary, inspect));
-  DEF_METHOD(CLASS(Dictionary), "__get_index__", ARGLIST(argument_new(ATOM("key"), NULL, 0)), iridium_method_name(Dictionary, __get_index__));
-  DEF_METHOD(CLASS(Dictionary), "__set_index__", ARGLIST(argument_new(ATOM("key"), NULL, 0), argument_new(ATOM("value"), NULL, 0)), iridium_method_name(Dictionary, __set_index__));
-  DEF_METHOD(CLASS(Dictionary), "reduce", ARGLIST(argument_new(ATOM("accumulator"), NULL, 0), argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(Dictionary, reduce));
-  DEF_METHOD(CLASS(Dictionary), "remove", ARGLIST(argument_new(ATOM("key"), NULL, 0)), iridium_method_name(Dictionary, remove));
-  DEF_METHOD(CLASS(Dictionary), "has_key?", ARGLIST(argument_new(ATOM("key"), NULL, 0)), iridium_method_name(Dictionary, has_key));
+  DEF_METHOD(CLASS(Dictionary), "__get_index__", ARGLIST(argument_new(L_ATOM(key), NULL, 0)), iridium_method_name(Dictionary, __get_index__));
+  DEF_METHOD(CLASS(Dictionary), "__set_index__", ARGLIST(argument_new(L_ATOM(key), NULL, 0), argument_new(L_ATOM(value), NULL, 0)), iridium_method_name(Dictionary, __set_index__));
+  DEF_METHOD(CLASS(Dictionary), "reduce", ARGLIST(argument_new(L_ATOM(accumulator), NULL, 0), argument_new(L_ATOM(fn), NULL, 0)), iridium_method_name(Dictionary, reduce));
+  DEF_METHOD(CLASS(Dictionary), "remove", ARGLIST(argument_new(L_ATOM(key), NULL, 0)), iridium_method_name(Dictionary, remove));
+  DEF_METHOD(CLASS(Dictionary), "has_key?", ARGLIST(argument_new(L_ATOM(key), NULL, 0)), iridium_method_name(Dictionary, has_key));
 
-  define_constant(ATOM("Dictionary"), CLASS(Dictionary));
+  define_constant(L_ATOM(Dictionary), CLASS(Dictionary));
 }

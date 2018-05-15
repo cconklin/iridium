@@ -1,4 +1,5 @@
 #include "ir_float.h"
+#include "atoms.h"
 
 /* Float.new
  *
@@ -28,7 +29,7 @@ iridium_classmethod(Float, new) {
  */
 object IR_FLOAT(double val) {
   object flt = construct(CLASS(Float));
-  internal_set_flt(flt, ATOM("value"), val);
+  internal_set_flt(flt, L_ATOM(value), val);
   return flt;
 }
 
@@ -43,7 +44,7 @@ object IR_FLOAT(double val) {
  * - C double
  */
 double C_DOUBLE(object flt) {
-  return internal_get_flt(flt, ATOM("value"), double);
+  return internal_get_flt(flt, L_ATOM(value), double);
 }
 
 /* __plus__
@@ -100,16 +101,16 @@ iridium_method(Float, hash) {
 void IR_init_Float(struct IridiumContext * context) {
   CLASS(Float) = send(CLASS(Class), "new", IR_STRING("Float"));
 
-  object new_func = FUNCTION(ATOM("new"), ARGLIST(argument_new(ATOM("val"), NULL, 0)), dict_new(ObjectHashsize), iridium_classmethod_name(Float, new));
-  set_attribute(CLASS(Float), ATOM("new"), PUBLIC, new_func);
+  object new_func = FUNCTION(L_ATOM(new), ARGLIST(argument_new(L_ATOM(val), NULL, 0)), dict_new(ObjectHashsize), iridium_classmethod_name(Float, new));
+  set_attribute(CLASS(Float), L_ATOM(new), PUBLIC, new_func);
 
-  object plus_func = FUNCTION(ATOM("__plus__"), ARGLIST(argument_new(ATOM("other"), NULL, 0)), dict_new(ObjectHashsize), iridium_method_name(Float, __plus__));
-  set_instance_attribute(CLASS(Float), ATOM("__plus__"), PUBLIC, plus_func);
+  object plus_func = FUNCTION(L_ATOM(__plus__), ARGLIST(argument_new(L_ATOM(other), NULL, 0)), dict_new(ObjectHashsize), iridium_method_name(Float, __plus__));
+  set_instance_attribute(CLASS(Float), L_ATOM(__plus__), PUBLIC, plus_func);
 
-  object to_s_func = FUNCTION(ATOM("to_s"), ARGLIST(), dict_new(ObjectHashsize), iridium_method_name(Float, to_s));
-  set_instance_attribute(CLASS(Float), ATOM("to_s"), PUBLIC, to_s_func);
+  object to_s_func = FUNCTION(L_ATOM(to_s), ARGLIST(), dict_new(ObjectHashsize), iridium_method_name(Float, to_s));
+  set_instance_attribute(CLASS(Float), L_ATOM(to_s), PUBLIC, to_s_func);
 
   DEF_METHOD(CLASS(Float), "hash", ARGLIST(), iridium_method_name(Float, hash));
 
-  define_constant(ATOM("Float"), CLASS(Float));
+  define_constant(L_ATOM(Float), CLASS(Float));
 }

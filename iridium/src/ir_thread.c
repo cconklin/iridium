@@ -1,4 +1,5 @@
 #include "ir_thread.h"
+#include "atoms.h"
 
 void * ir_dispatch_thread(void * _thr) {
   object thr = (object) _thr;
@@ -21,7 +22,7 @@ void * ir_dispatch_thread(void * _thr) {
     status->result = context->_raised;
     break;
   }
-  internal_set_attribute(thr, ATOM("result"), status);
+  internal_set_attribute(thr, L_ATOM(result), status);
   pthread_exit(NULL);
 }
 
@@ -34,13 +35,13 @@ iridium_method(Thread, initialize) {
   pthread_attr_t * attr = GC_MALLOC(sizeof(pthread_attr_t));
   assert(thr);
   assert(attr);
-  internal_set_attribute(self, ATOM("thr"), thr);
-  internal_set_attribute(self, ATOM("thr_attr"), attr);
+  internal_set_attribute(self, L_ATOM(thr), thr);
+  internal_set_attribute(self, L_ATOM(thr_attr), attr);
   pthread_attr_init(attr);
   pthread_attr_setdetachstate(attr, PTHREAD_CREATE_JOINABLE);
 
-  set_attribute(self, ATOM("fn"), PUBLIC, fn);
-  internal_set_attribute(self, ATOM("result"), NULL);
+  set_attribute(self, L_ATOM(fn), PUBLIC, fn);
+  internal_set_attribute(self, L_ATOM(result), NULL);
 
   // Dispatch the thread
   int rc = pthread_create(thr, attr, ir_dispatch_thread, (void *) self);
@@ -55,17 +56,17 @@ iridium_method(Thread, initialize) {
 
 iridium_method(Thread, join) {
   object self = local("self");
-  pthread_t * thr = internal_get_attribute(self, ATOM("thr"), pthread_t *);
+  pthread_t * thr = internal_get_attribute(self, L_ATOM(thr), pthread_t *);
   int rc = pthread_join(*thr, NULL);
   if (rc) {
     RAISE(send(CLASS(Exception), "new", IR_STRING("Could not join thread")));
   }
-  struct ThreadStatus * status = internal_get_attribute(self, ATOM("result"), struct ThreadStatus *);
+  struct ThreadStatus * status = internal_get_attribute(self, L_ATOM(result), struct ThreadStatus *);
   if (status->is_ok) {
     return status->result;
   } else {
     // Move the thread's context onto our context
-    struct stack * stacktrace = internal_get_attribute(status->result, ATOM("stacktrace"), struct stack *);
+    struct stack * stacktrace = internal_get_attribute(status->result, L_ATOM(stacktrace), struct stack *);
     struct stack * rstacktrace = stack_new();
     while (!stack_empty(stacktrace)) {
       stack_push(rstacktrace, stack_pop(stacktrace));
@@ -81,9 +82,9 @@ iridium_method(Thread, join) {
 void IR_init_Thread(struct IridiumContext * context) {
   CLASS(Thread) = send(CLASS(Class), "new", IR_STRING("Thread"));
 
-  DEF_METHOD(CLASS(Thread), "initialize", ARGLIST(argument_new(ATOM("fn"), NULL, 0)), iridium_method_name(Thread, initialize));
+  DEF_METHOD(CLASS(Thread), "initialize", ARGLIST(argument_new(L_ATOM(fn), NULL, 0)), iridium_method_name(Thread, initialize));
   DEF_METHOD(CLASS(Thread), "join", ARGLIST(), iridium_method_name(Thread, join));
 
-  define_constant(ATOM("Thread"), CLASS(Thread));
+  define_constant(L_ATOM(Thread), CLASS(Thread));
 }
 

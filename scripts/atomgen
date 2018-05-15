@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+
+atom_file = ARGV.shift
+atom_header = ARGV.shift
+atom_impl = ARGV.shift
+
+atoms = `egrep -oh 'L_ATOM\\([^\\)]+\\)' #{ARGV.join " "}`.split("\n").sort.uniq.map { |atom| atom.gsub /L_ATOM\(([^\)]+)\)/, '\1' }
+
+if File.exists? atom_file
+  content = File.read(atom_file).split("\n")
+  if content == atoms
+    exit
+  end
+end
+
+File.open(atom_file, "w") { |f| f.write atoms.join("\n") }
+
+File.open(atom_header, "w") do |header|
+  header.write "#include \"ir_object.h\"\n"
+  header.write "#define L_ATOM(string) _IR_ATOM_##string\n"
+  atoms.each do |atom|
+    header.write "extern object _IR_ATOM_#{atom};\n"
+  end
+end
+
+File.open(atom_impl, "w") do |impl|
+  impl.write "#include \"#{File.basename atom_header}\"\n"
+  atoms.each do |atom|
+    impl.write "static struct IridiumObject __IR_ATOM_#{atom};\n"
+    impl.write "object _IR_ATOM_#{atom} = &__IR_ATOM_#{atom};\n"
+  end
+  impl.write "void IR_init_Atom(void) {\n";
+  atoms.each do |atom_name|
+    atom = "_IR_ATOM_#{atom_name}"
+    impl.write "#{atom}->magic = MAGIC;\n"
+    impl.write "#{atom}->class = CLASS(Atom);\n"
+    impl.write "#{atom}->attributes = dict_new(ObjectHashsize);\n"
+    impl.write "#{atom}->instance_attributes = dict_new(ObjectHashsize);\n"
+    impl.write "#{atom}->internal_attributes = dict_new(ObjectHashsize);\n"
+    impl.write "add_atom(\"#{atom_name}\", #{atom});\n"
+    impl.write "internal_set_attribute(#{atom}, _IR_ATOM_string, \"#{atom_name}\");\n"
+  end
+  impl.write "}\n"
+end
+
+

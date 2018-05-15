@@ -1,4 +1,5 @@
 #include "ir_init.h"
+#include "atoms.h"
 
 void IR_INIT(struct IridiumContext * context) {
     IR_early_init_context(context);
@@ -27,8 +28,8 @@ iridium_classmethod(ir_main, to_s) {
 
 object IR_MAIN_OBJECT(struct IridiumContext * context) {
     object ir_main = send(CLASS(Object), "new");
-    object main_to_s = FUNCTION(ATOM("inspect"), ARGLIST(), dict_new(ObjectHashsize), iridium_classmethod_name(ir_main, to_s));
-    set_attribute(ir_main, ATOM("inspect"), PUBLIC, main_to_s);
+    object main_to_s = FUNCTION(L_ATOM(inspect), ARGLIST(), dict_new(ObjectHashsize), iridium_classmethod_name(ir_main, to_s));
+    set_attribute(ir_main, L_ATOM(inspect), PUBLIC, main_to_s);
     return ir_main;
 }
 

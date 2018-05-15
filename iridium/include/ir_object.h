@@ -119,10 +119,6 @@ char * function_name(struct IridiumContext * context, object self);
 // Macro for superclasses
 #define superclass(class) get_attribute(class, ATOM("superclass"), PUBLIC)
 
-// Macro for ATOMS
-#define ATOM(name) ((! strcmp(name, "self")) ? SELF_ATOM : _ATOM(name))
-#define SELF_ATOM (_SELF_ATOM ? _SELF_ATOM : (create_self_atom()))
-
 // Macro for defining methods
 #define DEF_METHOD(receiver, name, arglist, func) \
   set_instance_attribute(receiver, ATOM(name), PUBLIC, \
@@ -174,7 +170,7 @@ iridium_method(Function, __call__);
 iridium_classmethod(Atom, new);
 
 object get_attribute(object, void *, unsigned char);
-object _ATOM(char * name);
+object ATOM(char * name);
 object create_self_atom();
 object create_nil();
 object construct(object class);
@@ -196,10 +192,7 @@ extern struct dict * constants;
 
 struct IridiumArgument * argument_new(object name, object default_value, char splat);
 
-// :self atom
-extern object _SELF_ATOM;
-
-#define send(obj, name, ...) _send(context, obj, name , ##__VA_ARGS__, 0)
+#define send(obj, name, ...) _send(context, obj, name , ##__VA_ARGS__, NULL)
 
 // Function to determine object inheritance
 int kindOf(object obj, object class);
@@ -311,9 +304,6 @@ object create_str_atom();
 
 // Create the `:self` atom
 object create_self_atom();
-
-// Create or fetch atoms
-object _ATOM(char * name);
 
 // Exception Handling
 
