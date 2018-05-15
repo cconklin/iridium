@@ -7,4 +7,5 @@ int test(struct IridiumContext * context) {
   setup(context);
   c_nil = C_STRING(context, send(NIL, "to_s"));
   assertEqual(strcmp(c_nil, "nil"), 0);
+  return 0;
 }
