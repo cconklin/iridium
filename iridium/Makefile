@@ -11,20 +11,20 @@ OBJECTS := objects
 ATOM_H := include/atoms.h
 
 all: atomgen
-	@$(MAKE) --no-print-directory iridium
+	@$(MAKE) -s iridium
 
 iridium: $(OBJECTS) $(OBJECTS)/iridium.o
 
 atomgen: $(SRCS) $(HEADERS)
-	@echo GEN $(ATOM_H)
+	@echo "  CHK   " $(ATOM_H)
 	../scripts/atomgen include/atoms.txt $(ATOM_H) src/atoms.c $^
 
 $(OBJECTS)/iridium.o: $(OBJS) $(OBJECTS)/core.o $(OBJECTS)/atoms.o
-	@echo LD $@
+	@echo "  LD    " $@
 	ld -r -o $@ $(OBJS) $(OBJECTS)/core.o
 
 $(OBJS): $(OBJECTS)/%.o: src/%.c $(ATOM_H)
-	@echo CC $@
+	@echo "  CC    " $@
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 $(OBJECTS):
@@ -32,7 +32,7 @@ $(OBJECTS):
 	mkdir -p $(OBJECTS)/shared
 
 $(OBJECTS)/core.o: $(IR)
-	@echo IR $@
+	@echo "  IR    " $@
 	ircc -o $@ -c src/core.ir --main=IR_CORE_INIT
 
 clean:
