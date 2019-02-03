@@ -1,8 +1,12 @@
 #include "ir_init.h"
 #include "atoms.h"
 
-void IR_INIT(struct IridiumContext * context) {
+void IR_EARLY_INIT(struct IridiumContext * context) {
     IR_early_init_context(context);
+    IR_early_init_Object(context);
+}
+
+void IR_INIT(struct IridiumContext * context) {
     IR_init_Object(context);
     // set the _raised to NIL now that NIL is defined
     context->_raised = NIL;

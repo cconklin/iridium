@@ -1,18 +1,21 @@
 require_relative 'translator'
 
 class Generator
-  def initialize(callables, tree, main_name, link)
+  def initialize(callables, tree, main_name, link, user_atoms)
     @callables = callables
     @tree = tree
     @constants = []
     @self_stack = []
     @main_fn_name = main_name
     @link = link
+    @atoms = []
+    @user_atoms = user_atoms
   end
 
   def generate
     level = 0
     code = [generate_includes, [@constants], generate_prototypes, generate_callables, generate_main]
+    code.insert(1, generate_atoms)
     gencode = code.join("\n").split("\n").map do |line|
       level -= 1 if line[-1] == "}" || line[0] == "}" 
       newline = ("    " * level) + line
@@ -22,10 +25,13 @@ class Generator
     gencode
   end
 
+  def iridium_path(path)
+    File.absolute_path File.join(File.dirname(__FILE__), "..", path)
+  end
+
   def generate_includes
-    %w[iridium/include/ir_init].map do |header|
-      header_path = File.absolute_path File.join(File.dirname(__FILE__), "..", header)
-      "#include \"#{header_path}.h\""
+    %w[iridium/include/ir_init iridium/include/atoms].map do |header|
+      "#include \"#{iridium_path header}.h\""
     end.join("\n")
   end
 
@@ -33,6 +39,68 @@ class Generator
     @callables.keys.map do |name|
       "object #{name}(struct IridiumContext * context, struct dict * locals);"
     end.join("\n")
+  end
+
+  def new_atoms
+    @atoms.map(&:to_s).uniq - predefined_atoms
+  end
+
+  def predefined_atoms
+    predefined = File.open(iridium_path "iridium/include/atoms.txt").read.split("\n")
+    if @user_atoms
+      user = File.open(iridium_path "iridium/include/user_atoms.txt").read.split("\n")
+      return (predefined + user).uniq
+    end
+    predefined.uniq
+  end
+
+  def generate_atoms
+    extern_atoms = predefined_atoms.map do |a|
+      "extern object #{ir_atom_name a};"
+    end
+    atoms = new_atoms.uniq.map do |a|
+      [
+        "static struct IridiumObject _#{ir_atom_name a};",
+        "object #{ir_atom_name a} = &_#{ir_atom_name a};",
+      ].join "\n"
+    end
+    definitions = new_atoms.uniq.map do |atom_name|
+      name = ir_atom_name atom_name
+      [
+        "#{name}->magic = MAGIC;",
+        "#{name}->class = CLASS(Atom);",
+        "#{name}->attributes = dict_new(ObjectHashsize);",
+        "#{name}->instance_attributes = dict_new(ObjectHashsize);",
+        "#{name}->internal_attributes = dict_new(ObjectHashsize);",
+        "add_atom(\"#{atom_name}\", #{name});",
+        "internal_set_attribute(#{name}, _IR_ATOM_string, \"#{atom_name}\");",
+      ].join("\n")
+    end.join("\n")
+    func = @user_atoms ? "IR_USER_ATOM_INIT" : "__IR_USER_ATOM_INIT"
+    [
+      "void __IR_USER_ATOM_INIT(void);",
+      extern_atoms,
+      atoms,
+      "void #{func}(void) {",
+      definitions,
+      @user_atoms ? "__IR_USER_ATOM_INIT();" : nil,
+      "}",
+    ].compact.join "\n"
+  end
+
+  def atom(name)
+    @atoms << name
+    ir_atom_name name
+  end
+
+  def ir_atom_name(name)
+    if name[-1] == "?"
+      "_IR_Q_ATOM_#{name[0...-1]}"
+    elsif name[-1] == "!"
+      "_IR_B_ATOM_#{name[0...-1]}"
+    else
+      "_IR_ATOM_#{name}"
+    end
   end
 
   def generate_main
@@ -72,7 +140,7 @@ class Generator
 
     # Set up the initial context
     code.unshift "array_push(self_stack, ir_cmp_self);"
-    code.unshift "dict_set(locals, ATOM(\"self\"), ir_cmp_self);"
+    code.unshift "dict_set(locals, #{atom "self"}, ir_cmp_self);"
     code.unshift "object ir_cmp_self = ir_main;"
     code.unshift "struct array * self_stack = array_new();"
     code.unshift "ir_context_stack = array_new();"
@@ -89,6 +157,8 @@ class Generator
       code << "GC_INIT();"
       # TODO ARGV
       code << "struct IridiumContext context;"
+      code << "IR_EARLY_INIT(&context);"
+      code << "IR_USER_ATOM_INIT();"
       code << "IR_INIT(&context);"
       # FIXME only catch children of exception / string?
       code << "struct list * main_exceptions = list_new(EXCEPTION(CLASS(Object), 1));"
@@ -108,16 +178,16 @@ class Generator
   end
 
   def last_constant
-    @self_stack[1..-1].reduce "lookup_constant(context, ATOM(\"#{@self_stack[0]}\"))" do |acc, n|
-      "get_attribute(#{acc}, ATOM(\"#{n}\"), PUBLIC)"
+    @self_stack[1..-1].reduce "lookup_constant(context, #{atom @self_stack[0]})" do |acc, n|
+      "get_attribute(#{acc}, #{atom n}, PUBLIC)"
     end
   end
 
   def get_constant(name)
     if @self_stack.empty?
-      "lookup_constant(context, ATOM(\"#{name}\"))"
+      "lookup_constant(context, #{atom name})"
     else
-      "get_attribute(#{last_constant}, ATOM(\"#{name}\"), PUBLIC)"
+      "get_attribute(#{last_constant}, #{atom name}, PUBLIC)"
     end
   end
 
@@ -128,14 +198,14 @@ class Generator
     code << "array_push(ir_context_stack, ir_context);"
     code << "ir_context = #{new_self};"
     code << "ir_cmp_self = #{new_self};"
-    code << "dict_set(locals, ATOM(\"self\"), ir_cmp_self);"
+    code << "dict_set(locals, #{atom "self"}, ir_cmp_self);"
   end
 
   def pop_self(code)
     @self_stack.pop
     code << "ir_context = array_pop(ir_context_stack);"
     code << "ir_cmp_self = array_pop(self_stack);"
-    code << "dict_set(locals, ATOM(\"self\"), ir_cmp_self);"
+    code << "dict_set(locals, #{atom "self"}, ir_cmp_self);"
   end
 
   def generate_main_block(code, tree, new_variables:, active_variables:, modified_variables:, literals:, open_constants:, exception_handlers:)
@@ -150,10 +220,10 @@ class Generator
             constant = "invoke(context, ir_cmp_Module, \"new\", array_push(array_new(), IR_STRING(\"#{full_name}\")))"
             if @self_stack.empty?
               # Top level module
-              code << "define_constant(ATOM(\"#{name}\"), #{constant});"
+              code << "define_constant(#{atom name}, #{constant});"
             else
               # Child of parent
-              code << "set_attribute(#{last_constant}, ATOM(\"#{name}\"), PUBLIC, #{constant});"
+              code << "set_attribute(#{last_constant}, #{atom name}, PUBLIC, #{constant});"
             end
           end
           push_self code, name
@@ -173,10 +243,10 @@ class Generator
             constant = "invoke(context, ir_cmp_Class, \"new\", array_push(array_push(array_new(), IR_STRING(\"#{full_name}\")), #{generate_expression(superclass)}))"
             if @self_stack.empty?
               # Top level module
-              code << "define_constant(ATOM(\"#{name}\"), #{constant});"
+              code << "define_constant(#{atom name}, #{constant});"
             else
               # Child of parent
-              code << "set_attribute(#{last_constant}, ATOM(\"#{name}\"), PUBLIC, #{constant});"
+              code << "set_attribute(#{last_constant}, #{atom name}, PUBLIC, #{constant});"
             end
           end
           push_self code, name
@@ -189,12 +259,12 @@ class Generator
           pop_self code
         when :function
           new_variables << node[1]
-          code << "set_attribute(ir_cmp_self, ATOM(\"#{node[1]}\"), PUBLIC,"
-          code << "  FUNCTION(ATOM(\"#{node[1]}\"), #{generate_arglist(node[2], active_variables: active_variables, literals: literals)}, dict_new(ObjectHashsize), #{node[3]} ));"
+          code << "set_attribute(ir_cmp_self, #{atom node[1]}, PUBLIC,"
+          code << "  FUNCTION(#{atom node[1]}, #{generate_arglist(node[2], active_variables: active_variables, literals: literals)}, dict_new(ObjectHashsize), #{node[3]} ));"
         when :method
           new_variables << node[1]
-          code << "set_instance_attribute(ir_cmp_self, ATOM(\"#{node[1]}\"), PUBLIC,"
-          code << "  FUNCTION(ATOM(\"#{node[1]}\"), #{generate_arglist(node[2], active_variables: active_variables, literals: literals)}, dict_new(ObjectHashsize), #{node[3]} ));"
+          code << "set_instance_attribute(ir_cmp_self, #{atom node[1]}, PUBLIC,"
+          code << "  FUNCTION(#{atom node[1]}, #{generate_arglist(node[2], active_variables: active_variables, literals: literals)}, dict_new(ObjectHashsize), #{node[3]} ));"
         else
           # Arbitrary statement
           generate_statement code, node, modified_variables: modified_variables,
@@ -301,10 +371,10 @@ class Generator
           # Uppercase (e.g. Foo): constant
           if @self_stack.empty?
             # Top level module
-            code << "define_constant(ATOM(\"#{var}\"), #{val});"
+            code << "define_constant(#{atom var}, #{val});"
           else
             # Child of parent
-            code << "set_attribute(#{last_constant}, ATOM(\"#{var}\"), PUBLIC, #{val});"
+            code << "set_attribute(#{last_constant}, #{atom var}, PUBLIC, #{val});"
           end
         end
       when :if
@@ -337,10 +407,10 @@ class Generator
         code << "}"
       when :nofunction
         code << "no_attribute(#{generate_expression(:self, active_variables: active_variables, literals: literals)},"
-        code << "             ATOM(\"#{statement[1]}\");"
+        code << "             #{atom statement[1]});"
       when :nomethod
         code << "no_instance_attribute(#{generate_expression(:self, active_variables: active_variables, literals: literals)},"
-        code << "                      ATOM(\"#{statement[1]}\");"
+        code << "                      #{atom statement[1]});"
       when :begin
         # [:begin, [[:"=", :x, 5]], {MyException: [:e, [[:"=", :x, 6]]]}, []]
         begin_section = statement[1]
@@ -395,7 +465,7 @@ class Generator
         code << "_handler_count--;"
       when :set
         code << "set_attribute(#{generate_expression(statement[1], active_variables: active_variables, literals: literals)},"
-        code << "              ATOM(\"#{statement[2]}\"), PUBLIC, #{generate_expression(statement[3], active_variables: active_variables, literals: literals)});"
+        code << "              #{atom statement[2]}, PUBLIC, #{generate_expression(statement[3], active_variables: active_variables, literals: literals)});"
       when :insert
         # [:insert, :x, [5], [:[], :y, [[:+, 4, 5]]]]
         arg_ary = generate_argarray(statement[2] + [statement[3]], active_variables: active_variables, literals: literals)
@@ -428,14 +498,14 @@ class Generator
         else
           if expr.to_s.include? ":"
             # Atom Literal
-            "ATOM(\"#{expr.to_s[1..-1]}\")"
+            "#{atom expr.to_s[1..-1]}"
           elsif expr.to_s.match /^[^a-zA-Z]*[A-Z].*$/
             # First letter is uppercase -> constant
-            "lookup_constant(context, ATOM(\"#{expr}\"))"
+            "lookup_constant(context, #{atom expr})"
           else
             # Variable
             active_variables << expr unless active_variables.include? expr
-            "(#{variable_name(expr)} ? #{variable_name(expr)} : local(\"#{expr}\"))"
+            "(#{variable_name(expr)} ? #{variable_name(expr)} : _local(context, locals, #{atom expr}))"
           end
       end
     elsif expr.is_a? Integer
@@ -467,11 +537,11 @@ class Generator
           "invoke(context, #{generate_expression(expr[1], active_variables: active_variables, literals: literals)}, \"__get_index__\", #{arg_ary})"
         when :"."
           # Attribute Get
-          "invoke(context, #{generate_expression(expr[1], active_variables: active_variables, literals: literals)}, \"__get__\", array_push(array_new(), ATOM(\"#{expr[2]}\")))"
+          "invoke(context, #{generate_expression(expr[1], active_variables: active_variables, literals: literals)}, \"__get__\", array_push(array_new(), #{atom expr[2]}))"
         when :lambda
           # Annonymous Function
           # [:lambda, [:x, {y: 10}, [:destructure, :z]], "code_name"]
-          "FUNCTION(ATOM(\"lambda\"), #{generate_arglist(expr[1], active_variables: active_variables, literals: literals)}, locals, #{expr[2]})"
+          "FUNCTION(#{atom "lambda"}, #{generate_arglist(expr[1], active_variables: active_variables, literals: literals)}, locals, #{expr[2]})"
         when :array
           arg_ary = generate_argarray(expr[1], active_variables: active_variables, literals: literals)
           "invoke(context, ir_cmp_Array, \"new\", #{arg_ary})"
@@ -501,13 +571,13 @@ class Generator
     args.reverse.reduce("NULL") do |acc, arg|
       val = if arg.is_a? Symbol
               # Standard Argument
-              "ATOM(\"#{arg}\"), NULL, 0"
+              "#{atom arg}, NULL, 0"
             elsif arg.is_a? Hash
               # Default Value
-              "ATOM(\"#{arg.first[0]}\"), #{generate_expression arg.first[1], active_variables: active_variables, literals: literals}, 0"
+              "#{atom arg.first[0]}, #{generate_expression arg.first[1], active_variables: active_variables, literals: literals}, 0"
             else
               # Splat
-              "ATOM(\"#{arg[1]}\"), NULL, 1"
+              "#{atom arg[1]}, NULL, 1"
             end
       "list_cons(#{acc}, argument_new(#{val}))"
     end
@@ -543,7 +613,7 @@ class Generator
 
   def save_vars(active_variables)
     active_variables.map do |var|
-      "set_local(\"#{var}\", #{variable_name(var)});"
+      "_set_local(locals, #{atom var}, #{variable_name(var)});"
     end
   end
 end

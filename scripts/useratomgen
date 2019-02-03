@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+
+require_relative "../ircc/parser"
+require_relative "../ircc/translator"
+require_relative "../ircc/generator"
+require_relative "../ircc/loader"
+
+loader = Loader.new
+tree = loader.load_from_file ARGV[1], Dir.pwd
+dest = ARGV[0]
+
+processed_tree = Translator.translate! tree
+generator = Generator.new processed_tree[:callables],
+                          processed_tree[:tree],
+                          "ir_user_main",
+                          false,
+                          false
+
+File.open(dest, "w") do |f|
+  generator.generate
+  generator.new_atoms.each do |atom|
+    f.write("#{atom}\n")
+  end
+end
+

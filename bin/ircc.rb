@@ -7,7 +7,7 @@ require_relative "../ircc/generator"
 require_relative "../ircc/compiler"
 require_relative "../ircc/loader"
 
-options = {output: "a.out", debug: false, link: true}
+options = {output: "a.out", debug: false, link: true, extra_atoms: true}
 
 parser = OptionParser.new do |opts|
   opts.banner = "Usage: ircc [options] file"
@@ -22,6 +22,9 @@ parser = OptionParser.new do |opts|
   end
   opts.on "--main=MAIN", "top-level name" do |mn|
     options[:main_name] = mn
+  end
+  opts.on "--no-extra-atoms", "internal use only" do
+    options[:extra_atoms] = false
   end
 end
 
@@ -39,7 +42,8 @@ processed_tree = Translator.translate! tree
 generator = Generator.new processed_tree[:callables],
                           processed_tree[:tree],
                           options[:link] ? "ir_user_main" : options[:main_name],
-                          options[:link]
+                          options[:link],
+                          options[:extra_atoms]
 
 Compiler.compile generator.generate,
                  output: options[:output],

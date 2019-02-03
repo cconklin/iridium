@@ -1542,16 +1542,7 @@ void display_stacktrace(struct IridiumContext * context, object exception) {
   printf("%s: %s\n", classname, reason);
 }
 
-// Creates the objects defined here
-void IR_init_Object(struct IridiumContext * context) {
-
-  struct IridiumArgument * args = NULL;
-  struct IridiumArgument * name = NULL;
-  struct IridiumArgument * class_superclass = NULL;
-  struct IridiumArgument * class_name = NULL;
-  struct IridiumArgument * other = NULL;
-  object call, get, class_new, class_inst_new, obj_init, class_inspect, object_inspect, fix_plus, nil_inspect, fix_inspect, atom_inspect, func_inspect, obj_puts, str_inspect, obj_write, module_new;
-
+void IR_early_init_Object(struct IridiumContext * context) {
   stack_push(context -> stacktrace, "<main>");
 
   // Create class
@@ -1572,6 +1563,17 @@ void IR_init_Object(struct IridiumContext * context) {
   set_attribute(CLASS(Module), L_ATOM(superclass), PUBLIC, CLASS(Object));
   set_attribute(CLASS(Class), L_ATOM(superclass), PUBLIC, CLASS(Module));
   set_attribute(CLASS(Object), L_ATOM(superclass), PUBLIC, CLASS(Object));
+}
+
+// Creates the objects defined here
+void IR_init_Object(struct IridiumContext * context) {
+
+  struct IridiumArgument * args = NULL;
+  struct IridiumArgument * name = NULL;
+  struct IridiumArgument * class_superclass = NULL;
+  struct IridiumArgument * class_name = NULL;
+  struct IridiumArgument * other = NULL;
+  object call, get, class_new, class_inst_new, obj_init, class_inspect, object_inspect, fix_plus, nil_inspect, fix_inspect, atom_inspect, func_inspect, obj_puts, str_inspect, obj_write, module_new;
 
   // Create Function
   CLASS(Function) = construct(CLASS(Class));

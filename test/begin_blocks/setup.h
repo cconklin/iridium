@@ -2,6 +2,7 @@ object MyException, AnotherException;
 
 void setup(struct IridiumContext * context) {
   // Init
+  IR_early_init_Object(context);
   IR_init_Object(context);
 
   // Create MyException

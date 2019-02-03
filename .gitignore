@@ -39,6 +39,7 @@ examples/*
 iridium/objects
 
 iridium/include/atoms.txt
+iridium/include/user_atoms.txt
 iridium/include/atoms.h
 iridium/src/atoms.c
 

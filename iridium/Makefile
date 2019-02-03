@@ -18,6 +18,7 @@ iridium: $(OBJECTS) $(OBJECTS)/iridium.o
 atomgen: $(SRCS) $(HEADERS)
 	@echo "  CHK   " $(ATOM_H)
 	../scripts/atomgen include/atoms.txt $(ATOM_H) src/atoms.c $^
+	../scripts/useratomgen include/user_atoms.txt src/core.ir
 
 $(OBJECTS)/iridium.o: $(OBJS) $(OBJECTS)/core.o $(OBJECTS)/atoms.o
 	@echo "  LD    " $@
@@ -33,7 +34,7 @@ $(OBJECTS):
 
 $(OBJECTS)/core.o: $(IR)
 	@echo "  IR    " $@
-	ircc -o $@ -c src/core.ir --main=IR_CORE_INIT
+	ircc -o $@ -c src/core.ir --main=IR_CORE_INIT --no-extra-atoms
 
 clean:
 	rm -rf $(OBJECTS)
