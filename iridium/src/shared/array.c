@@ -30,7 +30,7 @@ struct array * array_new(void) {
   // Ensure that memory was allocated
   assert(ary -> elements);
  
-  for (int i = 0; i < ary->size; i++) {
+  for (unsigned int i = 0; i < ary->size; i++) {
     ary->elements[i] = NULL;
   }
 
@@ -54,7 +54,7 @@ void array_resize(struct array * ary, unsigned int size) {
     // Ensure that memory was allocated
     assert(ary -> elements);
 
-    for (int i = old_size; i < ary->size; i++) {
+    for (unsigned int i = old_size; i < ary->size; i++) {
       ary -> elements[i] = NULL;
     }
   }
@@ -120,7 +120,7 @@ void * array_shift(struct array * ary) {
 
 struct array * array_copy(struct array * ary) {
   struct array * new_array = array_new();
-  int index;
+  unsigned int index;
   for (index = 0; index < ary -> length; index ++) {
     array_set(new_array, index, array_get(ary, index));
   }
@@ -129,7 +129,7 @@ struct array * array_copy(struct array * ary) {
 
 struct array * array_unshift(struct array * ary, void * value) {
   struct array * new_array = array_new();
-  int index;
+  unsigned int index;
   for (index = 0; index < ary -> length; index ++) {
     array_set(new_array, index+1, array_get(ary, index));
   }
@@ -139,7 +139,7 @@ struct array * array_unshift(struct array * ary, void * value) {
 
 struct array * array_merge(struct array * array_1, struct array * array_2) {
   struct array * result = array_copy(array_1);
-  int index;
+  unsigned int index;
   for (index = 0; index < array_2 -> length; index ++) {
     array_push(result, array_get(array_2 , index));
   }

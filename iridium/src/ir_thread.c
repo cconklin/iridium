@@ -76,6 +76,8 @@ iridium_method(Thread, join) {
     }
     // Raise the exception from the thread
     RAISE(status->result);
+    // Unreachable
+    assert(0);
   }
 }
 

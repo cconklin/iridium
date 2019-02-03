@@ -420,7 +420,7 @@ struct dict * process_args(struct IridiumContext * context, object function, str
   int splat_idx = 0;
   int length = 0;
   int arg_length = args -> length;
-  unsigned int required = 0;
+  int required = 0;
   struct IridiumArgument * this_arg = NULL;
   object reason = NULL;
   while (iter_arg_list) {
@@ -1107,7 +1107,7 @@ iridium_method(Array, __set_index__) {
 iridium_method(Array, inspect) {
   object self = local("self");
   struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
-  int idx, sidx;
+  unsigned int idx, sidx;
   unsigned int strsize = 0;
   unsigned ary_len = (ary->length - ary->start);
   if (ary_len == 0) {

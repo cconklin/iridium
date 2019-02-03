@@ -16,7 +16,7 @@ struct dict * dict_new(unsigned int hashsize) {
   h -> hashsize = hashsize;
   h -> hashtab = (struct dict_entry **) GC_MALLOC(hashsize * sizeof(struct dict_entry *));
   assert(h -> hashtab);
-  for (int i = 0; i < hashsize; i++) {
+  for (unsigned int i = 0; i < hashsize; i++) {
     h -> hashtab[i] = NULL;
   }
   return h;

@@ -433,5 +433,6 @@ object lookup_constant(struct IridiumContext * context, object name);
 
 // Creates the objects defined here
 void IR_init_Object(struct IridiumContext * context);
+void IR_init_Atom(void);
 
 #endif
