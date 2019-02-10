@@ -102,8 +102,8 @@ int remove_IR_DICTIONARY(struct IridiumContext * context, struct IR_DICTIONARY *
 }
 
 iridium_method(Lambda, dict_initialize) {
-  object elem = local("element");
-  object acc = local("acc");
+  object elem = local(element);
+  object acc = local(acc);
   object key = send(elem, "__get_index__", FIXNUM(0));
   object value = send(elem, "__get_index__", FIXNUM(1));
   // Hooray for breaking type safety...
@@ -118,8 +118,8 @@ iridium_method(Lambda, dict_initialize) {
 // Args:
 //    elements (list of tuples)
 iridium_method(Dictionary, initialize) {
-  object self = local("self"); // Receiver
-  object args = local("elements"); // List of tuples
+  object self = local(self); // Receiver
+  object args = local(elements); // List of tuples
   object reduce_fn = FUNCTION(L_ATOM(lambda), ARGLIST(argument_new(L_ATOM(element), NULL, 0), argument_new(L_ATOM(acc), NULL, 0)), dict_new(ObjectHashsize), iridium_method_name(Lambda, dict_initialize));
   struct IR_DICTIONARY * dict = new_IR_DICTIONARY();
   send(args, "reduce", (object) dict, reduce_fn);
@@ -131,7 +131,7 @@ iridium_method(Dictionary, initialize) {
 // String representation of dictionary
 // Ignores possiblity of containing itself as a value/key
 iridium_method(Dictionary, inspect) {
-  object self = local("self");
+  object self = local(self);
   struct IR_DICTIONARY * dict = internal_get_attribute(self, L_ATOM(dict), struct IR_DICTIONARY *);
   object str = IR_STRING("{");
   struct IR_DICTIONARY_ENTRY * entry = dict -> first;
@@ -149,8 +149,8 @@ iridium_method(Dictionary, inspect) {
 
 // Access a dictionary by key
 iridium_method(Dictionary, __get_index__) {
-  object self = local("self");
-  object key = local("key");
+  object self = local(self);
+  object key = local(key);
   struct IR_DICTIONARY * dict = internal_get_attribute(self, L_ATOM(dict), struct IR_DICTIONARY *);
   struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(context, dict, key, NULL);
   if (entry) {
@@ -162,8 +162,8 @@ iridium_method(Dictionary, __get_index__) {
 
 // Determine the presence of a key
 iridium_method(Dictionary, has_key) {
-  object self = local("self");
-  object key = local("key");
+  object self = local(self);
+  object key = local(key);
   struct IR_DICTIONARY * dict = internal_get_attribute(self, L_ATOM(dict), struct IR_DICTIONARY *);
   struct IR_DICTIONARY_ENTRY * entry = lookup_IR_DICTIONARY(context, dict, key, NULL);
   if (entry) {
@@ -175,9 +175,9 @@ iridium_method(Dictionary, has_key) {
 
 // Insert/Update a dictionary by key
 iridium_method(Dictionary, __set_index__) {
-  object self = local("self");
-  object key = local("key");
-  object value = local("value");
+  object self = local(self);
+  object key = local(key);
+  object value = local(value);
   struct IR_DICTIONARY * dict = internal_get_attribute(self, L_ATOM(dict), struct IR_DICTIONARY *);
   insert_IR_DICTIONARY(context, dict, key, value);
   return NIL;
@@ -185,8 +185,8 @@ iridium_method(Dictionary, __set_index__) {
 
 // Remove a dictionary element by key
 iridium_method(Dictionary, remove) {
-  object self = local("self");
-  object key = local("key");
+  object self = local(self);
+  object key = local(key);
   struct IR_DICTIONARY * dict = internal_get_attribute(self, L_ATOM(dict), struct IR_DICTIONARY *);
   remove_IR_DICTIONARY(context, dict, key);
   return NIL;
@@ -196,9 +196,9 @@ iridium_method(Dictionary, remove) {
 // Takes an initial value and a function of the form
 // fn(key, value, acc) and returns the final accumulator
 iridium_method(Dictionary, reduce) {
-  object self = local("self");
-  object accumulator = local("accumulator");
-  object fn = local("fn");
+  object self = local(self);
+  object accumulator = local(accumulator);
+  object fn = local(fn);
   struct IR_DICTIONARY * dict = internal_get_attribute(self, L_ATOM(dict), struct IR_DICTIONARY *);
   struct IR_DICTIONARY_ENTRY * entry = dict -> first;
   struct array * args = array_new();

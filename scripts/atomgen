@@ -4,7 +4,13 @@ atom_file = ARGV.shift
 atom_header = ARGV.shift
 atom_impl = ARGV.shift
 
-atoms = `egrep -oh 'L_ATOM\\([^\\)]+\\)' #{ARGV.join " "}`.split("\n").sort.uniq.map { |atom| atom.gsub /L_ATOM\(([^\)]+)\)/, '\1' }
+impl_files = ARGV.select { |f| File.exists? f }.reject { |f| f == "src/atoms.c" }
+
+atoms = `egrep -oh 'L_ATOM\\([^\\)]+\\)' #{impl_files.join " "}`.split("\n").sort.map { |atom| atom.gsub /L_ATOM\(([^\)]+)\)/, '\1' }
+locals = `egrep -oh '\\blocal\\([^\\)]+\\)' #{impl_files.join " "}`.split("\n").sort.map { |atom| atom.gsub /local\(([^\)]+)\)/, '\1' }
+
+atoms.concat locals
+atoms.sort!.uniq!
 
 if File.exists? atom_file
   content = File.read(atom_file).split("\n")
@@ -42,5 +48,4 @@ File.open(atom_impl, "w") do |impl|
   end
   impl.write "}\n"
 end
-
 

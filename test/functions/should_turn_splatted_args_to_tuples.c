@@ -4,10 +4,10 @@
 
 iridium_method(Test, func_splat_and_optional) {
   // * args (splat)
-  struct array * tuple_args = internal_get_attribute(local("args"), ATOM("array"), struct array *);
+  struct array * tuple_args = internal_get_attribute(s_local("args"), ATOM("array"), struct array *);
   assertEqual(array_get(tuple_args, 0), ATOM("a"));
   assertEqual(array_get(tuple_args, 1), ATOM("b"));
-  assertEqual(local("b"), ATOM("c")); // optional
+  assertEqual(s_local("b"), ATOM("c")); // optional
   return NIL;
 }
 

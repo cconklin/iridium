@@ -29,8 +29,8 @@ void * ir_dispatch_thread(void * _thr) {
 object CLASS(Thread);
 
 iridium_method(Thread, initialize) {
-  object self = local("self");
-  object fn = local("fn");
+  object self = local(self);
+  object fn = local(fn);
   pthread_t * thr = GC_MALLOC(sizeof(pthread_t));
   pthread_attr_t * attr = GC_MALLOC(sizeof(pthread_attr_t));
   assert(thr);
@@ -55,7 +55,7 @@ iridium_method(Thread, initialize) {
 }
 
 iridium_method(Thread, join) {
-  object self = local("self");
+  object self = local(self);
   pthread_t * thr = internal_get_attribute(self, L_ATOM(thr), pthread_t *);
   int rc = pthread_join(*thr, NULL);
   if (rc) {

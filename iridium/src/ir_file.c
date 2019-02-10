@@ -26,9 +26,9 @@ size_t file_length(struct IridiumContext * context, FILE * f, object filename) {
 
 // Instantiate a File with a filename
 iridium_method(File, initialize) {
-  object self = local("self");
-  object filename = local("filename");
-  object mode = local("mode");
+  object self = local(self);
+  object filename = local(filename);
+  object mode = local(mode);
   FILE * f = fopen(C_STRING(context, filename), C_STRING(context, mode));
   send(self, "__set__", L_ATOM(filename), filename);
   send(self, "__set__", L_ATOM(mode), mode);
@@ -57,17 +57,17 @@ char * read_file(struct IridiumContext * context, FILE * f, object filename) {
 }
 
 iridium_method(File, read) {
-  object self = local("self");
+  object self = local(self);
   FILE * f = get_file(context, self);
-  char * buffer = read_file(context, f, local("filename"));
+  char * buffer = read_file(context, f, local(filename));
   return IR_STRING(buffer);
 }
 
 iridium_method(File, write) {
   // The string to write
-  char * str = C_STRING(context, local("str"));
+  char * str = C_STRING(context, local(str));
   size_t len = strlen(str);
-  FILE * f = internal_get_attribute(local("self"), L_ATOM(FILE), FILE *);
+  FILE * f = internal_get_attribute(local(self), L_ATOM(FILE), FILE *);
   size_t written = fwrite(str, sizeof str[0], len, f);
   if (written != len) {
     RAISE(send(CLASS(IOError), "new", IR_STRING("File not in write mode")));
@@ -76,7 +76,7 @@ iridium_method(File, write) {
 }
 
 iridium_method(File, close) {
-  object self = local("self");
+  object self = local(self);
   
   FILE * f = get_file(context, self);
   fclose(f);
@@ -86,9 +86,9 @@ iridium_method(File, close) {
 }
 
 iridium_method(File, each_line) {
-  object self = local("self");
-  object filename = local("filename"); // From self
-  object fn = local("fn");
+  object self = local(self);
+  object filename = local(filename); // From self
+  object fn = local(fn);
   object str = NULL;
   FILE * f = get_file(context, self);
   size_t file_size = file_length(context, f, filename);
@@ -112,8 +112,8 @@ iridium_method(File, each_line) {
 }
 
 iridium_classmethod(File, read) {
-  object self = local("self");
-  object filename = local("filename");
+  object self = local(self);
+  object filename = local(filename);
   object mode = IR_STRING("r");
   // Create a new file object
   object f = send(self, "new", filename, mode);

@@ -2,7 +2,7 @@
 #include "atoms.h"
 
 iridium_method(Queue, initialize) {
-  object self = local("self");
+  object self = local(self);
   struct list * lst = NULL;
   internal_set_attribute(self, L_ATOM(list), lst);
   return NIL;
@@ -16,8 +16,8 @@ iridium_method(Queue, initialize) {
  * => "foo"
  */
 iridium_method(Queue, enqueue) {
-  object self = local("self");
-  object obj = local("obj");
+  object self = local(self);
+  object obj = local(obj);
   struct list * lst = internal_get_attribute(self, L_ATOM(list), struct list *);
   if (lst) {
     list_extend(lst, (void *) obj);
@@ -31,7 +31,7 @@ iridium_method(Queue, enqueue) {
 /* Dequeue an element from the queue, raising an Queue::Empty exception if empty
  */
 iridium_method(Queue, dequeue) {
-  object self = local("self");
+  object self = local(self);
   struct list * lst = internal_get_attribute(self, L_ATOM(list), struct list *);
   object result = NIL;
   object reason = NULL;
@@ -50,7 +50,7 @@ iridium_method(Queue, dequeue) {
 /* Returns the number of elements in the queue
  */
 iridium_method(Queue, length) {
-  object self = local("self");
+  object self = local(self);
   struct list * lst = internal_get_attribute(self, L_ATOM(list), struct list *);
   unsigned int len = list_length(lst);
   return FIXNUM(len);

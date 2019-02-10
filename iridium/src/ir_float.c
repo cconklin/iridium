@@ -13,7 +13,7 @@
  * - val (iridium float)
  */
 iridium_classmethod(Float, new) {
-  object val = local("val"); // Float value
+  object val = local(val); // Float value
   return val; // Since Floats are immutable, we can return the original
 }
 
@@ -60,8 +60,8 @@ double C_DOUBLE(object flt) {
  */
 iridium_method(Float, __plus__) {
   double l, r;
-  object self = local("self"); // Receiver
-  object other = local("other"); // Other float
+  object self = local(self); // Receiver
+  object other = local(other); // Other float
   l = C_DOUBLE(self);
   r = C_DOUBLE(other);
   return IR_FLOAT(l + r);
@@ -78,7 +78,7 @@ iridium_method(Float, __plus__) {
  * - Iridium String
  */
 iridium_method(Float, to_s) {
-  object self = local("self");
+  object self = local(self);
   double val = C_DOUBLE(self);
   char buffer[100];
   char * str = NULL;
@@ -91,7 +91,7 @@ iridium_method(Float, to_s) {
 
 // Hash method for Floats
 iridium_method(Float, hash) {
-  object self = local("self");
+  object self = local(self);
   double dval = C_DOUBLE(self);
   long long int val = *((long long int *) &dval);
   return FIXNUM((val << 19) + (val >> 3));

@@ -246,7 +246,8 @@ object no_instance_attribute(object receiver, void * attribute);
 object set_instance_attribute(object receiver, void * attribute, unsigned char access, object value);
 
 // Locals
-#define local(name) _local(context, locals, ATOM(name))
+#define local(name) _local(context, locals, L_ATOM(name))
+#define s_local(name) _local(context, locals, ATOM(name))
 object _local(struct IridiumContext * context, struct dict * locals, object atm);
 
 #define set_local(name, value) _set_local(locals, ATOM(name), value)

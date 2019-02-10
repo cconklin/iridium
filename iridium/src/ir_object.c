@@ -517,13 +517,13 @@ struct dict * process_args(struct IridiumContext * context, object function, str
 // Output:      obj (new class)
 iridium_classmethod(Class, new) {
   // Receiver
-  object self = local("self");
+  object self = local(self);
   // Superclass
-  object superclass = local("superclass");
+  object superclass = local(superclass);
   // Class name
-  object name = local("name");
+  object name = local(name);
   // Any args for initialize
-  object args = local("args");
+  object args = local(args);
   // Create the class
   object obj = construct(self);
   // Set the superclass (needed for invoke to work)
@@ -546,9 +546,9 @@ iridium_classmethod(Class, new) {
 iridium_method(Class, new) {
 
   // Value of the receiver
-  object self = local("self");
+  object self = local(self);
   // Value of the args
-  object args = local("args"); // array
+  object args = local(args); // array
 
   // Container for the object under construction
   object obj = construct(self);
@@ -566,7 +566,7 @@ iridium_method(Class, new) {
 // Output: Iridium String
 iridium_method(Class, inspect) {
   // Receiver
-  object self = local("self");
+  object self = local(self);
   object str = get_attribute(self, L_ATOM(name), PUBLIC);
   return str;
 }
@@ -576,7 +576,7 @@ iridium_method(Class, inspect) {
 // Object#class
 // Returns an object's class
 iridium_method(Object, class) {
-  object self = local("self");
+  object self = local(self);
   return self -> class;
 }
 
@@ -586,7 +586,7 @@ iridium_method(Object, class) {
 // Output: nil
 iridium_method(Object, puts) {
   int idx = 0;
-  struct array * obj_ary = internal_get_attribute(local("args"), L_ATOM(array), struct array *);
+  struct array * obj_ary = internal_get_attribute(local(args), L_ATOM(array), struct array *);
   object * objs = (object *) obj_ary -> elements;
   int end = obj_ary -> length;
   for (idx = 0; idx < end-1; idx ++) {
@@ -605,7 +605,7 @@ iridium_method(Object, puts) {
 // Output: nil
 iridium_method(Object, write) {
   int idx = 0;
-  struct array * obj_ary = internal_get_attribute(local("args"), L_ATOM(array), struct array *);
+  struct array * obj_ary = internal_get_attribute(local(args), L_ATOM(array), struct array *);
   object * objs = (object *) obj_ary -> elements;
   int end = obj_ary -> length;
   for (idx = 0; idx < end-1; idx ++) {
@@ -624,7 +624,7 @@ iridium_method(Object, gets) {
   char * gets_buffer = NULL;
   char * str_buffer = NULL;
   size_t gets_len;
-  object prompt = local("prompt");
+  object prompt = local(prompt);
   printf("%s", C_STRING(context, prompt));
   getline(&gets_buffer, &gets_len, stdin);
   str_buffer = GC_MALLOC((strlen(gets_buffer))*sizeof(char));
@@ -639,7 +639,7 @@ iridium_method(Object, gets) {
 // Raise an exception
 // Locals used: exc
 iridium_method(Object, raise) {
-  RAISE(local("exc"));
+  RAISE(local(exc));
   // Shouldn't get here
   return NIL;
 }
@@ -647,13 +647,13 @@ iridium_method(Object, raise) {
 // Object#__eq__
 // Returns true if objects are equal, false otherwise
 iridium_method(Object, __eq__) {
-  return (local("self") == local("other")) ? ir_cmp_true : ir_cmp_false;
+  return (local(self) == local(other)) ? ir_cmp_true : ir_cmp_false;
 }
 
 // Object#__neq__
 // Returns true if objects are not equal, false otherwise
 iridium_method(Object, __neq__) {
-  return (local("self") != local("other")) ? ir_cmp_true : ir_cmp_false;
+  return (local(self) != local(other)) ? ir_cmp_true : ir_cmp_false;
 }
 
 
@@ -663,7 +663,7 @@ iridium_method(Object, __neq__) {
 // Output: Iridium String
 iridium_method(Object, inspect) {
   // Receiver
-  object self = local("self");
+  object self = local(self);
   object class_name = get_attribute(self->class, L_ATOM(name), PUBLIC);
   char buffer[1000];
   char * c_str = NULL;
@@ -681,7 +681,7 @@ iridium_method(Object, inspect) {
 // Output: Iridium String
 iridium_method(Object, to_s) {
   // Receiver
-  object self = local("self");
+  object self = local(self);
   return send(self, "inspect");
 }
 
@@ -699,13 +699,13 @@ iridium_method(Object, to_s) {
 iridium_method(Object, __get__) {
 
   // Value of the receiver
-  object self = local("self");
+  object self = local(self);
 
   // Dictionary of attribute locals, if attribute is a function
   struct dict * vars = NULL;
 
   // Grab the key from the locals
-  object name = local("name");
+  object name = local(name);
 
   // Look for the attribute
   object attribute = get_attribute(self, name, PUBLIC);
@@ -736,8 +736,8 @@ iridium_method(Object, __get__) {
 // Inputs:  self, attr (atom)
 // Outputs: Boolean
 iridium_method(Object, has_attribute) {
-  object self = local("self");
-  object attr = local("attr");
+  object self = local(self);
+  object attr = local(attr);
   object attribute = get_attribute(self, attr, PUBLIC);
   return (attribute == NULL) ? ir_cmp_false : ir_cmp_true;
 }
@@ -758,13 +758,13 @@ iridium_method(Object, has_attribute) {
 iridium_method(Object, __set__) {
 
   // Value of the receiver
-  object self = local("self");
+  object self = local(self);
 
   // Grab the key from the argument array
-  object name = local("name");
+  object name = local(name);
 
   // Get the attribute from the argument array
-  object value = local("value");
+  object value = local(value);
 
   // Set the attribute on the object as a public attribute
   set_attribute(self, name, PUBLIC, value);
@@ -794,11 +794,11 @@ iridium_method(Object, initialize) {
 // Output:      obj (new module)
 iridium_classmethod(Module, new) {
   // Receiver
-  object self = local("self");
+  object self = local(self);
   // Module name
-  object name = local("name");
+  object name = local(name);
   // Any args for initialize
-  object args = local("args");
+  object args = local(args);
   // Create the module
   object obj = construct(self);
   // Set the name
@@ -810,8 +810,8 @@ iridium_classmethod(Module, new) {
 }
 
 iridium_method(Module, include) {
-  object self = local("self");
-  object mod = local("module");
+  object self = local(self);
+  object mod = local(module);
   if (mod -> class != CLASS(Module)) {
     // Not including a module -- bad!
     object reason = send(mod, "to_s");
@@ -824,9 +824,9 @@ iridium_method(Module, include) {
 }
 
 iridium_method(Module, define_method) {
-  object self = local("self");
-  object name = local("name");
-  object method = local("fn");
+  object self = local(self);
+  object name = local(name);
+  object method = local(fn);
   object name_reason = send(name, "inspect");
   name_reason = send(name_reason, "__add__", IR_STRING(" is not an atom"));
   object fn_reason = send(method, "inspect");
@@ -850,9 +850,9 @@ iridium_method(Function, __call__) {
   // Locals to be passed to the C function
   struct dict * bindings = NULL;
   // Value of the receiver
-  object self = local("self");
+  object self = local(self);
   // Get args to be passed to function
-  object args = local("args"); // array
+  object args = local(args); // array
 
   object result = NULL;
 
@@ -919,7 +919,7 @@ object FUNCTION(object name, struct list * args, struct dict * bindings, object 
 }
 
 iridium_method(Function, inspect) {
-  object self = local("self");
+  object self = local(self);
   char buffer[100];
   char * name = function_name(context, self);
   sprintf(buffer, "#<Function %s:%p>", name, self);
@@ -940,7 +940,7 @@ void * ATOM_TABLE_KEY = NULL;
 iridium_classmethod(Atom, new) {
   object atom = NULL;
   // Get the name of the atom
-  object name = local("name");
+  object name = local(name);
   struct array * args = array_new();
 
   // Create the atom
@@ -1030,7 +1030,7 @@ object ATOM(char * name) {
 }
 
 iridium_method(Atom, inspect) {
-  object self = local("self");
+  object self = local(self);
   char buffer[100];
   sprintf(buffer, ":%s", internal_get_attribute(self, L_ATOM(string), char *));
   char * str = GC_MALLOC((strlen(buffer + 1) * sizeof(char)));
@@ -1040,7 +1040,7 @@ iridium_method(Atom, inspect) {
 }
 
 iridium_method(Atom, to_s) {
-  object self = local("self");
+  object self = local(self);
   char * buffer = internal_get_attribute(self, L_ATOM(string), char *);
   char * str = GC_MALLOC((strlen(buffer + 1) * sizeof(char)));
   assert(str);
@@ -1057,7 +1057,7 @@ object ARRAY(struct array * values) {
 }
 
 iridium_classmethod(Array, new) {
-  object args = local("args");
+  object args = local(args);
   object array = ARRAY(destructure(context, array_new(), args));
   // Call initialize (which should do nothing unless overidden)
   invoke(context, array, "initialize", destructure(context, array_new(), args));
@@ -1066,9 +1066,9 @@ iridium_classmethod(Array, new) {
 
 // method reduce(accumulator, fn)
 iridium_method(Array, reduce) {
-  object self = local("self");
-  object accumulator = local("accumulator");
-  object fn = local("fn");
+  object self = local(self);
+  object accumulator = local(accumulator);
+  object fn = local(fn);
   object element = NULL;
   // Get a duplicate of the internal array
   struct array * ary = array_copy(internal_get_attribute(self, L_ATOM(array), struct array *));
@@ -1084,8 +1084,8 @@ iridium_method(Array, reduce) {
 }
 
 iridium_method(Array, __get_index__) {
-  object self = local("self");
-  object index = local("index"); // Iridium Integer
+  object self = local(self);
+  object index = local(index); // Iridium Integer
   struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
   object result = array_get(ary, INT(index));
   if (result) {
@@ -1096,16 +1096,16 @@ iridium_method(Array, __get_index__) {
 }
 
 iridium_method(Array, __set_index__) {
-  object self = local("self");
-  object index = local("index"); // Iridium Integer
-  object value = local("value");
+  object self = local(self);
+  object index = local(index); // Iridium Integer
+  object value = local(value);
   struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
   array_set(ary, INT(index), value);
   return value;
 }
 
 iridium_method(Array, inspect) {
-  object self = local("self");
+  object self = local(self);
   struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
   unsigned int idx, sidx;
   unsigned int strsize = 0;
@@ -1141,16 +1141,16 @@ iridium_method(Array, inspect) {
 }
 
 iridium_method(Array, push) {
-  object self = local("self");
-  object value = local("value");
+  object self = local(self);
+  object value = local(value);
   struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
   array_push(ary, value);
   return self;
 }
 
 iridium_method(Array, unshift) {
-  object self = local("self");
-  object value = local("value");
+  object self = local(self);
+  object value = local(value);
   struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
   ary = array_unshift(ary, value);
   internal_set_attribute(self, L_ATOM(array), ary);
@@ -1170,14 +1170,14 @@ iridium_classmethod(false, inspect) {
 // Class AttributeError
 
 iridium_method(AttributeError, initialize) {
-    object self = local("self");
-    object message = local("message");
+    object self = local(self);
+    object message = local(message);
     send(self, "__set__", L_ATOM(message), message);
     return NIL;
 }
 
 iridium_method(AttributeError, reason) {
-    object self = local("self");
+    object self = local(self);
     object message = send(self, "__get__", L_ATOM(message));
     return message;
 }
@@ -1185,25 +1185,25 @@ iridium_method(AttributeError, reason) {
 // class Integer
 
 iridium_classmethod(Integer, new) {
-  object fixnum = local("fixnum");
+  object fixnum = local(fixnum);
   return fixnum;
 }
 
 iridium_method(Integer, __add__) {
-  object self = local("self");
-  object other = local("other");
+  object self = local(self);
+  object other = local(other);
   return FIXNUM(INT(self) + INT(other));
 }
 
 iridium_method(Integer, __sub__) {
-  object self = local("self");
-  object other = local("other");
+  object self = local(self);
+  object other = local(other);
   return FIXNUM(INT(self) - INT(other));
 }
 
 iridium_method(Integer, __eq__) {
-  object self = local("self");
-  object other = local("other");
+  object self = local(self);
+  object other = local(other);
   if (self -> class != other -> class) {
     return ir_cmp_false;
   } else if (INT(self) == INT(other)) {
@@ -1214,8 +1214,8 @@ iridium_method(Integer, __eq__) {
 }
 
 iridium_method(Integer, __lt__) {
-  object self = local("self");
-  object other = local("other");
+  object self = local(self);
+  object other = local(other);
   if (self -> class != other -> class) {
     return ir_cmp_false;
   } else if (INT(self) < INT(other)) {
@@ -1226,8 +1226,8 @@ iridium_method(Integer, __lt__) {
 }
 
 iridium_method(Integer, __gt__) {
-  object self = local("self");
-  object other = local("other");
+  object self = local(self);
+  object other = local(other);
   if (self -> class != other -> class) {
     return ir_cmp_false;
   } else if (INT(self) > INT(other)) {
@@ -1238,8 +1238,8 @@ iridium_method(Integer, __gt__) {
 }
 
 iridium_method(Integer, __leq__) {
-  object self = local("self");
-  object other = local("other");
+  object self = local(self);
+  object other = local(other);
   if (self -> class != other -> class) {
     return ir_cmp_false;
   } else if (INT(self) <= INT(other)) {
@@ -1250,8 +1250,8 @@ iridium_method(Integer, __leq__) {
 }
 
 iridium_method(Integer, __geq__) {
-  object self = local("self");
-  object other = local("other");
+  object self = local(self);
+  object other = local(other);
   if (self -> class != other -> class) {
     return ir_cmp_false;
   } else if (INT(self) >= INT(other)) {
@@ -1262,8 +1262,8 @@ iridium_method(Integer, __geq__) {
 }
 
 iridium_method(Integer, __neq__) {
-  object self = local("self");
-  object other = local("other");
+  object self = local(self);
+  object other = local(other);
   if (send(self, "__eq__", other) == ir_cmp_false) {
     return ir_cmp_true;
   } else {
@@ -1284,7 +1284,7 @@ int INT(object fixnum) {
 }
 
 iridium_method(Integer, inspect) {
-  object self = local("self");
+  object self = local(self);
   int val = INT(self);
   char buffer[30];
   sprintf(buffer, "%d", val);
@@ -1314,7 +1314,7 @@ char * C_STRING(struct IridiumContext * context, object str) {
 // String#to_s
 // Returns a copy of the same string
 iridium_method(String, to_s) {
-  object self = local("self");
+  object self = local(self);
   char * str = C_STRING(context, self);
   unsigned int l = strlen(str);
   char * str_copy = GC_MALLOC((l+1)*sizeof(char));
@@ -1325,7 +1325,7 @@ iridium_method(String, to_s) {
 // String#inspect
 // Returns a copy of the same string with quotes
 iridium_method(String, inspect) {
-  object self = local("self");
+  object self = local(self);
   char * str = C_STRING(context, self);
   unsigned int l = strlen(str);
   char * str_copy = GC_MALLOC((l+3)*sizeof(char));
@@ -1354,7 +1354,7 @@ iridium_method(NilClass, inspect) {
 
 // exit()
 iridium_method(Object, exit) {
-  object code = local("exitstatus");
+  object code = local(exitstatus);
   exit(INT(code));
   return NIL;
 }
@@ -1489,12 +1489,12 @@ void IR_PUTS(struct IridiumContext * context, object obj) {
 
 // Hash method for objects
 iridium_method(Object, hash) {
-  return FIXNUM((long long int) local("self"));
+  return FIXNUM((long long int) local(self));
 }
 
 // Hash method for Integers
 iridium_method(Integer, hash) {
-  object self = local("self");
+  object self = local(self);
   long long int val = INT(self);
   return FIXNUM((val << 19) + (val >> 3));
 }

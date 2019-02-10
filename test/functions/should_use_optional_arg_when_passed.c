@@ -3,8 +3,8 @@
 #include "setup.h"
 
 iridium_method(Test, func_required_and_optional) {
-  assertEqual(local("a"), ATOM("a")); // required
-  assertEqual(local("b"), ATOM("b")); // optional
+  assertEqual(s_local("a"), ATOM("a")); // required
+  assertEqual(s_local("b"), ATOM("b")); // optional
   return NIL;
 }
 

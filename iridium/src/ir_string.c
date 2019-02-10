@@ -3,8 +3,8 @@
 
 iridium_method(String, __add__)
 {
-    object self = local("self");
-    object other = local("other");
+    object self = local(self);
+    object other = local(other);
     char * self_str = C_STRING(context, self);
     char * other_str = C_STRING(context, other);
     if (!other_str) // If +other+ is a stringy type, it won't be NULL
@@ -24,8 +24,8 @@ iridium_method(String, __add__)
 
 iridium_method(String, __eq__)
 {
-    object self = local("self");
-    object other = local("other");
+    object self = local(self);
+    object other = local(other);
     if (self -> class != other -> class) {
       // Both had better be strings
       return ir_cmp_false;
@@ -38,7 +38,7 @@ iridium_method(String, __eq__)
 
 // Hash method for strings
 iridium_method(String, hash) {
-  object self = local("self");
+  object self = local(self);
   unsigned long hash = 5381;
   int c;
   char * str = C_STRING(context, self);

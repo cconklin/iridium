@@ -21,7 +21,7 @@ void IR_INIT(struct IridiumContext * context) {
 }
 
 iridium_classmethod(ir_main, to_s) {
-    object self = local("self");
+    object self = local(self);
     char buffer[100];
     sprintf(buffer, "#<Object(main):%p>", self);
     char * c_str = GC_MALLOC((strlen(buffer) + 1) * sizeof(char));
