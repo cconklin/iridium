@@ -776,11 +776,11 @@ describe Parser do
   end
 
   it "should allow regex literals" do
-    expect(parser.parse("/fo.+/")).to eq([[:regex, "fo.+"]])
+    expect(parser.parse("r/fo.+/")).to eq([[:regex, "fo.+"]])
   end
 
   it "should allow escaping in regex literals" do
-    expect(parser.parse('/(foo\/\))/')).to eq([[:regex, '(foo/\))']])
+    expect(parser.parse('r/(foo\/\))/')).to eq([[:regex, '(foo/\))']])
   end
 
   describe "simple programs" do
