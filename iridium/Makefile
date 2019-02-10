@@ -37,8 +37,9 @@ $(OBJECTS)/core.o: $(IR)
 	ircc -o $@ -c src/core.ir --main=IR_CORE_INIT --no-extra-atoms
 
 clean:
+	@echo "  CLEAN " $(OBJECTS)
 	rm -rf $(OBJECTS)
 
 .PHONY: all atomgen iridium
-.SILENT: $(OBJS) $(OBJECTS)/iridium.o $(OBJECTS)/core.o atomgen
+.SILENT: $(OBJS) $(OBJECTS)/iridium.o $(OBJECTS)/core.o atomgen clean
 
