@@ -3,7 +3,7 @@
 #include "setup.h"
 
 iridium_method(Test, func_required_and_splat) {
-  struct array * tuple_args = internal_get_attribute(s_local("args"), ATOM("array"), struct array *);
+  struct array * tuple_args = (struct array *) s_local("args")->immediate.ptr;
   assertEqual(s_local("a"), ATOM("a")); // required
   assertEqual(array_get(tuple_args, 0), ATOM("b")); // splat
   return NIL;

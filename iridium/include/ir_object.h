@@ -45,6 +45,12 @@ typedef struct IridiumObject {
   unsigned long long int magic;
   // Pointer to the class description (is also an Iridium Object)
   struct IridiumObject * class;
+  // Immediate value for fast access
+  union {
+    void * ptr;
+    double flt;
+    long long int integral;
+  } immediate;
   // Dictionary of attributes
   struct dict * attributes;
   // Dictionary of internal attributes (hidden from an Iridium program)
@@ -184,7 +190,6 @@ void handleException(struct IridiumContext *, object);
 
 #define RAISE(exc) handleException(context, exc)
 
-char * str(object);
 struct array * destructure(struct IridiumContext *, struct array *, object);
 struct dict * process_args(struct IridiumContext *, object, struct array *);
 

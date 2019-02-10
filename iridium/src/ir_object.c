@@ -386,14 +386,9 @@ object calls(struct IridiumContext * context, object callable, struct array * ar
   return func(context, bindings);
 }
 
-// Converts iridium strings to C strings
-char * str(object string) {
-  return internal_get_attribute(string, L_ATOM(string), char *);
-}
-
 // Destructures arrays into struct array *
 struct array * destructure(struct IridiumContext * context, struct array * args, object argument_array) {
-  struct array * array_args = internal_get_attribute(argument_array, L_ATOM(array), struct array *);
+  struct array * array_args = (struct array *) argument_array->immediate.ptr;
   object reason = NULL;
   if (array_args == NULL) {
     // Not actually an array...
@@ -586,7 +581,7 @@ iridium_method(Object, class) {
 // Output: nil
 iridium_method(Object, puts) {
   int idx = 0;
-  struct array * obj_ary = internal_get_attribute(local(args), L_ATOM(array), struct array *);
+  struct array * obj_ary = (struct array *) local(args)->immediate.ptr;
   object * objs = (object *) obj_ary -> elements;
   int end = obj_ary -> length;
   for (idx = 0; idx < end-1; idx ++) {
@@ -605,7 +600,7 @@ iridium_method(Object, puts) {
 // Output: nil
 iridium_method(Object, write) {
   int idx = 0;
-  struct array * obj_ary = internal_get_attribute(local(args), L_ATOM(array), struct array *);
+  struct array * obj_ary = (struct array *) local(args)->immediate.ptr;
   object * objs = (object *) obj_ary -> elements;
   int end = obj_ary -> length;
   for (idx = 0; idx < end-1; idx ++) {
@@ -944,8 +939,7 @@ iridium_classmethod(Atom, new) {
   struct array * args = array_new();
 
   // Create the atom
-  // TODO define str which converts Iridium strings to C strings
-  atom = ATOM(str(name));
+  atom = ATOM(C_STRING(context, name));
 
   array_set(args, 0, name);
   // Initialize the atom (unless overloaded in an Iridium Program, will default to doing nothing at all)
@@ -1052,7 +1046,7 @@ iridium_method(Atom, to_s) {
 
 object ARRAY(struct array * values) {
   object array = construct(CLASS(Array));
-  internal_set_attribute(array, L_ATOM(array), values);
+  array->immediate.ptr = values;
   return array;
 }
 
@@ -1071,7 +1065,7 @@ iridium_method(Array, reduce) {
   object fn = local(fn);
   object element = NULL;
   // Get a duplicate of the internal array
-  struct array * ary = array_copy(internal_get_attribute(self, L_ATOM(array), struct array *));
+  struct array * ary = array_copy((struct array *) self->immediate.ptr);
   struct array * args = NULL;
   while (ary -> length) {
     element = array_shift(ary);
@@ -1086,7 +1080,7 @@ iridium_method(Array, reduce) {
 iridium_method(Array, __get_index__) {
   object self = local(self);
   object index = local(index); // Iridium Integer
-  struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
+  struct array * ary = (struct array *) self->immediate.ptr;
   object result = array_get(ary, INT(index));
   if (result) {
     return result;
@@ -1099,14 +1093,14 @@ iridium_method(Array, __set_index__) {
   object self = local(self);
   object index = local(index); // Iridium Integer
   object value = local(value);
-  struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
+  struct array * ary = (struct array *) self->immediate.ptr;
   array_set(ary, INT(index), value);
   return value;
 }
 
 iridium_method(Array, inspect) {
   object self = local(self);
-  struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
+  struct array * ary = (struct array *) self->immediate.ptr;
   unsigned int idx, sidx;
   unsigned int strsize = 0;
   unsigned ary_len = (ary->length - ary->start);
@@ -1143,7 +1137,7 @@ iridium_method(Array, inspect) {
 iridium_method(Array, push) {
   object self = local(self);
   object value = local(value);
-  struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
+  struct array * ary = (struct array *) self->immediate.ptr;
   array_push(ary, value);
   return self;
 }
@@ -1151,9 +1145,9 @@ iridium_method(Array, push) {
 iridium_method(Array, unshift) {
   object self = local(self);
   object value = local(value);
-  struct array * ary = internal_get_attribute(self, L_ATOM(array), struct array *);
+  struct array * ary = (struct array *) self->immediate.ptr;
   ary = array_unshift(ary, value);
-  internal_set_attribute(self, L_ATOM(array), ary);
+  self->immediate.ptr = ary;
   return self;
 }
 
@@ -1274,13 +1268,12 @@ iridium_method(Integer, __neq__) {
 
 object FIXNUM(int val) {
   object fixnum = construct(CLASS(Integer));
-
-  internal_set_integral(fixnum, L_ATOM(value), val);
+  fixnum->immediate.integral = val;
   return fixnum;
 }
 
 int INT(object fixnum) {
-  return internal_get_integral(fixnum, L_ATOM(value), int);
+  return (int) fixnum->immediate.integral;
 }
 
 iridium_method(Integer, inspect) {
@@ -1297,7 +1290,7 @@ iridium_method(Integer, inspect) {
 
 object IR_STRING(char * c_str) {
   object str = construct(CLASS(String));
-  internal_set_attribute(str, L_ATOM(str), c_str);
+  str->immediate.ptr = c_str;
   return str;
 }
 
@@ -1308,7 +1301,7 @@ char * C_STRING(struct IridiumContext * context, object str) {
     reason = send(reason, "__add__", IR_STRING(" is not a string object"));
     RAISE(send(CLASS(TypeError), "new", reason));
   }
-  return internal_get_attribute(str, L_ATOM(str), char *);
+  return (char *) str->immediate.ptr;
 }
 
 // String#to_s
