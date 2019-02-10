@@ -867,7 +867,7 @@ iridium_method(Function, __call__) {
   int was_tracing = context->trace;
   if (was_tracing) {
     context->trace = 0;
-    stack_push(context->stacktrace, function_name(context, self));
+    stack_push(context->stacktrace, self);
     context->trace = 1;
   }
 
@@ -1531,8 +1531,9 @@ void display_stacktrace(struct IridiumContext * context, object exception) {
   char * reason = C_STRING(context, ((struct IridiumAttribute*)dict_get(exception->attributes, L_ATOM(message)))->value); // C_STRING(send(send(exception, "reason"), "to_s"));
   if (trace) {
     while(!stack_empty(trace)) {
-      stack_push(rtrace, stack_pop(trace));
+      stack_push(rtrace, function_name(context, stack_pop(trace)));
     }
+    stack_push(rtrace, "<main>");
     printf("Trace (most recent call last):\n");
     while (!stack_empty(rtrace)) {
       char * elem = stack_pop(rtrace);
@@ -1543,8 +1544,6 @@ void display_stacktrace(struct IridiumContext * context, object exception) {
 }
 
 void IR_early_init_Object(struct IridiumContext * context) {
-  stack_push(context -> stacktrace, "<main>");
-
   // Create class
   CLASS(Class) = construct(CLASS(Class));
   CLASS(Class) -> class = CLASS(Class);
